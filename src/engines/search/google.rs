@@ -2,12 +2,12 @@ use reqwest::Url;
 use scraper::{ElementRef, Selector};
 
 use crate::{
-    engines::EngineResponse,
+    engines::{EngineResponse, CLIENT},
     parse::{parse_html_response_with_opts, ParseOpts, QueryMethod},
 };
 
-pub fn request(client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder {
-    client
+pub fn request(query: &str) -> reqwest::RequestBuilder {
+    CLIENT
         .get(
             Url::parse_with_params(
                 "https://www.google.com/search",
@@ -47,8 +47,8 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     )
 }
 
-pub fn request_autocomplete(client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder {
-    client
+pub fn request_autocomplete(query: &str) -> reqwest::RequestBuilder {
+    CLIENT
         .get(
             Url::parse_with_params(
                 "https://suggestqueries.google.com/complete/search",

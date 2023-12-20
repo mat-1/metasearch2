@@ -55,14 +55,14 @@ impl Engine {
         }
     }
 
-    pub fn request(&self, client: &reqwest::Client, query: &SearchQuery) -> RequestResponse {
+    pub fn request(&self, query: &SearchQuery) -> RequestResponse {
         match self {
-            Engine::Google => search::google::request(client, query).into(),
-            Engine::Bing => search::bing::request(client, query).into(),
-            Engine::Brave => search::brave::request(client, query).into(),
-            Engine::Useragent => answer::useragent::request(client, query).into(),
-            Engine::Ip => answer::ip::request(client, query).into(),
-            Engine::Calc => answer::calc::request(client, query).into(),
+            Engine::Google => search::google::request(query).into(),
+            Engine::Bing => search::bing::request(query).into(),
+            Engine::Brave => search::brave::request(query).into(),
+            Engine::Useragent => answer::useragent::request(query).into(),
+            Engine::Ip => answer::ip::request(query).into(),
+            Engine::Calc => answer::calc::request(query).into(),
         }
     }
 
@@ -75,14 +75,10 @@ impl Engine {
         }
     }
 
-    pub fn request_autocomplete(
-        &self,
-        client: &reqwest::Client,
-        query: &str,
-    ) -> Option<RequestAutocompleteResponse> {
+    pub fn request_autocomplete(&self, query: &str) -> Option<RequestAutocompleteResponse> {
         match self {
-            Engine::Google => Some(search::google::request_autocomplete(client, query).into()),
-            Engine::Calc => Some(answer::calc::request_autocomplete(client, query).into()),
+            Engine::Google => Some(search::google::request_autocomplete(query).into()),
+            Engine::Calc => Some(answer::calc::request_autocomplete(query).into()),
             _ => None,
         }
     }
@@ -198,8 +194,7 @@ impl ProgressUpdate {
     }
 }
 
-pub async fn search_with_client_and_engines(
-    client: &reqwest::Client,
+pub async fn search_with_engines(
     engines: &[Engine],
     query: &SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
@@ -211,7 +206,7 @@ pub async fn search_with_client_and_engines(
         requests.push(async {
             let engine = *engine;
 
-            let request_response = engine.request(client, query).into();
+            let request_response = engine.request(query).into();
 
             let response = match request_response {
                 RequestResponse::Http(request) => {
@@ -266,14 +261,13 @@ pub async fn search_with_client_and_engines(
     Ok(merge_engine_responses(responses))
 }
 
-pub async fn autocomplete_with_client_and_engines(
-    client: &reqwest::Client,
+pub async fn autocomplete_with_engines(
     engines: &[Engine],
     query: &str,
 ) -> eyre::Result<Vec<String>> {
     let mut requests = Vec::new();
     for engine in engines {
-        if let Some(request) = engine.request_autocomplete(client, query) {
+        if let Some(request) = engine.request_autocomplete(query) {
             requests.push(async {
                 let response = match request {
                     RequestAutocompleteResponse::Http(request) => {
@@ -300,19 +294,19 @@ pub async fn autocomplete_with_client_and_engines(
     Ok(merge_autocomplete_responses(autocomplete_results))
 }
 
-static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| reqwest::Client::new());
+pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| reqwest::Client::new());
 
 pub async fn search(
     query: SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
 ) -> eyre::Result<Response> {
     let engines = Engine::all();
-    search_with_client_and_engines(&CLIENT, &engines, &query, progress_tx).await
+    search_with_engines(&engines, &query, progress_tx).await
 }
 
 pub async fn autocomplete(query: &str) -> eyre::Result<Vec<String>> {
     let engines = Engine::all();
-    autocomplete_with_client_and_engines(&CLIENT, &engines, query).await
+    autocomplete_with_engines(&engines, query).await
 }
 
 #[derive(Debug)]

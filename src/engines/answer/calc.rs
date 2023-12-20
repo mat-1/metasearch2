@@ -1,6 +1,6 @@
 use crate::engines::{EngineResponse, SearchQuery};
 
-pub fn request(_client: &reqwest::Client, query: &SearchQuery) -> EngineResponse {
+pub fn request(query: &SearchQuery) -> EngineResponse {
     let query = query.query.as_str();
 
     let Some(result_html) = evaluate(query, true) else {
@@ -14,11 +14,11 @@ pub fn request(_client: &reqwest::Client, query: &SearchQuery) -> EngineResponse
     ))
 }
 
-pub fn request_autocomplete(_client: &reqwest::Client, query: &str) -> Vec<String> {
+pub fn request_autocomplete(query: &str) -> Vec<String> {
     let mut results = Vec::new();
 
     if let Some(result) = evaluate(query, false) {
-        results.push(format!("{query} = {result}"));
+        results.push(format!("{query}={result}"));
     }
 
     return results;

@@ -1,12 +1,12 @@
 use reqwest::Url;
 
 use crate::{
-    engines::EngineResponse,
+    engines::{EngineResponse, CLIENT},
     parse::{parse_html_response_with_opts, ParseOpts},
 };
 
-pub fn request(client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder {
-    client
+pub fn request(query: &str) -> reqwest::RequestBuilder {
+    CLIENT
         .get(Url::parse_with_params("https://search.brave.com/search", &[("q", query)]).unwrap())
         .header(
             "User-Agent",
