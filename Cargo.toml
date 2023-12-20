@@ -1,0 +1,24 @@
+[package]
+name = "metasearch2"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+async-stream = "0.3.5"
+axum = { version = "0.7.2", features = ["http2"] }
+base64 = "0.21.5"
+bytes = "1.5.0"
+eyre = "0.6.11"
+futures = "0.3.29"
+html-escape = "0.2.13"
+reqwest = { version = "0.11.23", default-features = false, features = [
+    "rustls-tls",
+] }
+scraper = "0.18.1"
+tokio = { version = "1.35.0", features = ["full"] }
+tokio-stream = "0.1.14"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+url = "2.5.0"
