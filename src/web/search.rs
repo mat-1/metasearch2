@@ -22,6 +22,7 @@ fn render_beginning_of_html(query: &str) -> String {
     <title>{} - metasearch</title>
     <link rel="stylesheet" href="/style.css">
     <script src="/script.js" defer></script>
+    <link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml"/>
 </head>
 <body>
     <main>
@@ -149,6 +150,7 @@ pub async fn route(
     let query = SearchQuery {
         query,
         request_headers: headers
+            .clone()
             .into_iter()
             .map(|(k, v)| {
                 (
@@ -157,7 +159,12 @@ pub async fn route(
                 )
             })
             .collect(),
-        ip: addr.ip().to_string(),
+        ip: headers
+            // this could be exploited under some setups, but the ip is only used for the
+            // "what is my ip" answer so it doesn't really matter
+            .get("x-forwarded-for")
+            .map(|ip| ip.to_str().unwrap_or_default().to_string())
+            .unwrap_or_else(|| addr.ip().to_string()),
     };
 
     let s = stream! {

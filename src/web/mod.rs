@@ -1,4 +1,5 @@
 pub mod autocomplete;
+pub mod opensearch;
 pub mod search;
 
 use std::net::SocketAddr;
@@ -36,6 +37,7 @@ pub async fn run() {
                 )
             }),
         )
+        .route("/opensearch.xml", get(opensearch::route))
         .route("/search", get(search::route))
         .route("/autocomplete", get(autocomplete::route));
 
