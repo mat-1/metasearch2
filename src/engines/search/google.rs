@@ -27,7 +27,9 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     parse_html_response_with_opts(
         body,
         ParseOpts::new()
-            .result("div.g, div.xpd")
+            // xpd is weird, some results have it but it's usually used for ads?
+            // the :first-child filters out the ads though since for ads the first child is always a span
+            .result("div.g > div, div.xpd > div:first-child")
             .title("h3")
             .href("a[href]")
             .description("div[data-sncf], div[style='-webkit-line-clamp:2']")

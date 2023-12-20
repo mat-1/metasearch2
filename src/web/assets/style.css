@@ -97,13 +97,6 @@ h1 {
   margin-bottom: 1rem;
 }
 
-/* answer */
-.answer {
-  margin-bottom: 1rem;
-  border: 1px solid #234;
-  padding: 0.5rem;
-}
-
 /* progress update */
 .progress-updates {
   margin-bottom: 1rem;
@@ -121,4 +114,26 @@ h1 {
 .progress-update-done {
   color: #7fd962;
   font-weight: bold;
+}
+
+/* answer */
+.answer {
+  margin-bottom: 1rem;
+  border: 1px solid #234;
+  padding: 0.5rem;
+}
+.answer h3 {
+  margin: 0;
+  font-weight: normal;
+  font-size: 1.2rem;
+}
+
+/* styles for specific answers */
+.answer-calc-query {
+  margin: 0;
+  opacity: 0.5;
+}
+.answer-calc-constant {
+  color: #d2a6ff;
+  white-space: pre;
 }

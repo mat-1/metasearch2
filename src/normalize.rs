@@ -6,7 +6,10 @@ pub fn normalize_url(url: &str) -> eyre::Result<String> {
         return Ok(String::new());
     }
 
-    let mut url = Url::parse(url)?;
+    let Ok(mut url) = Url::parse(url) else {
+        eprintln!("failed to parse url: {url}");
+        return Ok(url.to_string());
+    };
 
     // make sure the scheme is https
     if url.scheme() == "http" {
@@ -22,11 +25,12 @@ pub fn normalize_url(url: &str) -> eyre::Result<String> {
         url.set_path(path);
     }
 
-    // remove ref_src tracking param
+    // remove tracking params
     let query_pairs = url.query_pairs().into_owned();
     let mut new_query_pairs = Vec::new();
+    const TRACKING_PARAMS: &[&str] = &["ref_src", "_sm_au_"];
     for (key, value) in query_pairs {
-        if key != "ref_src" {
+        if !TRACKING_PARAMS.contains(&key.as_str()) {
             new_query_pairs.push((key, value));
         }
     }

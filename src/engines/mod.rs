@@ -8,8 +8,6 @@ use std::{
 use futures::future::join_all;
 use tokio::sync::mpsc;
 
-use self::search::{bing, brave, google};
-
 pub mod answer;
 pub mod search;
 
@@ -22,6 +20,7 @@ pub enum Engine {
     // answer
     Useragent,
     Ip,
+    Calc,
 }
 
 impl Engine {
@@ -32,6 +31,7 @@ impl Engine {
             Engine::Brave,
             Engine::Useragent,
             Engine::Ip,
+            Engine::Calc,
         ]
     }
 
@@ -42,6 +42,7 @@ impl Engine {
             Engine::Brave => "brave",
             Engine::Useragent => "useragent",
             Engine::Ip => "ip",
+            Engine::Calc => "calc",
         }
     }
 
@@ -56,19 +57,20 @@ impl Engine {
 
     pub fn request(&self, client: &reqwest::Client, query: &SearchQuery) -> RequestResponse {
         match self {
-            Engine::Google => google::request(client, query).into(),
-            Engine::Bing => bing::request(client, query).into(),
+            Engine::Google => search::google::request(client, query).into(),
+            Engine::Bing => search::bing::request(client, query).into(),
             Engine::Brave => search::brave::request(client, query).into(),
             Engine::Useragent => answer::useragent::request(client, query).into(),
             Engine::Ip => answer::ip::request(client, query).into(),
+            Engine::Calc => answer::calc::request(client, query).into(),
         }
     }
 
     pub fn parse_response(&self, body: &str) -> eyre::Result<EngineResponse> {
         match self {
-            Engine::Google => google::parse_response(body),
-            Engine::Bing => bing::parse_response(body),
-            Engine::Brave => brave::parse_response(body),
+            Engine::Google => search::google::parse_response(body),
+            Engine::Bing => search::bing::parse_response(body),
+            Engine::Brave => search::brave::parse_response(body),
             _ => eyre::bail!("engine {self:?} can't parse response"),
         }
     }
@@ -77,17 +79,18 @@ impl Engine {
         &self,
         client: &reqwest::Client,
         query: &str,
-    ) -> Option<reqwest::RequestBuilder> {
+    ) -> Option<RequestAutocompleteResponse> {
         match self {
-            Engine::Google => Some(google::request_autocomplete(client, query)),
+            Engine::Google => Some(search::google::request_autocomplete(client, query).into()),
+            Engine::Calc => Some(answer::calc::request_autocomplete(client, query).into()),
             _ => None,
         }
     }
 
     pub fn parse_autocomplete_response(&self, body: &str) -> eyre::Result<Vec<String>> {
         match self {
-            Engine::Google => google::parse_autocomplete_response(body),
-            _ => Ok(Vec::new()),
+            Engine::Google => search::google::parse_autocomplete_response(body),
+            _ => eyre::bail!("engine {self:?} can't parse autocomplete response"),
         }
     }
 }
@@ -110,7 +113,6 @@ pub enum RequestResponse {
     Http(reqwest::RequestBuilder),
     Instant(EngineResponse),
 }
-
 impl From<reqwest::RequestBuilder> for RequestResponse {
     fn from(req: reqwest::RequestBuilder) -> Self {
         Self::Http(req)
@@ -118,6 +120,21 @@ impl From<reqwest::RequestBuilder> for RequestResponse {
 }
 impl From<EngineResponse> for RequestResponse {
     fn from(res: EngineResponse) -> Self {
+        Self::Instant(res)
+    }
+}
+
+pub enum RequestAutocompleteResponse {
+    Http(reqwest::RequestBuilder),
+    Instant(Vec<String>),
+}
+impl From<reqwest::RequestBuilder> for RequestAutocompleteResponse {
+    fn from(req: reqwest::RequestBuilder) -> Self {
+        Self::Http(req)
+    }
+}
+impl From<Vec<String>> for RequestAutocompleteResponse {
+    fn from(res: Vec<String>) -> Self {
         Self::Instant(res)
     }
 }
@@ -258,9 +275,14 @@ pub async fn autocomplete_with_client_and_engines(
     for engine in engines {
         if let Some(request) = engine.request_autocomplete(client, query) {
             requests.push(async {
-                let res = request.send().await?;
-                let body = res.text().await?;
-                let response = engine.parse_autocomplete_response(&body)?;
+                let response = match request {
+                    RequestAutocompleteResponse::Http(request) => {
+                        let res = request.send().await?;
+                        let body = res.text().await?;
+                        engine.parse_autocomplete_response(&body)?
+                    }
+                    RequestAutocompleteResponse::Instant(response) => response,
+                };
                 Ok((*engine, response))
             });
         }

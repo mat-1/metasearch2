@@ -144,6 +144,12 @@ pub(super) fn parse_html_response_with_opts(
         let url = normalize_url(&url)?;
         let description = description_query_method.call(&result)?;
 
+        // this can happen on google if you search "roll d6"
+        let is_empty = description.is_empty() && title.is_empty();
+        if is_empty {
+            continue;
+        }
+
         search_results.push(EngineSearchResult {
             url,
             title,
@@ -162,7 +168,7 @@ pub(super) fn parse_html_response_with_opts(
             let description = featured_snippet_description_query_method.call(&featured_snippet)?;
 
             // this can happen on google if you search "what's my user agent"
-            let is_empty = description.is_empty() && title.is_empty() && url.is_empty();
+            let is_empty = description.is_empty() && title.is_empty();
             if is_empty {
                 None
             } else {

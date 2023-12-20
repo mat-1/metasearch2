@@ -9,7 +9,9 @@ searchInputEl.insertAdjacentElement("afterend", datalistEl);
 searchInputEl.addEventListener("input", async (e) => {
   const value = e.target.value;
 
-  const res = await fetch(`/autocomplete?q=${value}`).then((res) => res.json());
+  const res = await fetch(`/autocomplete?q=${encodeURIComponent(value)}`).then(
+    (res) => res.json()
+  );
   const options = res[1];
 
   datalistEl.innerHTML = "";

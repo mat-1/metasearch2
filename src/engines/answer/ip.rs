@@ -9,5 +9,5 @@ pub fn request(_client: &reqwest::Client, query: &SearchQuery) -> EngineResponse
 
     let ip = &query.ip;
 
-    EngineResponse::answer_html(format!("Your IP address is <b>{ip}</b>"))
+    EngineResponse::answer_html(format!(r#"<h3><b>{ip}</b></h3>"#))
 }

@@ -1,3 +1,4 @@
+pub mod calc;
 pub mod ip;
 pub mod useragent;
 

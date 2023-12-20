@@ -12,8 +12,10 @@ axum = { version = "0.7.2", features = ["http2"] }
 base64 = "0.21.5"
 bytes = "1.5.0"
 eyre = "0.6.11"
+fend-core = "1.3.3"
 futures = "0.3.29"
 html-escape = "0.2.13"
+rand = "0.8.5"
 regex = "1.10.2"
 reqwest = { version = "0.11.23", default-features = false, features = [
     "rustls-tls",
