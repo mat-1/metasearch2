@@ -97,6 +97,13 @@ h1 {
   margin-bottom: 1rem;
 }
 
+/* answer */
+.answer {
+  margin-bottom: 1rem;
+  border: 1px solid #234;
+  padding: 0.5rem;
+}
+
 /* progress update */
 .progress-updates {
   margin-bottom: 1rem;

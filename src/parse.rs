@@ -176,5 +176,7 @@ pub(super) fn parse_html_response_with_opts(
     Ok(EngineResponse {
         search_results,
         featured_snippet,
+        // this field is used by instant answers, not normal search engines
+        answer_html: None,
     })
 }

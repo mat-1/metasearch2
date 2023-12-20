@@ -1,16 +1,16 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::SocketAddr};
 
 use async_stream::stream;
 use axum::{
     body::Body,
-    extract::Query,
-    http::{header, StatusCode},
+    extract::{ConnectInfo, Query},
+    http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
 };
 use bytes::Bytes;
 use html_escape::{encode_text, encode_unquoted_attribute};
 
-use crate::engines::{self, ProgressUpdate, ProgressUpdateKind, Response};
+use crate::engines::{self, ProgressUpdate, ProgressUpdateKind, Response, SearchQuery};
 
 fn render_beginning_of_html(query: &str) -> String {
     format!(
@@ -91,6 +91,13 @@ fn render_featured_snippet(featured_snippet: &engines::FeaturedSnippet) -> Strin
 
 fn render_results(response: Response) -> String {
     let mut html = String::new();
+    if let Some(answer) = response.answer {
+        html.push_str(&format!(
+            r#"<div class="answer">{answer_html}{engines_html}</div>"#,
+            answer_html = &answer.html,
+            engines_html = render_engine_list(&[answer.engine])
+        ));
+    }
     if let Some(featured_snippet) = response.featured_snippet {
         html.push_str(&render_featured_snippet(&featured_snippet));
     }
@@ -116,7 +123,11 @@ fn render_progress_update(progress_update: &ProgressUpdate) -> String {
     )
 }
 
-pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
+pub async fn route(
+    Query(params): Query<HashMap<String, String>>,
+    headers: HeaderMap,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+) -> impl IntoResponse {
     let query = params
         .get("q")
         .cloned()
@@ -135,6 +146,20 @@ pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoRe
         );
     }
 
+    let query = SearchQuery {
+        query,
+        request_headers: headers
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    k.map(|k| k.to_string()).unwrap_or_default(),
+                    v.to_str().unwrap_or_default().to_string(),
+                )
+            })
+            .collect(),
+        ip: addr.ip().to_string(),
+    };
+
     let s = stream! {
         type R = Result<Bytes, eyre::Error>;
 
@@ -142,7 +167,7 @@ pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoRe
 
         let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let search_future = tokio::spawn(async move { engines::search(&query, progress_tx).await });
+        let search_future = tokio::spawn(async move { engines::search(query, progress_tx).await });
 
         while let Some(progress_update) = progress_rx.recv().await {
             let progress_html = format!(

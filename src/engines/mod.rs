@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeSet, HashMap},
+    ops::Deref,
     sync::LazyLock,
     time::Instant,
 };
@@ -9,18 +10,29 @@ use tokio::sync::mpsc;
 
 use self::search::{bing, brave, google};
 
+pub mod answer;
 pub mod search;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Engine {
+    // search
     Google,
     Bing,
     Brave,
+    // answer
+    Useragent,
+    Ip,
 }
 
 impl Engine {
     pub fn all() -> &'static [Engine] {
-        &[Engine::Google, Engine::Bing, Engine::Brave]
+        &[
+            Engine::Google,
+            Engine::Bing,
+            Engine::Brave,
+            Engine::Useragent,
+            Engine::Ip,
+        ]
     }
 
     pub fn id(&self) -> &'static str {
@@ -28,6 +40,8 @@ impl Engine {
             Engine::Google => "google",
             Engine::Bing => "bing",
             Engine::Brave => "brave",
+            Engine::Useragent => "useragent",
+            Engine::Ip => "ip",
         }
     }
 
@@ -36,14 +50,17 @@ impl Engine {
             Engine::Google => 1.05,
             Engine::Bing => 1.,
             Engine::Brave => 1.25,
+            _ => 1.,
         }
     }
 
-    pub fn request(&self, client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder {
+    pub fn request(&self, client: &reqwest::Client, query: &SearchQuery) -> RequestResponse {
         match self {
-            Engine::Google => google::request(client, query),
-            Engine::Bing => bing::request(client, query),
-            Engine::Brave => brave::request(client, query),
+            Engine::Google => google::request(client, query).into(),
+            Engine::Bing => bing::request(client, query).into(),
+            Engine::Brave => search::brave::request(client, query).into(),
+            Engine::Useragent => answer::useragent::request(client, query).into(),
+            Engine::Ip => answer::ip::request(client, query).into(),
         }
     }
 
@@ -52,6 +69,7 @@ impl Engine {
             Engine::Google => google::parse_response(body),
             Engine::Bing => bing::parse_response(body),
             Engine::Brave => brave::parse_response(body),
+            _ => eyre::bail!("engine {self:?} can't parse response"),
         }
     }
 
@@ -74,6 +92,36 @@ impl Engine {
     }
 }
 
+pub struct SearchQuery {
+    pub query: String,
+    pub request_headers: HashMap<String, String>,
+    pub ip: String,
+}
+
+impl Deref for SearchQuery {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.query
+    }
+}
+
+pub enum RequestResponse {
+    Http(reqwest::RequestBuilder),
+    Instant(EngineResponse),
+}
+
+impl From<reqwest::RequestBuilder> for RequestResponse {
+    fn from(req: reqwest::RequestBuilder) -> Self {
+        Self::Http(req)
+    }
+}
+impl From<EngineResponse> for RequestResponse {
+    fn from(res: EngineResponse) -> Self {
+        Self::Instant(res)
+    }
+}
+
 #[derive(Debug)]
 pub struct EngineSearchResult {
     pub url: String,
@@ -88,10 +136,24 @@ pub struct EngineFeaturedSnippet {
     pub description: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct EngineResponse {
     pub search_results: Vec<EngineSearchResult>,
     pub featured_snippet: Option<EngineFeaturedSnippet>,
+    pub answer_html: Option<String>,
+}
+
+impl EngineResponse {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn answer_html(html: String) -> Self {
+        Self {
+            answer_html: Some(html),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -122,7 +184,7 @@ impl ProgressUpdate {
 pub async fn search_with_client_and_engines(
     client: &reqwest::Client,
     engines: &[Engine],
-    query: &str,
+    query: &SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
 ) -> eyre::Result<Response> {
     let start_time = Instant::now();
@@ -137,29 +199,38 @@ pub async fn search_with_client_and_engines(
                 start_time,
             ))?;
 
-            let res = engine.request(client, query).send().await?;
+            let request_response = engine.request(client, query).into();
 
-            progress_tx.send(ProgressUpdate::new(
-                ProgressUpdateKind::Downloading,
-                engine,
-                start_time,
-            ))?;
+            let response = match request_response {
+                RequestResponse::Http(request) => {
+                    let res = request.send().await?;
 
-            let body = res.text().await?;
+                    progress_tx.send(ProgressUpdate::new(
+                        ProgressUpdateKind::Downloading,
+                        engine,
+                        start_time,
+                    ))?;
 
-            progress_tx.send(ProgressUpdate::new(
-                ProgressUpdateKind::Parsing,
-                engine,
-                start_time,
-            ))?;
+                    let body = res.text().await?;
 
-            let response = engine.parse_response(&body)?;
+                    progress_tx.send(ProgressUpdate::new(
+                        ProgressUpdateKind::Parsing,
+                        engine,
+                        start_time,
+                    ))?;
 
-            progress_tx.send(ProgressUpdate::new(
-                ProgressUpdateKind::Done,
-                engine,
-                start_time,
-            ))?;
+                    let response = engine.parse_response(&body)?;
+
+                    progress_tx.send(ProgressUpdate::new(
+                        ProgressUpdateKind::Done,
+                        engine,
+                        start_time,
+                    ))?;
+
+                    response
+                }
+                RequestResponse::Instant(response) => response,
+            };
 
             Ok((engine, response))
         });
@@ -209,11 +280,11 @@ pub async fn autocomplete_with_client_and_engines(
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| reqwest::Client::new());
 
 pub async fn search(
-    query: &str,
+    query: SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
 ) -> eyre::Result<Response> {
     let engines = Engine::all();
-    search_with_client_and_engines(&CLIENT, &engines, query, progress_tx).await
+    search_with_client_and_engines(&CLIENT, &engines, &query, progress_tx).await
 }
 
 pub async fn autocomplete(query: &str) -> eyre::Result<Vec<String>> {
@@ -225,6 +296,7 @@ pub async fn autocomplete(query: &str) -> eyre::Result<Vec<String>> {
 pub struct Response {
     pub search_results: Vec<SearchResult>,
     pub featured_snippet: Option<FeaturedSnippet>,
+    pub answer: Option<Answer>,
 }
 
 #[derive(Debug)]
@@ -244,9 +316,16 @@ pub struct FeaturedSnippet {
     pub engine: Engine,
 }
 
+#[derive(Debug)]
+pub struct Answer {
+    pub html: String,
+    pub engine: Engine,
+}
+
 fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Response {
     let mut search_results: Vec<SearchResult> = Vec::new();
     let mut featured_snippet: Option<FeaturedSnippet> = None;
+    let mut answer: Option<Answer> = None;
 
     for (engine, response) in responses {
         for (result_index, search_result) in response.search_results.into_iter().enumerate() {
@@ -299,6 +378,17 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
                 });
             }
         }
+
+        if let Some(engine_answer_html) = response.answer_html {
+            // if it has a higher weight than the current answer
+            let answer_weight = answer.as_ref().map(|s| s.engine.weight()).unwrap_or(0.);
+            if engine.weight() > answer_weight {
+                answer = Some(Answer {
+                    html: engine_answer_html,
+                    engine,
+                });
+            }
+        }
     }
 
     search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
@@ -306,6 +396,7 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
     Response {
         search_results,
         featured_snippet,
+        answer,
     }
 }
 

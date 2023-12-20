@@ -1,6 +1,8 @@
 pub mod autocomplete;
 pub mod search;
 
+use std::net::SocketAddr;
+
 use axum::{http::header, routing::get, Router};
 
 pub const BIND_ADDRESS: &str = "[::]:3000";
@@ -40,5 +42,10 @@ pub async fn run() {
     println!("Listening on {BIND_ADDRESS}");
 
     let listener = tokio::net::TcpListener::bind(BIND_ADDRESS).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }

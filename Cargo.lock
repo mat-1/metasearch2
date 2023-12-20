@@ -794,6 +794,7 @@ dependencies = [
  "eyre",
  "futures",
  "html-escape",
+ "regex",
  "reqwest",
  "scraper",
  "serde_json",
