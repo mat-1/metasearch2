@@ -193,16 +193,17 @@ pub async fn search_with_client_and_engines(
     for engine in engines {
         requests.push(async {
             let engine = *engine;
-            progress_tx.send(ProgressUpdate::new(
-                ProgressUpdateKind::Requesting,
-                engine,
-                start_time,
-            ))?;
 
             let request_response = engine.request(client, query).into();
 
             let response = match request_response {
                 RequestResponse::Http(request) => {
+                    progress_tx.send(ProgressUpdate::new(
+                        ProgressUpdateKind::Requesting,
+                        engine,
+                        start_time,
+                    ))?;
+
                     let res = request.send().await?;
 
                     progress_tx.send(ProgressUpdate::new(

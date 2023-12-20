@@ -1,6 +1,7 @@
 use url::Url;
 
 pub fn normalize_url(url: &str) -> eyre::Result<String> {
+    let url = url.trim_end_matches('#');
     if url.is_empty() {
         return Ok(String::new());
     }
