@@ -1,8 +1,9 @@
 use reqwest::Url;
+use scraper::{ElementRef, Selector};
 
 use crate::{
     engines::EngineResponse,
-    parse::{parse_html_response_with_opts, ParseOpts},
+    parse::{parse_html_response_with_opts, ParseOpts, QueryMethod},
 };
 
 pub fn request(client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder {
@@ -25,11 +26,36 @@ pub fn request(client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     parse_html_response_with_opts(
         body,
-        ParseOpts {
-            result_item: "div.g, div.xpd",
-            title: "h3",
-            href: "a",
-            description: "div[data-sncf], div[style='-webkit-line-clamp:2']",
-        },
+        ParseOpts::new()
+            .result("div.g, div.xpd")
+            .title("h3")
+            .href("a[href]")
+            .description("div[data-sncf], div[style='-webkit-line-clamp:2']")
+            .featured_snippet("block-component")
+            .featured_snippet_description("div[data-attrid='wa:/description'] > span:first-child")
+            .featured_snippet_title("h3")
+            .featured_snippet_href(QueryMethod::Manual(Box::new(|el: &ElementRef| {
+                let url = el
+                    .select(&Selector::parse("a").unwrap())
+                    .next()
+                    .and_then(|n| n.value().attr("href"))
+                    .unwrap_or_default();
+                clean_url(url)
+            }))),
     )
+}
+
+fn clean_url(url: &str) -> eyre::Result<String> {
+    if url.starts_with("/url?q=") {
+        // get the q param
+        let url = Url::parse(format!("https://www.google.com{url}").as_str())?;
+        let q = url
+            .query_pairs()
+            .find(|(key, _)| key == "q")
+            .unwrap_or_default()
+            .1;
+        Ok(q.to_string())
+    } else {
+        Ok(url.to_string())
+    }
 }

@@ -64,8 +64,17 @@ pub struct EngineSearchResult {
     pub description: String,
 }
 
+#[derive(Debug)]
+pub struct EngineFeaturedSnippet {
+    pub url: String,
+    pub title: String,
+    pub description: String,
+}
+
+#[derive(Debug)]
 pub struct EngineResponse {
     pub search_results: Vec<EngineSearchResult>,
+    pub featured_snippet: Option<EngineFeaturedSnippet>,
 }
 
 #[derive(Debug)]
@@ -80,7 +89,7 @@ pub enum ProgressUpdateKind {
 pub struct ProgressUpdate {
     pub kind: ProgressUpdateKind,
     pub engine: Engine,
-    pub time: f64,
+    pub time: u64,
 }
 
 impl ProgressUpdate {
@@ -88,7 +97,7 @@ impl ProgressUpdate {
         Self {
             kind,
             engine,
-            time: start_time.elapsed().as_secs_f64(),
+            time: start_time.elapsed().as_millis() as u64,
         }
     }
 }
@@ -96,15 +105,15 @@ impl ProgressUpdate {
 impl fmt::Display for ProgressUpdate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let message = match self.kind {
-            ProgressUpdateKind::Requesting => "Requesting",
-            ProgressUpdateKind::Downloading => "Downloading",
-            ProgressUpdateKind::Parsing => "Parsing",
-            ProgressUpdateKind::Done => "Done",
+            ProgressUpdateKind::Requesting => "requesting",
+            ProgressUpdateKind::Downloading => "downloading",
+            ProgressUpdateKind::Parsing => "parsing",
+            ProgressUpdateKind::Done => "<b>done</b>",
         };
 
         write!(
             f,
-            "{time:.3}s {message} {engine}",
+            r#"<span class="progress-update-time">{time:>4}ms</span> {engine} {message}"#,
             time = self.time,
             message = message,
             engine = self.engine.name()
@@ -183,7 +192,9 @@ pub async fn search(
 #[derive(Debug)]
 pub struct Response {
     pub search_results: Vec<SearchResult>,
+    pub featured_snippet: Option<FeaturedSnippet>,
 }
+
 #[derive(Debug)]
 pub struct SearchResult {
     pub url: String,
@@ -193,8 +204,18 @@ pub struct SearchResult {
     pub score: f64,
 }
 
+#[derive(Debug)]
+pub struct FeaturedSnippet {
+    pub url: String,
+    pub title: String,
+    pub description: String,
+    pub engine: Engine,
+}
+
 fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Response {
     let mut search_results: Vec<SearchResult> = Vec::new();
+    let mut featured_snippet: Option<FeaturedSnippet> = None;
+
     for (engine, response) in responses {
         for (result_index, search_result) in response.search_results.into_iter().enumerate() {
             // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a score of 0.33, etc.
@@ -230,9 +251,28 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
                 });
             }
         }
+
+        if let Some(engine_featured_snippet) = response.featured_snippet {
+            // if it has a higher weight than the current featured snippet
+            let featured_snippet_weight = featured_snippet
+                .as_ref()
+                .map(|s| s.engine.weight())
+                .unwrap_or(0.);
+            if engine.weight() > featured_snippet_weight {
+                featured_snippet = Some(FeaturedSnippet {
+                    url: engine_featured_snippet.url,
+                    title: engine_featured_snippet.title,
+                    description: engine_featured_snippet.description,
+                    engine,
+                });
+            }
+        }
     }
 
     search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
 
-    Response { search_results }
+    Response {
+        search_results,
+        featured_snippet,
+    }
 }

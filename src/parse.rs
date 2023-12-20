@@ -1,25 +1,81 @@
 //! Helper functions for parsing search engine responses.
 
 use crate::{
-    engines::{EngineResponse, EngineSearchResult},
+    engines::{EngineFeaturedSnippet, EngineResponse, EngineSearchResult},
     normalize::normalize_url,
 };
 
 use scraper::{Html, Selector};
 
-pub struct ParseOpts<A, B, C>
-where
-    A: Into<QueryMethod>,
-    B: Into<QueryMethod>,
-    C: Into<QueryMethod>,
-{
-    pub result_item: &'static str,
-    pub title: A,
-    pub href: B,
-    pub description: C,
+#[derive(Default)]
+pub struct ParseOpts {
+    result: &'static str,
+    title: QueryMethod,
+    href: QueryMethod,
+    description: QueryMethod,
+
+    featured_snippet: &'static str,
+    featured_snippet_title: QueryMethod,
+    featured_snippet_href: QueryMethod,
+    featured_snippet_description: QueryMethod,
 }
 
+impl ParseOpts {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn result(mut self, result: &'static str) -> Self {
+        self.result = result;
+        self
+    }
+
+    pub fn title(mut self, title: impl Into<QueryMethod>) -> Self {
+        self.title = title.into();
+        self
+    }
+
+    pub fn href(mut self, href: impl Into<QueryMethod>) -> Self {
+        self.href = href.into();
+        self
+    }
+
+    pub fn description(mut self, description: impl Into<QueryMethod>) -> Self {
+        self.description = description.into();
+        self
+    }
+
+    pub fn featured_snippet(mut self, featured_snippet: &'static str) -> Self {
+        self.featured_snippet = featured_snippet;
+        self
+    }
+
+    pub fn featured_snippet_title(
+        mut self,
+        featured_snippet_title: impl Into<QueryMethod>,
+    ) -> Self {
+        self.featured_snippet_title = featured_snippet_title.into();
+        self
+    }
+
+    pub fn featured_snippet_href(mut self, featured_snippet_href: impl Into<QueryMethod>) -> Self {
+        self.featured_snippet_href = featured_snippet_href.into();
+        self
+    }
+
+    pub fn featured_snippet_description(
+        mut self,
+        featured_snippet_description: impl Into<QueryMethod>,
+    ) -> Self {
+        self.featured_snippet_description = featured_snippet_description.into();
+        self
+    }
+}
+
+#[derive(Default)]
 pub enum QueryMethod {
+    #[default]
+    None,
     CssSelector(&'static str),
     Manual(Box<dyn Fn(&scraper::ElementRef) -> eyre::Result<String>>),
 }
@@ -30,66 +86,63 @@ impl From<&'static str> for QueryMethod {
     }
 }
 
-pub(super) fn parse_html_response_with_opts<A, B, C>(
+impl QueryMethod {
+    pub fn call_with_css_selector_override(
+        &self,
+        el: &scraper::ElementRef,
+        with_css_selector: impl Fn(&scraper::ElementRef, &'static str) -> Option<String>,
+    ) -> eyre::Result<String> {
+        match self {
+            QueryMethod::None => Ok(String::new()),
+            QueryMethod::CssSelector(s) => Ok(with_css_selector(el, s).unwrap_or_default()),
+            QueryMethod::Manual(f) => f(el),
+        }
+    }
+
+    pub fn call(&self, el: &scraper::ElementRef) -> eyre::Result<String> {
+        self.call_with_css_selector_override(el, |el, s| {
+            el.select(&Selector::parse(s).unwrap())
+                .next()
+                .map(|n| n.text().collect::<String>())
+        })
+    }
+}
+
+pub(super) fn parse_html_response_with_opts(
     body: &str,
-    opts: ParseOpts<A, B, C>,
-) -> eyre::Result<EngineResponse>
-where
-    A: Into<QueryMethod>,
-    B: Into<QueryMethod>,
-    C: Into<QueryMethod>,
-{
+    opts: ParseOpts,
+) -> eyre::Result<EngineResponse> {
     let dom = Html::parse_document(body);
 
     let mut search_results = Vec::new();
 
     let ParseOpts {
-        result_item: result_item_query,
+        result: result_item_query,
         title: title_query_method,
         href: href_query_method,
         description: description_query_method,
+        featured_snippet: featured_snippet_query,
+        featured_snippet_title: featured_snippet_title_query_method,
+        featured_snippet_href: featured_snippet_href_query_method,
+        featured_snippet_description: featured_snippet_description_query_method,
     } = opts;
-    let title_query_method = title_query_method.into();
-    let href_query_method = href_query_method.into();
-    let description_query_method = description_query_method.into();
 
     let result_item_query = Selector::parse(result_item_query).unwrap();
 
-    let result_items = dom.select(&result_item_query);
+    let results = dom.select(&result_item_query);
 
-    for result_item in result_items {
-        let title = match title_query_method {
-            QueryMethod::CssSelector(s) => result_item
-                .select(&Selector::parse(s).unwrap())
-                .next()
-                .map(|n| n.text().collect::<String>())
-                .unwrap_or_default(),
-            QueryMethod::Manual(ref f) => f(&result_item)?,
-        };
-
-        let url = match href_query_method {
-            QueryMethod::CssSelector(s) => result_item
-                .select(&Selector::parse(s).unwrap())
-                .next()
-                .map(|n| {
-                    n.value()
-                        .attr("href")
-                        .map(str::to_string)
-                        .unwrap_or_else(|| n.text().collect::<String>())
-                })
-                .unwrap_or_default(),
-            QueryMethod::Manual(ref f) => f(&result_item)?,
-        };
+    for result in results {
+        let title = title_query_method.call(&result)?;
+        let url = href_query_method.call_with_css_selector_override(&result, |el, s| {
+            el.select(&Selector::parse(s).unwrap()).next().map(|n| {
+                n.value()
+                    .attr("href")
+                    .map(str::to_string)
+                    .unwrap_or_else(|| n.text().collect::<String>())
+            })
+        })?;
         let url = normalize_url(&url)?;
-
-        let description = match description_query_method {
-            QueryMethod::CssSelector(s) => result_item
-                .select(&Selector::parse(s).unwrap())
-                .next()
-                .map(|n| n.text().collect::<String>())
-                .unwrap_or_default(),
-            QueryMethod::Manual(ref f) => f(&result_item)?,
-        };
+        let description = description_query_method.call(&result)?;
 
         search_results.push(EngineSearchResult {
             url,
@@ -98,5 +151,30 @@ where
         });
     }
 
-    Ok(EngineResponse { search_results })
+    let featured_snippet = if !featured_snippet_query.is_empty() {
+        if let Some(featured_snippet) = dom
+            .select(&Selector::parse(featured_snippet_query).unwrap())
+            .next()
+        {
+            let title = featured_snippet_title_query_method.call(&featured_snippet)?;
+            let url = featured_snippet_href_query_method.call(&featured_snippet)?;
+            let url = normalize_url(&url)?;
+            let description = featured_snippet_description_query_method.call(&featured_snippet)?;
+
+            Some(EngineFeaturedSnippet {
+                url,
+                title,
+                description,
+            })
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    Ok(EngineResponse {
+        search_results,
+        featured_snippet,
+    })
 }

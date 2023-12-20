@@ -22,3 +22,4 @@ tokio = { version = "1.35.0", features = ["full"] }
 tokio-stream = "0.1.14"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.0"
+urlencoding = "2.1.3"

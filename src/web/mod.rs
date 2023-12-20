@@ -1,15 +1,33 @@
-pub mod index;
 pub mod search;
-pub mod style_css;
 
-use axum::{routing::get, Router};
+use axum::{http::header, routing::get, Router};
+
+pub const BIND_ADDRESS: &str = "[::]:3000";
 
 pub async fn run() {
     let app = Router::new()
-        .route("/", get(index::route))
-        .route("/style.css", get(style_css::route))
+        .route(
+            "/",
+            get(|| async {
+                (
+                    [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+                    include_str!("assets/index.html"),
+                )
+            }),
+        )
+        .route(
+            "/style.css",
+            get(|| async {
+                (
+                    [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
+                    include_str!("assets/style.css"),
+                )
+            }),
+        )
         .route("/search", get(search::route));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    println!("Listening on {BIND_ADDRESS}");
+
+    let listener = tokio::net::TcpListener::bind(BIND_ADDRESS).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

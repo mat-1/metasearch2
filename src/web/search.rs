@@ -10,7 +10,7 @@ use axum::{
 use bytes::Bytes;
 use html_escape::{encode_text, encode_unquoted_attribute};
 
-use crate::engines;
+use crate::engines::{self, Response};
 
 fn render_beginning_of_html(query: &str) -> String {
     format!(
@@ -25,7 +25,7 @@ fn render_beginning_of_html(query: &str) -> String {
 <body>
     <main>
     <form action="/search" method="get" class="search-form">
-        <input type="text" name="q" placeholder="Search" value="{}">
+        <input type="text" name="q" placeholder="Search" value="{}" class="search-input" autofocus>
         <input type="submit" value="Search">
     </form>
     <div class="progress-updates">
@@ -39,19 +39,18 @@ fn render_end_of_html() -> String {
     r#"</main></body></html>"#.to_string()
 }
 
-fn render_search_result(result: &engines::SearchResult) -> String {
-    let engines_html = result
-        .engines
-        .iter()
-        .map(|engine| {
-            format!(
-                r#"<span class="search-result-engines-item">{}</span>"#,
-                encode_text(&engine.name())
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("");
+fn render_engine_list(engines: &[engines::Engine]) -> String {
+    let mut html = String::new();
+    for engine in engines {
+        html.push_str(&format!(
+            r#"<span class="engine-list-item">{engine}</span>"#,
+            engine = encode_text(&engine.name())
+        ));
+    }
+    format!(r#"<div class="engine-list">{html}</div>"#)
+}
 
+fn render_search_result(result: &engines::SearchResult) -> String {
     format!(
         r#"<div class="search-result">
     <a class="search-result-anchor" href="{url_attr}">
@@ -59,14 +58,45 @@ fn render_search_result(result: &engines::SearchResult) -> String {
         <h3 class="search-result-title">{title}</h3>
     </a>
     <p class="search-result-description">{desc}</p>
-    <div class="search-result-engines">{engines_html}</div>
+    {engines_html}
     </div>
 "#,
         url_attr = encode_unquoted_attribute(&result.url),
         url = encode_text(&result.url),
         title = encode_text(&result.title),
-        desc = encode_text(&result.description)
+        desc = encode_text(&result.description),
+        engines_html = render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>())
     )
+}
+
+fn render_featured_snippet(featured_snippet: &engines::FeaturedSnippet) -> String {
+    format!(
+        r#"<div class="featured-snippet">
+    <p class="search-result-description">{desc}</p>
+    <a class="search-result-anchor" href="{url_attr}">
+        <span class="search-result-url" href="{url_attr}">{url}</span>
+        <h3 class="search-result-title">{title}</h3>
+    </a>
+    {engines_html}
+    </div>
+"#,
+        desc = encode_text(&featured_snippet.description),
+        url_attr = encode_unquoted_attribute(&featured_snippet.url),
+        url = encode_text(&featured_snippet.url),
+        title = encode_text(&featured_snippet.title),
+        engines_html = render_engine_list(&[featured_snippet.engine])
+    )
+}
+
+fn render_results(response: Response) -> String {
+    let mut html = String::new();
+    if let Some(featured_snippet) = response.featured_snippet {
+        html.push_str(&render_featured_snippet(&featured_snippet));
+    }
+    for result in &response.search_results {
+        html.push_str(&render_search_result(result));
+    }
+    html
 }
 
 pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
@@ -99,8 +129,7 @@ pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoRe
 
         while let Some(progress_update) = progress_rx.recv().await {
             let progress_html = format!(
-                r#"<p class="progress-update">{}</p>"#,
-                encode_text(&progress_update.to_string())
+                r#"<p class="progress-update">{progress_update}</p>"#
             );
             yield R::Ok(Bytes::from(progress_html));
         }
@@ -121,9 +150,7 @@ pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoRe
 
         second_half.push_str("</div>"); // close progress-updates
         second_half.push_str("<style>.progress-updates{display:none}</style>");
-        for result in results.search_results {
-            second_half.push_str(&render_search_result(&result));
-        }
+        second_half.push_str(&render_results(results));
         second_half.push_str(&render_end_of_html());
 
         yield Ok(Bytes::from(second_half));

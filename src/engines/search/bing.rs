@@ -27,36 +27,38 @@ pub fn request(client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     parse_html_response_with_opts(
         body,
-        ParseOpts {
-            result_item: "#b_results > li.b_algo",
-            title: ".b_algo h2 > a",
-            href: QueryMethod::Manual(Box::new(|el: &ElementRef| {
+        ParseOpts::new()
+            .result("#b_results > li.b_algo")
+            .title(".b_algo h2 > a")
+            .href(QueryMethod::Manual(Box::new(|el: &ElementRef| {
                 let url = el
-                    .select(&Selector::parse("a").unwrap())
+                    .select(&Selector::parse("a[href]").unwrap())
                     .next()
                     .and_then(|n| n.value().attr("href"))
                     .unwrap_or_default();
-
-                // clean up bing's tracking urls
-                if url.starts_with("https://www.bing.com/ck/a?") {
-                    // get the u param
-                    let url = Url::parse(url)?;
-                    let u = url
-                        .query_pairs()
-                        .find(|(key, _)| key == "u")
-                        .unwrap_or_default()
-                        .1;
-                    // cut off the "a1" and base64 decode
-                    let u = base64::engine::general_purpose::URL_SAFE_NO_PAD
-                        .decode(&u[2..])
-                        .unwrap_or_default();
-                    // now normalize that one instead
-                    Ok(String::from_utf8_lossy(&u).to_string())
-                } else {
-                    Ok(url.to_string())
-                }
-            })),
-            description: ".b_caption > p, p.b_algoSlug",
-        },
+                clean_url(url)
+            })))
+            .description(".b_caption > p, p.b_algoSlug"),
     )
+}
+
+fn clean_url(url: &str) -> eyre::Result<String> {
+    // clean up bing's tracking urls
+    if url.starts_with("https://www.bing.com/ck/a?") {
+        // get the u param
+        let url = Url::parse(url)?;
+        let u = url
+            .query_pairs()
+            .find(|(key, _)| key == "u")
+            .unwrap_or_default()
+            .1;
+        // cut off the "a1" and base64 decode
+        let u = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(&u[2..])
+            .unwrap_or_default();
+        // convert to utf8
+        Ok(String::from_utf8_lossy(&u).to_string())
+    } else {
+        Ok(url.to_string())
+    }
 }

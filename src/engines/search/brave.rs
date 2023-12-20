@@ -18,11 +18,10 @@ pub fn request(client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     parse_html_response_with_opts(
         body,
-        ParseOpts {
-            result_item: "#results > .snippet[data-pos]:not(.standalone)",
-            title: ".url",
-            href: "a",
-            description: ".snippet-content",
-        },
+        ParseOpts::new()
+            .result("#results > .snippet[data-pos]:not(.standalone)")
+            .title(".url")
+            .href("a")
+            .description(".snippet-content"),
     )
 }

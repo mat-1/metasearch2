@@ -1,6 +1,10 @@
 use url::Url;
 
 pub fn normalize_url(url: &str) -> eyre::Result<String> {
+    if url.is_empty() {
+        return Ok(String::new());
+    }
+
     let mut url = Url::parse(url)?;
 
     // make sure the scheme is https
@@ -32,5 +36,18 @@ pub fn normalize_url(url: &str) -> eyre::Result<String> {
         ));
     }
 
-    return Ok(url.to_string());
+    // url decode and encode path
+    let path = url.path().to_string();
+    let path = urlencoding::decode(&path)?;
+    url.set_path(&path.to_string());
+
+    let url = url.to_string();
+    // remove trailing slash
+    let url = if let Some(url) = url.strip_suffix('/') {
+        url.to_string()
+    } else {
+        url
+    };
+
+    return Ok(url);
 }
