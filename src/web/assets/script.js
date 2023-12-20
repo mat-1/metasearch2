@@ -1,5 +1,6 @@
-// add a datalist after the search input
 const searchInputEl = document.getElementById("search-input");
+
+// add a datalist after the search input
 const datalistEl = document.createElement("datalist");
 datalistEl.id = "search-input-datalist";
 searchInputEl.setAttribute("list", datalistEl.id);

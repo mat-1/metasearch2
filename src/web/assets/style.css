@@ -137,3 +137,9 @@ h1 {
   color: #d2a6ff;
   white-space: pre;
 }
+.answer-calc-string {
+  color: #aad94c;
+}
+.answer-calc-special {
+  color: #e6b673;
+}

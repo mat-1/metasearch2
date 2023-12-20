@@ -57,7 +57,10 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
     let mut result_html = String::new();
     for span in result.get_main_result_spans() {
         let class = match span.kind() {
-            fend_core::SpanKind::Number | fend_core::SpanKind::Boolean => "answer-calc-constant",
+            fend_core::SpanKind::Number
+            | fend_core::SpanKind::Boolean
+            | fend_core::SpanKind::Date => "answer-calc-constant",
+            fend_core::SpanKind::String => "answer-calc-string",
             _ => "",
         };
         if !class.is_empty() {
