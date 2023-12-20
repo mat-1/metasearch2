@@ -46,7 +46,7 @@ h1 {
 .search-form {
   margin-bottom: 1rem;
 }
-.search-input {
+#search-input {
   width: 20em;
 }
 
@@ -110,4 +110,8 @@ h1 {
 }
 .progress-update-time {
   opacity: 0.5;
+}
+.progress-update-done {
+  color: #7fd962;
+  font-weight: bold;
 }

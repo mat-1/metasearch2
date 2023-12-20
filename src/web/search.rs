@@ -10,7 +10,7 @@ use axum::{
 use bytes::Bytes;
 use html_escape::{encode_text, encode_unquoted_attribute};
 
-use crate::engines::{self, Response};
+use crate::engines::{self, ProgressUpdate, ProgressUpdateKind, Response};
 
 fn render_beginning_of_html(query: &str) -> String {
     format!(
@@ -21,11 +21,12 @@ fn render_beginning_of_html(query: &str) -> String {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{} - metasearch</title>
     <link rel="stylesheet" href="/style.css">
+    <script src="/script.js" defer></script>
 </head>
 <body>
     <main>
     <form action="/search" method="get" class="search-form">
-        <input type="text" name="q" placeholder="Search" value="{}" class="search-input" autofocus>
+        <input type="text" name="q" placeholder="Search" value="{}" id="search-input" autofocus onfocus="this.select()" autocomplete="off">
         <input type="submit" value="Search">
     </form>
     <div class="progress-updates">
@@ -44,7 +45,7 @@ fn render_engine_list(engines: &[engines::Engine]) -> String {
     for engine in engines {
         html.push_str(&format!(
             r#"<span class="engine-list-item">{engine}</span>"#,
-            engine = encode_text(&engine.name())
+            engine = encode_text(&engine.id())
         ));
     }
     format!(r#"<div class="engine-list">{html}</div>"#)
@@ -99,6 +100,22 @@ fn render_results(response: Response) -> String {
     html
 }
 
+fn render_progress_update(progress_update: &ProgressUpdate) -> String {
+    let message: &str = match progress_update.kind {
+        ProgressUpdateKind::Requesting => "requesting",
+        ProgressUpdateKind::Downloading => "downloading",
+        ProgressUpdateKind::Parsing => "parsing",
+        ProgressUpdateKind::Done => "<span class=\"progress-update-done\">done</span>",
+    };
+
+    format!(
+        r#"<span class="progress-update-time">{time:>4}ms</span> {engine} {message}"#,
+        time = progress_update.time,
+        message = message,
+        engine = progress_update.engine.id()
+    )
+}
+
 pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
     let query = params
         .get("q")
@@ -129,7 +146,8 @@ pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoRe
 
         while let Some(progress_update) = progress_rx.recv().await {
             let progress_html = format!(
-                r#"<p class="progress-update">{progress_update}</p>"#
+                r#"<p class="progress-update">{}</p>"#,
+                render_progress_update(&progress_update)
             );
             yield R::Ok(Bytes::from(progress_html));
         }

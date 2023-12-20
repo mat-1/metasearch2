@@ -22,6 +22,6 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
             .result("#results > .snippet[data-pos]:not(.standalone)")
             .title(".url")
             .href("a")
-            .description(".snippet-content"),
+            .description(".snippet-content, .video-snippet > .snippet-description"),
     )
 }

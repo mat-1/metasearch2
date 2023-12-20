@@ -45,6 +45,40 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     )
 }
 
+pub fn request_autocomplete(client: &reqwest::Client, query: &str) -> reqwest::RequestBuilder {
+    client
+        .get(
+            Url::parse_with_params(
+                "https://suggestqueries.google.com/complete/search",
+                &[
+                    ("output", "firefox"),
+                    ("client", "firefox"),
+                    ("hl", "US-en"),
+                    ("q", query),
+                ],
+            )
+            .unwrap(),
+        )
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
+        )
+}
+
+pub fn parse_autocomplete_response(body: &str) -> eyre::Result<Vec<String>> {
+    let res = serde_json::from_str::<Vec<serde_json::Value>>(body)?;
+    Ok(res
+        .into_iter()
+        .nth(1)
+        .unwrap_or_default()
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|v| v.as_str().unwrap_or_default().to_string())
+        .collect())
+}
+
 fn clean_url(url: &str) -> eyre::Result<String> {
     if url.starts_with("/url?q=") {
         // get the q param

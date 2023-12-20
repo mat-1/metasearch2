@@ -1,3 +1,4 @@
+pub mod autocomplete;
 pub mod search;
 
 use axum::{http::header, routing::get, Router};
@@ -24,7 +25,17 @@ pub async fn run() {
                 )
             }),
         )
-        .route("/search", get(search::route));
+        .route(
+            "/script.js",
+            get(|| async {
+                (
+                    [(header::CONTENT_TYPE, "text/javascript; charset=utf-8")],
+                    include_str!("assets/script.js"),
+                )
+            }),
+        )
+        .route("/search", get(search::route))
+        .route("/autocomplete", get(autocomplete::route));
 
     println!("Listening on {BIND_ADDRESS}");
 

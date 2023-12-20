@@ -796,6 +796,7 @@ dependencies = [
  "html-escape",
  "reqwest",
  "scraper",
+ "serde_json",
  "tokio",
  "tokio-stream",
  "tracing-subscriber",

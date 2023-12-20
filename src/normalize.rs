@@ -12,6 +12,9 @@ pub fn normalize_url(url: &str) -> eyre::Result<String> {
         url.set_scheme("https").unwrap();
     }
 
+    // remove fragment
+    url.set_fragment(None);
+
     // remove trailing slash
     let path = url.path().to_string();
     if let Some(path) = path.strip_suffix('/') {

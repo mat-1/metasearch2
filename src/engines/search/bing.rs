@@ -38,7 +38,7 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
                     .unwrap_or_default();
                 clean_url(url)
             })))
-            .description(".b_caption > p, p.b_algoSlug"),
+            .description(".b_caption > p, p.b_algoSlug, .b_caption .ipText"),
     )
 }
 

@@ -1,6 +1,5 @@
 use std::{
     collections::{BTreeSet, HashMap},
-    fmt,
     sync::LazyLock,
     time::Instant,
 };
@@ -24,11 +23,19 @@ impl Engine {
         &[Engine::Google, Engine::Bing, Engine::Brave]
     }
 
-    pub fn name(&self) -> &'static str {
+    pub fn id(&self) -> &'static str {
         match self {
             Engine::Google => "google",
             Engine::Bing => "bing",
             Engine::Brave => "brave",
+        }
+    }
+
+    pub fn weight(&self) -> f64 {
+        match self {
+            Engine::Google => 1.05,
+            Engine::Bing => 1.,
+            Engine::Brave => 1.25,
         }
     }
 
@@ -48,11 +55,21 @@ impl Engine {
         }
     }
 
-    pub fn weight(&self) -> f64 {
+    pub fn request_autocomplete(
+        &self,
+        client: &reqwest::Client,
+        query: &str,
+    ) -> Option<reqwest::RequestBuilder> {
         match self {
-            Engine::Google => 1.05,
-            Engine::Bing => 1.,
-            Engine::Brave => 1.25,
+            Engine::Google => Some(google::request_autocomplete(client, query)),
+            _ => None,
+        }
+    }
+
+    pub fn parse_autocomplete_response(&self, body: &str) -> eyre::Result<Vec<String>> {
+        match self {
+            Engine::Google => google::parse_autocomplete_response(body),
+            _ => Ok(Vec::new()),
         }
     }
 }
@@ -99,25 +116,6 @@ impl ProgressUpdate {
             engine,
             time: start_time.elapsed().as_millis() as u64,
         }
-    }
-}
-
-impl fmt::Display for ProgressUpdate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let message = match self.kind {
-            ProgressUpdateKind::Requesting => "requesting",
-            ProgressUpdateKind::Downloading => "downloading",
-            ProgressUpdateKind::Parsing => "parsing",
-            ProgressUpdateKind::Done => "<b>done</b>",
-        };
-
-        write!(
-            f,
-            r#"<span class="progress-update-time">{time:>4}ms</span> {engine} {message}"#,
-            time = self.time,
-            message = message,
-            engine = self.engine.name()
-        )
     }
 }
 
@@ -179,6 +177,35 @@ pub async fn search_with_client_and_engines(
     Ok(merge_engine_responses(responses))
 }
 
+pub async fn autocomplete_with_client_and_engines(
+    client: &reqwest::Client,
+    engines: &[Engine],
+    query: &str,
+) -> eyre::Result<Vec<String>> {
+    let mut requests = Vec::new();
+    for engine in engines {
+        if let Some(request) = engine.request_autocomplete(client, query) {
+            requests.push(async {
+                let res = request.send().await?;
+                let body = res.text().await?;
+                let response = engine.parse_autocomplete_response(&body)?;
+                Ok((*engine, response))
+            });
+        }
+    }
+
+    let mut autocomplete_futures = Vec::new();
+    for request in requests {
+        autocomplete_futures.push(request);
+    }
+
+    let autocomplete_results_result: eyre::Result<HashMap<_, _>> =
+        join_all(autocomplete_futures).await.into_iter().collect();
+    let autocomplete_results = autocomplete_results_result?;
+
+    Ok(merge_autocomplete_responses(autocomplete_results))
+}
+
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| reqwest::Client::new());
 
 pub async fn search(
@@ -187,6 +214,11 @@ pub async fn search(
 ) -> eyre::Result<Response> {
     let engines = Engine::all();
     search_with_client_and_engines(&CLIENT, &engines, query, progress_tx).await
+}
+
+pub async fn autocomplete(query: &str) -> eyre::Result<Vec<String>> {
+    let engines = Engine::all();
+    autocomplete_with_client_and_engines(&CLIENT, &engines, query).await
 }
 
 #[derive(Debug)]
@@ -275,4 +307,37 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
         search_results,
         featured_snippet,
     }
+}
+
+pub struct AutocompleteResult {
+    pub query: String,
+    pub score: f64,
+}
+
+fn merge_autocomplete_responses(responses: HashMap<Engine, Vec<String>>) -> Vec<String> {
+    let mut autocomplete_results: Vec<AutocompleteResult> = Vec::new();
+
+    for (engine, response) in responses {
+        for (result_index, autocomplete_result) in response.into_iter().enumerate() {
+            // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a score of 0.33, etc.
+            let base_result_score = 1. / (result_index + 1) as f64;
+            let result_score = base_result_score * engine.weight();
+
+            if let Some(existing_result) = autocomplete_results
+                .iter_mut()
+                .find(|r| r.query == autocomplete_result)
+            {
+                existing_result.score += result_score;
+            } else {
+                autocomplete_results.push(AutocompleteResult {
+                    query: autocomplete_result,
+                    score: result_score,
+                });
+            }
+        }
+    }
+
+    autocomplete_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+
+    autocomplete_results.into_iter().map(|r| r.query).collect()
 }
