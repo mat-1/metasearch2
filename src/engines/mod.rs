@@ -1,6 +1,8 @@
 use std::{
     collections::{BTreeSet, HashMap},
+    net::IpAddr,
     ops::Deref,
+    str::FromStr,
     sync::LazyLock,
     time::Instant,
 };
@@ -294,7 +296,12 @@ pub async fn autocomplete_with_engines(
     Ok(merge_autocomplete_responses(autocomplete_results))
 }
 
-pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| reqwest::Client::new());
+pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
+    reqwest::ClientBuilder::new()
+        .local_address(IpAddr::from_str("0.0.0.0").unwrap())
+        .build()
+        .unwrap()
+});
 
 pub async fn search(
     query: SearchQuery,
