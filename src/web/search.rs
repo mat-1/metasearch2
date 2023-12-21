@@ -11,7 +11,7 @@ use bytes::Bytes;
 use html_escape::{encode_text, encode_unquoted_attribute};
 
 use crate::engines::{
-    self, Engine, EngineProgressUpdate, ProgressUpdate, ProgressUpdateData, Response, SearchQuery,
+    self, Engine, EngineProgressUpdate, ProgressUpdateData, Response, SearchQuery,
 };
 
 fn render_beginning_of_html(query: &str) -> String {

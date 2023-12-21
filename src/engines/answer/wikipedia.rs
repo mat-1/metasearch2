@@ -6,7 +6,6 @@ use serde::Deserialize;
 use crate::engines::{EngineResponse, CLIENT};
 
 pub fn request(query: &str) -> reqwest::RequestBuilder {
-    println!("request wikipedia");
     CLIENT
         .get(
             Url::parse_with_params(

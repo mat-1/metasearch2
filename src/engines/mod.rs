@@ -28,6 +28,7 @@ pub enum Engine {
     Wikipedia,
     // post-search
     StackOverflow,
+    GitHub,
 }
 
 impl Engine {
@@ -41,6 +42,7 @@ impl Engine {
             Engine::Calc,
             Engine::Wikipedia,
             Engine::StackOverflow,
+            Engine::GitHub,
         ]
     }
 
@@ -54,6 +56,7 @@ impl Engine {
             Engine::Calc => "calc",
             Engine::Wikipedia => "wikipedia",
             Engine::StackOverflow => "stackoverflow",
+            Engine::GitHub => "github",
         }
     }
 
@@ -107,6 +110,7 @@ impl Engine {
     pub fn postsearch_request(&self, response: &Response) -> Option<reqwest::RequestBuilder> {
         match self {
             Engine::StackOverflow => postsearch::stackoverflow::request(response),
+            Engine::GitHub => postsearch::github::request(response),
             _ => None,
         }
     }
@@ -114,6 +118,7 @@ impl Engine {
     pub fn postsearch_parse_response(&self, body: &str) -> Option<String> {
         match self {
             Engine::StackOverflow => postsearch::stackoverflow::parse_response(body),
+            Engine::GitHub => postsearch::github::parse_response(body),
             _ => None,
         }
     }

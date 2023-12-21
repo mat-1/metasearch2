@@ -22,3 +22,11 @@ searchInputEl.addEventListener("input", async (e) => {
     datalistEl.appendChild(optionEl);
   });
 });
+
+// if the user starts typing but they don't have focus on the input, focus it
+document.addEventListener("keydown", (e) => {
+  // must be a letter or number
+  if (e.key.match(/^[a-z0-9]$/i) && !searchInputEl.matches(":focus")) {
+    searchInputEl.focus();
+  }
+});

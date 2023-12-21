@@ -49,7 +49,7 @@ pub fn parse_response(body: &str) -> Option<String> {
     let url = format!("{url}#{answer_id}");
 
     Some(format!(
-        r#"<a href="{url}" class="title"><h2>{title}</h2></a>
+        r#"<a href="{url}"><h2>{title}</h2></a>
 <div class="infobox-stackoverflow-answer">{answer_html}</div>"#,
         url = html_escape::encode_quoted_attribute(&url.to_string()),
         title = html_escape::encode_text(&title),
