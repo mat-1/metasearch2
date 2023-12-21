@@ -9,7 +9,6 @@ pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoRe
         .get("q")
         .cloned()
         .unwrap_or_default()
-        .trim()
         .replace('\n', " ");
 
     let res = match engines::autocomplete(&query).await {
