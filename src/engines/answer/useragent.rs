@@ -14,6 +14,6 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
     EngineResponse::answer_html(if let Some(user_agent) = user_agent {
         format!("<h3><b>{user_agent}</b></h3>")
     } else {
-        format!("You don't have a user agent")
+        "You don't have a user agent".to_string()
     })
 }

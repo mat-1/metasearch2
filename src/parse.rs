@@ -72,12 +72,14 @@ impl ParseOpts {
     }
 }
 
+type ManualQueryMethod = Box<dyn Fn(&scraper::ElementRef) -> eyre::Result<String>>;
+
 #[derive(Default)]
 pub enum QueryMethod {
     #[default]
     None,
     CssSelector(&'static str),
-    Manual(Box<dyn Fn(&scraper::ElementRef) -> eyre::Result<String>>),
+    Manual(ManualQueryMethod),
 }
 
 impl From<&'static str> for QueryMethod {

@@ -262,7 +262,7 @@ pub async fn search_with_engines(
         requests.push(async {
             let engine = *engine;
 
-            let request_response = engine.request(query).into();
+            let request_response = engine.request(query);
 
             let response = match request_response {
                 RequestResponse::Http(request) => {
@@ -424,12 +424,12 @@ pub async fn search(
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
 ) -> eyre::Result<()> {
     let engines = Engine::all();
-    search_with_engines(&engines, &query, progress_tx).await
+    search_with_engines(engines, &query, progress_tx).await
 }
 
 pub async fn autocomplete(query: &str) -> eyre::Result<Vec<String>> {
     let engines = Engine::all();
-    autocomplete_with_engines(&engines, query).await
+    autocomplete_with_engines(engines, query).await
 }
 
 #[derive(Debug, Clone)]

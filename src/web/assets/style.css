@@ -53,6 +53,9 @@ a {
 a:visited {
   color: #92e;
 }
+pre {
+  white-space: pre-wrap;
+}
 
 /* index page */
 .main-container {
@@ -219,13 +222,15 @@ h1 {
 .infobox p {
   margin: 0;
 }
-.infobox-stackoverflow-answer pre > code {
+.infobox-stackoverflow-answer pre > code,
+.infobox-github-readme pre {
   border: 1px solid #234;
   padding: 0.5rem;
   display: block;
   font-weight: normal;
 }
-.infobox-stackoverflow-answer code {
+.infobox-stackoverflow-answer code,
+.infobox-github-readme code {
   font-weight: bold;
 }
 .postsearch-infobox p {

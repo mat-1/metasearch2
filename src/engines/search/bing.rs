@@ -38,7 +38,35 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
                     .unwrap_or_default();
                 clean_url(url)
             })))
-            .description(".b_caption > p, p.b_algoSlug, .b_caption .ipText"),
+            .description(QueryMethod::Manual(Box::new(|el: &ElementRef| {
+                let mut description = String::new();
+                for inner_node in el
+                    .select(
+                        &Selector::parse(".b_caption > p, p.b_algoSlug, .b_caption .ipText")
+                            .unwrap(),
+                    )
+                    .next()
+                    .map(|n| n.children().collect::<Vec<_>>())
+                    .unwrap_or_default()
+                {
+                    match inner_node.value() {
+                        scraper::Node::Text(t) => {
+                            description.push_str(&t.text);
+                        }
+                        scraper::Node::Element(inner_el) => {
+                            if !inner_el
+                                .has_class("algoSlug_icon", scraper::CaseSensitivity::CaseSensitive)
+                            {
+                                let element_ref = ElementRef::wrap(inner_node).unwrap();
+                                description.push_str(&element_ref.text().collect::<String>());
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                Ok(description)
+            }))),
     )
 }
 

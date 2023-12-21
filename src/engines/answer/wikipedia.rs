@@ -76,14 +76,14 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
         extract,
         thumbnail: _,
     } = page;
-    if extract.ends_with(":") {
+    if extract.ends_with(':') {
         return Ok(EngineResponse::new());
     }
 
     // this is present on the wikipedia article for google
     let extract = extract.replace("( )", "");
 
-    let page_title = title.replace(" ", "_");
+    let page_title = title.replace(' ', "_");
     let page_url = format!("https://en.wikipedia.org/wiki/{page_title}");
 
     Ok(EngineResponse::infobox_html(format!(

@@ -118,6 +118,14 @@ document.addEventListener("keydown", (e) => {
     searchInputEl.focus();
     searchInputEl.setSelectionRange(0, 0);
   }
+  // backspace key focuses it at the end
+  else if (e.key === "Backspace") {
+    searchInputEl.focus();
+    searchInputEl.setSelectionRange(
+      searchInputEl.value.length,
+      searchInputEl.value.length
+    );
+  }
 });
 
 // update the input suggestions on input
@@ -127,3 +135,7 @@ searchInputEl.addEventListener("input", () => {
 });
 // and on focus
 searchInputEl.addEventListener("focus", updateSuggestions);
+// on unfocus hide the suggestions
+searchInputEl.addEventListener("blur", () => {
+  suggestionsEl.style.visibility = "hidden";
+});

@@ -44,10 +44,19 @@ pub fn normalize_url(url: &str) -> eyre::Result<String> {
         ));
     }
 
+    // convert minecraft.fandom.com/wiki/ to minecraft.wiki/w/
+    if url.host_str() == Some("minecraft.fandom.com") {
+        let path = url.path().to_string();
+        if let Some(path) = path.strip_prefix("/wiki/") {
+            url.set_host(Some("minecraft.wiki")).unwrap();
+            url.set_path(&format!("/w/{path}"));
+        }
+    }
+
     // url decode and encode path
     let path = url.path().to_string();
     let path = urlencoding::decode(&path)?;
-    url.set_path(&path.to_string());
+    url.set_path(path.as_ref());
 
     let url = url.to_string();
     // remove trailing slash
@@ -57,5 +66,5 @@ pub fn normalize_url(url: &str) -> eyre::Result<String> {
         url
     };
 
-    return Ok(url);
+    Ok(url)
 }

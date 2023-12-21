@@ -1,5 +1,7 @@
 use crate::engines::EngineResponse;
 
+use super::regex;
+
 pub fn request(query: &str) -> EngineResponse {
     let Some(result_html) = evaluate(query, true) else {
         return EngineResponse::new();
@@ -19,12 +21,17 @@ pub fn request_autocomplete(query: &str) -> Vec<String> {
         results.push(format!("{query}={result}"));
     }
 
-    return results;
+    results
 }
 
 fn evaluate(query: &str, html: bool) -> Option<String> {
     // at least 3 characters and not one of the short constants
     if query.len() < 3 && !matches!(query.to_lowercase().as_str(), "pi" | "e" | "c") {
+        return None;
+    }
+
+    // probably a query operator thing or a url, fend evaluates these but it shouldn't
+    if regex!("^[a-z]{2,}:").is_match(query) {
         return None;
     }
 
@@ -34,7 +41,7 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
     context.define_custom_unit_v1("f", "f", "°F", &fend_core::CustomUnitAttribute::Alias);
     context.define_custom_unit_v1("c", "c", "°C", &fend_core::CustomUnitAttribute::Alias);
     // make random work
-    context.set_random_u32_fn(|| rand::random::<u32>());
+    context.set_random_u32_fn(rand::random::<u32>);
     if html {
         // this makes it generate slightly nicer outputs for some queries like 2d6
         context.set_output_mode_terminal();
@@ -71,5 +78,5 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
         }
     }
 
-    return Some(result_html);
+    Some(result_html)
 }
