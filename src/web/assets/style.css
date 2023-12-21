@@ -65,9 +65,12 @@ h1 {
 /* header */
 .search-form {
   margin-bottom: 1rem;
+  display: flex;
+  gap: 0.5rem;
 }
 #search-input {
-  width: 20em;
+  max-width: 30em;
+  flex: 1;
 }
 
 /* search result */
