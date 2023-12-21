@@ -36,6 +36,13 @@ input {
   font-size: inherit;
   padding: 0.25rem;
 }
+input:focus {
+  outline: none;
+  border-color: #e6b450;
+}
+:focus {
+  outline: 1px solid #e6b450;
+}
 input[type="submit"] {
   cursor: pointer;
 }
@@ -194,6 +201,15 @@ h1 {
 }
 .infobox p {
   margin: 0;
+}
+.infobox-stackoverflow-answer pre > code {
+  border: 1px solid #234;
+  padding: 0.5rem;
+  display: block;
+  font-weight: normal;
+}
+.infobox-stackoverflow-answer code {
+  font-weight: bold;
 }
 .postsearch-infobox p {
   margin-bottom: 1em;
