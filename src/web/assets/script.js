@@ -1,37 +1,129 @@
 const searchInputEl = document.getElementById("search-input");
 
-// add a datalist after the search input
-const datalistEl = document.createElement("datalist");
-datalistEl.id = "search-input-datalist";
-searchInputEl.setAttribute("list", datalistEl.id);
-searchInputEl.insertAdjacentElement("afterend", datalistEl);
+// add an element with search suggestions after the search input
+const suggestionsEl = document.createElement("div");
+suggestionsEl.id = "search-input-suggestions";
+suggestionsEl.style.visibility = "hidden";
+searchInputEl.insertAdjacentElement("afterend", suggestionsEl);
 
-// update the datalist options on input
-searchInputEl.addEventListener("input", async (e) => {
-  const value = e.target.value;
+let lastValue = "";
+async function updateSuggestions() {
+  const value = searchInputEl.value;
+
+  if (value.trim() === "") {
+    renderSuggestions([]);
+    return;
+  }
+
+  if (value === lastValue) {
+    suggestionsEl.style.visibility = "visible";
+    return;
+  }
+  lastValue = value;
 
   const res = await fetch(`/autocomplete?q=${encodeURIComponent(value)}`).then(
     (res) => res.json()
   );
   const options = res[1];
 
-  datalistEl.innerHTML = "";
-  options.forEach((option) => {
-    const optionEl = document.createElement("option");
-    optionEl.value = option;
-    datalistEl.appendChild(optionEl);
-  });
-});
+  renderSuggestions(options);
+}
 
-// if the user starts typing but they don't have focus on the input, focus it
+function renderSuggestions(options) {
+  if (options.length === 0) {
+    suggestionsEl.style.visibility = "hidden";
+    return;
+  }
+
+  suggestionsEl.style.visibility = "visible";
+  suggestionsEl.innerHTML = "";
+  options.forEach((option) => {
+    const optionEl = document.createElement("div");
+    optionEl.textContent = option;
+    optionEl.className = "search-input-suggestion";
+    suggestionsEl.appendChild(optionEl);
+    optionEl.addEventListener("click", () => {
+      searchInputEl.value = option;
+      searchInputEl.focus();
+      searchInputEl.form.submit();
+    });
+  });
+}
+
+let focusedSuggestionIndex = -1;
+let focusedSuggestionEl = null;
+
+function clearFocusedSuggestion() {
+  if (focusedSuggestionEl) {
+    focusedSuggestionEl.classList.remove("focused");
+    focusedSuggestionEl = null;
+    focusedSuggestionIndex = -1;
+  }
+}
+
+function focusSelectionIndex(index) {
+  clearFocusedSuggestion();
+  focusedSuggestionIndex = index;
+  focusedSuggestionEl = suggestionsEl.children[focusedSuggestionIndex];
+  focusedSuggestionEl.classList.add("focused");
+  searchInputEl.value = focusedSuggestionEl.textContent;
+}
+
 document.addEventListener("keydown", (e) => {
+  // if it's focused then use different keybinds
+  if (searchInputEl.matches(":focus")) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (focusedSuggestionIndex === -1) {
+        focusSelectionIndex(0);
+      } else if (focusedSuggestionIndex < suggestionsEl.children.length - 1) {
+        focusSelectionIndex(focusedSuggestionIndex + 1);
+      } else {
+        focusSelectionIndex(0);
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (focusedSuggestionIndex === -1) {
+        focusSelectionIndex(suggestionsEl.children.length - 1);
+      } else if (focusedSuggestionIndex > 0) {
+        focusSelectionIndex(focusedSuggestionIndex - 1);
+      } else {
+        focusSelectionIndex(suggestionsEl.children.length - 1);
+      }
+    }
+
+    return;
+  }
+
+  // if the user starts typing but they don't have focus on the input, focus it
+
+  // no modifier keys
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+    return;
+  }
   // must be a letter or number
-  if (
-    e.key.match(/^[a-z0-9]$/i) &&
-    !searchInputEl.matches(":focus") &&
-    !e.ctrlKey &&
-    !e.metaKey
-  ) {
+  if (e.key.match(/^[a-z0-9]$/i)) {
     searchInputEl.focus();
   }
+  // right arrow key focuses it at the end
+  else if (e.key === "ArrowRight") {
+    searchInputEl.focus();
+    searchInputEl.setSelectionRange(
+      searchInputEl.value.length,
+      searchInputEl.value.length
+    );
+  }
+  // left arrow key focuses it at the beginning
+  else if (e.key === "ArrowLeft") {
+    searchInputEl.focus();
+    searchInputEl.setSelectionRange(0, 0);
+  }
 });
+
+// update the input suggestions on input
+searchInputEl.addEventListener("input", () => {
+  clearFocusedSuggestion();
+  updateSuggestions();
+});
+// and on focus
+searchInputEl.addEventListener("focus", updateSuggestions);
