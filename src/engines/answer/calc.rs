@@ -3,25 +3,33 @@ use crate::engines::EngineResponse;
 use super::regex;
 
 pub fn request(query: &str) -> EngineResponse {
-    let Some(result_html) = evaluate(query, true) else {
+    let query = clean_query(query.to_string());
+
+    let Some(result_html) = evaluate(&query, true) else {
         return EngineResponse::new();
     };
 
     EngineResponse::answer_html(format!(
         r#"<p class="answer-calc-query">{query} =</p>
 <h3><b>{result_html}</b></h3>"#,
-        query = html_escape::encode_text(query),
+        query = html_escape::encode_text(&query),
     ))
 }
 
 pub fn request_autocomplete(query: &str) -> Vec<String> {
     let mut results = Vec::new();
 
-    if let Some(result) = evaluate(query, false) {
+    let query = clean_query(query.to_string());
+
+    if let Some(result) = evaluate(&query, false) {
         results.push(format!("{query}={result}"));
     }
 
     results
+}
+
+fn clean_query(query: String) -> String {
+    query.strip_suffix('=').unwrap_or(&query).trim().to_string()
 }
 
 fn evaluate(query: &str, html: bool) -> Option<String> {
