@@ -10,7 +10,7 @@ let lastValue = "";
 async function updateSuggestions() {
   const value = searchInputEl.value;
 
-  if (value.trim() === "") {
+  if (value.trim() === "" || value.length > 65) {
     renderSuggestions([]);
     return;
   }

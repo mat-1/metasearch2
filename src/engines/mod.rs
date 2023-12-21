@@ -27,8 +27,9 @@ pub enum Engine {
     Calc,
     Wikipedia,
     // post-search
-    StackOverflow,
+    StackExchange,
     GitHub,
+    DocsRs,
 }
 
 impl Engine {
@@ -41,8 +42,9 @@ impl Engine {
             Engine::Ip,
             Engine::Calc,
             Engine::Wikipedia,
-            Engine::StackOverflow,
+            Engine::StackExchange,
             Engine::GitHub,
+            Engine::DocsRs,
         ]
     }
 
@@ -55,8 +57,9 @@ impl Engine {
             Engine::Ip => "ip",
             Engine::Calc => "calc",
             Engine::Wikipedia => "wikipedia",
-            Engine::StackOverflow => "stackoverflow",
+            Engine::StackExchange => "stackexchange",
             Engine::GitHub => "github",
+            Engine::DocsRs => "docs.rs",
         }
     }
 
@@ -109,16 +112,18 @@ impl Engine {
 
     pub fn postsearch_request(&self, response: &Response) -> Option<reqwest::RequestBuilder> {
         match self {
-            Engine::StackOverflow => postsearch::stackoverflow::request(response),
+            Engine::StackExchange => postsearch::stackexchange::request(response),
             Engine::GitHub => postsearch::github::request(response),
+            Engine::DocsRs => postsearch::docs_rs::request(response),
             _ => None,
         }
     }
 
     pub fn postsearch_parse_response(&self, body: &str) -> Option<String> {
         match self {
-            Engine::StackOverflow => postsearch::stackoverflow::parse_response(body),
+            Engine::StackExchange => postsearch::stackexchange::parse_response(body),
             Engine::GitHub => postsearch::github::parse_response(body),
+            Engine::DocsRs => postsearch::docs_rs::parse_response(body),
             _ => None,
         }
     }
@@ -372,6 +377,8 @@ pub async fn search_with_engines(
                     ProgressUpdateData::PostSearchInfobox(Infobox { html, engine }),
                     start_time,
                 ))?;
+                // break so we don't send multiple infoboxes
+                break;
             }
         }
     }

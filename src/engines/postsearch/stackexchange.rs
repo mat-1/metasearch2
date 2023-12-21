@@ -1,13 +1,12 @@
 use reqwest::Url;
 use scraper::{Html, Selector};
 
-use crate::engines::{Response, CLIENT};
+use crate::engines::{answer::regex, Response, CLIENT};
 
 pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     for search_result in response.search_results.iter().take(8) {
-        if search_result
-            .url
-            .starts_with("https://stackoverflow.com/questions/")
+        if regex!(r"^https:\/\/(stackoverflow\.com|serverfault\.com|superuser\.com|\w{1,}\.stackexchange\.com)\/questions\/\d+")
+            .is_match(&search_result.url)
         {
             return Some(CLIENT.get(search_result.url.as_str()).header(
                 "User-Agent",
@@ -27,8 +26,14 @@ pub fn parse_response(body: &str) -> Option<String> {
         .next()?
         .text()
         .collect::<String>();
+
+    let base_url = dom
+        .select(&Selector::parse("link[rel=canonical]").unwrap())
+        .next()?
+        .value()
+        .attr("href")?;
     let url = Url::join(
-        &Url::parse("https://stackoverflow.com").unwrap(),
+        &Url::parse(base_url).unwrap(),
         dom.select(&Selector::parse(".question-hyperlink").unwrap())
             .next()?
             .value()
@@ -50,7 +55,7 @@ pub fn parse_response(body: &str) -> Option<String> {
 
     Some(format!(
         r#"<a href="{url}"><h2>{title}</h2></a>
-<div class="infobox-stackoverflow-answer">{answer_html}</div>"#,
+<div class="infobox-stackexchange-answer">{answer_html}</div>"#,
         url = html_escape::encode_quoted_attribute(&url.to_string()),
         title = html_escape::encode_text(&title),
     ))

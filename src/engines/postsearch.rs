@@ -2,5 +2,6 @@
 //! results. They can only show stuff in infoboxes and don't get requested if
 //! an infobox was added by another earlier engine.
 
+pub mod docs_rs;
 pub mod github;
-pub mod stackoverflow;
+pub mod stackexchange;

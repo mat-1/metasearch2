@@ -222,14 +222,14 @@ h1 {
 .infobox p {
   margin: 0;
 }
-.infobox-stackoverflow-answer pre > code,
+.infobox-stackexchange-answer pre > code,
 .infobox-github-readme pre {
   border: 1px solid #234;
   padding: 0.5rem;
   display: block;
   font-weight: normal;
 }
-.infobox-stackoverflow-answer code,
+.infobox-stackexchange-answer code,
 .infobox-github-readme code {
   font-weight: bold;
 }

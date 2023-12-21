@@ -14,7 +14,7 @@ pub async fn route(Query(params): Query<HashMap<String, String>>) -> impl IntoRe
     let res = match engines::autocomplete(&query).await {
         Ok(res) => res,
         Err(err) => {
-            eprintln!("Error: {}", err);
+            eprintln!("Autocomplete error for {query}: {}", err);
             return (StatusCode::INTERNAL_SERVER_ERROR, Json((query, vec![])));
         }
     };

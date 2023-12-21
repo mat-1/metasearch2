@@ -143,7 +143,6 @@ pub(super) fn parse_html_response_with_opts(
                     .unwrap_or_else(|| n.text().collect::<String>())
             })
         })?;
-        let url = normalize_url(&url)?;
         let description = description_query_method.call(&result)?;
 
         // this can happen on google if you search "roll d6"
@@ -151,6 +150,13 @@ pub(super) fn parse_html_response_with_opts(
         if is_empty {
             continue;
         }
+
+        // this can happen on google if it gives you a featured snippet
+        if description.is_empty() {
+            continue;
+        }
+
+        let url = normalize_url(&url)?;
 
         search_results.push(EngineSearchResult {
             url,
