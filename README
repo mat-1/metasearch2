@@ -9,5 +9,5 @@ metasearch is a single binary with no cli or configuration file. if you want to
 configure it (like to change the default port or weights of engines) then you
 have to modify the source.
 
-build it with `cargo b -r`, the resulting binary will be in `target/release/metasearch2`.
-it runs on port 28019.
+build it with `cargo b -r`, the resulting binary will be in
+`target/release/metasearch2`. it runs on port 28019.

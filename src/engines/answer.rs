@@ -1,6 +1,7 @@
 pub mod calc;
 pub mod ip;
 pub mod useragent;
+pub mod wikipedia;
 
 macro_rules! regex {
     ($re:literal $(,)?) => {{

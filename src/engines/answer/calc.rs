@@ -1,8 +1,6 @@
-use crate::engines::{EngineResponse, SearchQuery};
+use crate::engines::EngineResponse;
 
-pub fn request(query: &SearchQuery) -> EngineResponse {
-    let query = query.query.as_str();
-
+pub fn request(query: &str) -> EngineResponse {
     let Some(result_html) = evaluate(query, true) else {
         return EngineResponse::new();
     };

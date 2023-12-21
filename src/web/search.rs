@@ -10,7 +10,9 @@ use axum::{
 use bytes::Bytes;
 use html_escape::{encode_text, encode_unquoted_attribute};
 
-use crate::engines::{self, ProgressUpdate, ProgressUpdateKind, Response, SearchQuery};
+use crate::engines::{
+    self, Engine, EngineProgressUpdate, ProgressUpdate, ProgressUpdateData, Response, SearchQuery,
+};
 
 fn render_beginning_of_html(query: &str) -> String {
     format!(
@@ -25,6 +27,7 @@ fn render_beginning_of_html(query: &str) -> String {
     <link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml"/>
 </head>
 <body>
+    <div class="results-container">
     <main>
     <form action="/search" method="get" class="search-form">
         <input type="text" name="q" placeholder="Search" value="{}" id="search-input" autofocus onfocus="this.select()" autocomplete="off">
@@ -38,7 +41,7 @@ fn render_beginning_of_html(query: &str) -> String {
 }
 
 fn render_end_of_html() -> String {
-    r#"</main></body></html>"#.to_string()
+    r#"</main></div></body></html>"#.to_string()
 }
 
 fn render_engine_list(engines: &[engines::Engine]) -> String {
@@ -92,6 +95,14 @@ fn render_featured_snippet(featured_snippet: &engines::FeaturedSnippet) -> Strin
 
 fn render_results(response: Response) -> String {
     let mut html = String::new();
+    if let Some(infobox) = response.infobox {
+        html.push_str(&format!(
+            r#"<div class="infobox">{infobox_html}{engines_html}</div>"#,
+            infobox_html = &infobox.html,
+            engines_html = render_engine_list(&[infobox.engine])
+        ));
+    }
+
     if let Some(answer) = response.answer {
         html.push_str(&format!(
             r#"<div class="answer">{answer_html}{engines_html}</div>"#,
@@ -108,20 +119,19 @@ fn render_results(response: Response) -> String {
     html
 }
 
-fn render_progress_update(progress_update: &ProgressUpdate) -> String {
-    let message: &str = match progress_update.kind {
-        ProgressUpdateKind::Requesting => "requesting",
-        ProgressUpdateKind::Downloading => "downloading",
-        ProgressUpdateKind::Parsing => "parsing",
-        ProgressUpdateKind::Done => "<span class=\"progress-update-done\">done</span>",
+fn render_engine_progress_update(
+    engine: Engine,
+    progress_update: &EngineProgressUpdate,
+    time_ms: u64,
+) -> String {
+    let message = match progress_update {
+        EngineProgressUpdate::Requesting => "requesting",
+        EngineProgressUpdate::Downloading => "downloading",
+        EngineProgressUpdate::Parsing => "parsing",
+        EngineProgressUpdate::Done => "<span class=\"progress-update-done\">done</span>",
     };
 
-    format!(
-        r#"<span class="progress-update-time">{time:>4}ms</span> {engine} {message}"#,
-        time = progress_update.time,
-        message = message,
-        engine = progress_update.engine.id()
-    )
+    format!(r#"<span class="progress-update-time">{time_ms:>4}ms</span> {engine} {message}"#)
 }
 
 pub async fn route(
@@ -170,40 +180,61 @@ pub async fn route(
     let s = stream! {
         type R = Result<Bytes, eyre::Error>;
 
-        yield R::Ok(Bytes::from(render_beginning_of_html(&query)));
+        // the html is sent in three chunks (technically more if you count progress updates):
+        // 1) the beginning of the html, including the search bar
+        // 1.5) the progress updates
+        // 2) the results
+        // 3) the post-search infobox (usually not sent) + the end of the html
+
+        let first_part = render_beginning_of_html(&query);
+        // second part is in the loop
+        let mut third_part = String::new();
+
+        yield R::Ok(Bytes::from(first_part));
 
         let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel();
 
         let search_future = tokio::spawn(async move { engines::search(query, progress_tx).await });
 
         while let Some(progress_update) = progress_rx.recv().await {
-            let progress_html = format!(
-                r#"<p class="progress-update">{}</p>"#,
-                render_progress_update(&progress_update)
-            );
-            yield R::Ok(Bytes::from(progress_html));
+            match progress_update.data {
+                ProgressUpdateData::Engine { engine, update } => {
+                    let progress_html = format!(
+                        r#"<p class="progress-update">{}</p>"#,
+                        render_engine_progress_update(engine, &update, progress_update.time_ms)
+                    );
+                    yield R::Ok(Bytes::from(progress_html));
+                },
+                ProgressUpdateData::Response(results) => {
+                    let mut second_part = String::new();
+
+                    second_part.push_str("</div>"); // close progress-updates
+                    second_part.push_str("<style>.progress-updates{display:none}</style>");
+                    second_part.push_str(&render_results(results));
+                    yield Ok(Bytes::from(second_part));
+                },
+                ProgressUpdateData::PostSearchInfobox(infobox) => {
+                    third_part.push_str(&format!(
+                        r#"<div class="infobox postsearch-infobox">{infobox_html}{engines_html}</div>"#,
+                        infobox_html = &infobox.html,
+                        engines_html = render_engine_list(&[infobox.engine])
+                    ));
+                }
+            }
         }
 
-        let results = match search_future.await? {
-            Ok(results) => results,
-            Err(e) => {
-                let error_html = format!(
-                    r#"<h1>Error: {}</p>"#,
-                    encode_text(&e.to_string())
-                );
-                yield R::Ok(Bytes::from(error_html));
-                return;
-            }
+        if let Err(e) = search_future.await? {
+            let error_html = format!(
+                r#"<h1>Error: {}</p>"#,
+                encode_text(&e.to_string())
+            );
+            yield R::Ok(Bytes::from(error_html));
+            return;
         };
 
-        let mut second_half = String::new();
+        third_part.push_str(&render_end_of_html());
 
-        second_half.push_str("</div>"); // close progress-updates
-        second_half.push_str("<style>.progress-updates{display:none}</style>");
-        second_half.push_str(&render_results(results));
-        second_half.push_str(&render_end_of_html());
-
-        yield Ok(Bytes::from(second_half));
+        yield Ok(Bytes::from(third_part));
 
     };
 

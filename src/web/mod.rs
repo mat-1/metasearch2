@@ -37,6 +37,15 @@ pub async fn run() {
                 )
             }),
         )
+        .route(
+            "/robots.txt",
+            get(|| async {
+                (
+                    [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+                    include_str!("assets/robots.txt"),
+                )
+            }),
+        )
         .route("/opensearch.xml", get(opensearch::route))
         .route("/search", get(search::route))
         .route("/autocomplete", get(autocomplete::route));

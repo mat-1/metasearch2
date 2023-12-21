@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeSet, HashMap},
+    fmt,
     net::IpAddr,
     ops::Deref,
     str::FromStr,
@@ -11,6 +12,7 @@ use futures::future::join_all;
 use tokio::sync::mpsc;
 
 pub mod answer;
+pub mod postsearch;
 pub mod search;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -23,6 +25,9 @@ pub enum Engine {
     Useragent,
     Ip,
     Calc,
+    Wikipedia,
+    // post-search
+    StackOverflow,
 }
 
 impl Engine {
@@ -34,6 +39,8 @@ impl Engine {
             Engine::Useragent,
             Engine::Ip,
             Engine::Calc,
+            Engine::Wikipedia,
+            Engine::StackOverflow,
         ]
     }
 
@@ -45,6 +52,8 @@ impl Engine {
             Engine::Useragent => "useragent",
             Engine::Ip => "ip",
             Engine::Calc => "calc",
+            Engine::Wikipedia => "wikipedia",
+            Engine::StackOverflow => "stackoverflow",
         }
     }
 
@@ -65,6 +74,8 @@ impl Engine {
             Engine::Useragent => answer::useragent::request(query).into(),
             Engine::Ip => answer::ip::request(query).into(),
             Engine::Calc => answer::calc::request(query).into(),
+            Engine::Wikipedia => answer::wikipedia::request(query).into(),
+            _ => RequestResponse::None,
         }
     }
 
@@ -73,6 +84,7 @@ impl Engine {
             Engine::Google => search::google::parse_response(body),
             Engine::Bing => search::bing::parse_response(body),
             Engine::Brave => search::brave::parse_response(body),
+            Engine::Wikipedia => answer::wikipedia::parse_response(body),
             _ => eyre::bail!("engine {self:?} can't parse response"),
         }
     }
@@ -91,6 +103,26 @@ impl Engine {
             _ => eyre::bail!("engine {self:?} can't parse autocomplete response"),
         }
     }
+
+    pub fn postsearch_request(&self, response: &Response) -> Option<reqwest::RequestBuilder> {
+        match self {
+            Engine::StackOverflow => postsearch::stackoverflow::request(response),
+            _ => None,
+        }
+    }
+
+    pub fn postsearch_parse_response(&self, body: &str) -> Option<String> {
+        match self {
+            Engine::StackOverflow => postsearch::stackoverflow::parse_response(body),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for Engine {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.id())
+    }
 }
 
 pub struct SearchQuery {
@@ -108,6 +140,7 @@ impl Deref for SearchQuery {
 }
 
 pub enum RequestResponse {
+    None,
     Http(reqwest::RequestBuilder),
     Instant(EngineResponse),
 }
@@ -156,6 +189,7 @@ pub struct EngineResponse {
     pub search_results: Vec<EngineSearchResult>,
     pub featured_snippet: Option<EngineFeaturedSnippet>,
     pub answer_html: Option<String>,
+    pub infobox_html: Option<String>,
 }
 
 impl EngineResponse {
@@ -169,10 +203,17 @@ impl EngineResponse {
             ..Default::default()
         }
     }
+
+    pub fn infobox_html(html: String) -> Self {
+        Self {
+            infobox_html: Some(html),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug)]
-pub enum ProgressUpdateKind {
+pub enum EngineProgressUpdate {
     Requesting,
     Downloading,
     Parsing,
@@ -180,18 +221,26 @@ pub enum ProgressUpdateKind {
 }
 
 #[derive(Debug)]
+pub enum ProgressUpdateData {
+    Engine {
+        engine: Engine,
+        update: EngineProgressUpdate,
+    },
+    Response(Response),
+    PostSearchInfobox(Infobox),
+}
+
+#[derive(Debug)]
 pub struct ProgressUpdate {
-    pub kind: ProgressUpdateKind,
-    pub engine: Engine,
-    pub time: u64,
+    pub data: ProgressUpdateData,
+    pub time_ms: u64,
 }
 
 impl ProgressUpdate {
-    pub fn new(kind: ProgressUpdateKind, engine: Engine, start_time: Instant) -> Self {
+    pub fn new(data: ProgressUpdateData, start_time: Instant) -> Self {
         Self {
-            kind,
-            engine,
-            time: start_time.elapsed().as_millis() as u64,
+            data,
+            time_ms: start_time.elapsed().as_millis() as u64,
         }
     }
 }
@@ -200,7 +249,7 @@ pub async fn search_with_engines(
     engines: &[Engine],
     query: &SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
-) -> eyre::Result<Response> {
+) -> eyre::Result<()> {
     let start_time = Instant::now();
 
     let mut requests = Vec::new();
@@ -213,38 +262,47 @@ pub async fn search_with_engines(
             let response = match request_response {
                 RequestResponse::Http(request) => {
                     progress_tx.send(ProgressUpdate::new(
-                        ProgressUpdateKind::Requesting,
-                        engine,
+                        ProgressUpdateData::Engine {
+                            engine,
+                            update: EngineProgressUpdate::Requesting,
+                        },
                         start_time,
                     ))?;
 
                     let res = request.send().await?;
 
                     progress_tx.send(ProgressUpdate::new(
-                        ProgressUpdateKind::Downloading,
-                        engine,
+                        ProgressUpdateData::Engine {
+                            engine,
+                            update: EngineProgressUpdate::Downloading,
+                        },
                         start_time,
                     ))?;
 
                     let body = res.text().await?;
 
                     progress_tx.send(ProgressUpdate::new(
-                        ProgressUpdateKind::Parsing,
-                        engine,
+                        ProgressUpdateData::Engine {
+                            engine,
+                            update: EngineProgressUpdate::Parsing,
+                        },
                         start_time,
                     ))?;
 
                     let response = engine.parse_response(&body)?;
 
                     progress_tx.send(ProgressUpdate::new(
-                        ProgressUpdateKind::Done,
-                        engine,
+                        ProgressUpdateData::Engine {
+                            engine,
+                            update: EngineProgressUpdate::Done,
+                        },
                         start_time,
                     ))?;
 
                     response
                 }
                 RequestResponse::Instant(response) => response,
+                RequestResponse::None => EngineResponse::new(),
             };
 
             Ok((engine, response))
@@ -260,7 +318,60 @@ pub async fn search_with_engines(
         join_all(response_futures).await.into_iter().collect();
     let responses = responses_result?;
 
-    Ok(merge_engine_responses(responses))
+    let response = merge_engine_responses(responses);
+
+    let has_infobox = response.infobox.is_some();
+
+    progress_tx.send(ProgressUpdate::new(
+        ProgressUpdateData::Response(response.clone()),
+        start_time,
+    ))?;
+
+    if !has_infobox {
+        // post-search
+
+        let mut postsearch_requests = Vec::new();
+        for engine in engines {
+            if let Some(request) = engine.postsearch_request(&response) {
+                postsearch_requests.push(async {
+                    let response = match request.send().await {
+                        Ok(res) => {
+                            let body = res.text().await?;
+                            engine.postsearch_parse_response(&body)
+                        }
+                        Err(e) => {
+                            eprintln!("postsearch request error: {}", e);
+                            None
+                        }
+                    };
+                    Ok((*engine, response))
+                });
+            }
+        }
+
+        let mut postsearch_response_futures = Vec::new();
+        for request in postsearch_requests {
+            postsearch_response_futures.push(request);
+        }
+
+        let postsearch_responses_result: eyre::Result<HashMap<_, _>> =
+            join_all(postsearch_response_futures)
+                .await
+                .into_iter()
+                .collect();
+        let postsearch_responses = postsearch_responses_result?;
+
+        for (engine, response) in postsearch_responses {
+            if let Some(html) = response {
+                progress_tx.send(ProgressUpdate::new(
+                    ProgressUpdateData::PostSearchInfobox(Infobox { html, engine }),
+                    start_time,
+                ))?;
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub async fn autocomplete_with_engines(
@@ -306,7 +417,7 @@ pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
 pub async fn search(
     query: SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
-) -> eyre::Result<Response> {
+) -> eyre::Result<()> {
     let engines = Engine::all();
     search_with_engines(&engines, &query, progress_tx).await
 }
@@ -316,14 +427,15 @@ pub async fn autocomplete(query: &str) -> eyre::Result<Vec<String>> {
     autocomplete_with_engines(&engines, query).await
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Response {
     pub search_results: Vec<SearchResult>,
     pub featured_snippet: Option<FeaturedSnippet>,
     pub answer: Option<Answer>,
+    pub infobox: Option<Infobox>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SearchResult {
     pub url: String,
     pub title: String,
@@ -332,7 +444,7 @@ pub struct SearchResult {
     pub score: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FeaturedSnippet {
     pub url: String,
     pub title: String,
@@ -340,8 +452,14 @@ pub struct FeaturedSnippet {
     pub engine: Engine,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Answer {
+    pub html: String,
+    pub engine: Engine,
+}
+
+#[derive(Debug, Clone)]
+pub struct Infobox {
     pub html: String,
     pub engine: Engine,
 }
@@ -350,6 +468,7 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
     let mut search_results: Vec<SearchResult> = Vec::new();
     let mut featured_snippet: Option<FeaturedSnippet> = None;
     let mut answer: Option<Answer> = None;
+    let mut infobox: Option<Infobox> = None;
 
     for (engine, response) in responses {
         for (result_index, search_result) in response.search_results.into_iter().enumerate() {
@@ -413,6 +532,17 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
                 });
             }
         }
+
+        if let Some(engine_infobox_html) = response.infobox_html {
+            // if it has a higher weight than the current infobox
+            let infobox_weight = infobox.as_ref().map(|s| s.engine.weight()).unwrap_or(0.);
+            if engine.weight() > infobox_weight {
+                infobox = Some(Infobox {
+                    html: engine_infobox_html,
+                    engine,
+                });
+            }
+        }
     }
 
     search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
@@ -421,6 +551,7 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
         search_results,
         featured_snippet,
         answer,
+        infobox,
     }
 }
 
