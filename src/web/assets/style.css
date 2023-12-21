@@ -222,18 +222,22 @@ h1 {
 .infobox p {
   margin: 0;
 }
-.infobox-stackexchange-answer pre > code,
-.infobox-github-readme pre {
+.infobox pre {
   border: 1px solid #234;
   padding: 0.5rem;
   display: block;
+}
+.infobox pre > code {
   font-weight: normal;
 }
-.infobox-stackexchange-answer code,
-.infobox-github-readme code {
+.infobox code {
   font-weight: bold;
+}
+.infobox-docs_rs-version {
+  opacity: 0.5;
+  font-weight: normal;
+  font-size: 0.8em;
 }
 .postsearch-infobox p {
   margin-bottom: 1em;
-  white-space: pre-wrap;
 }
