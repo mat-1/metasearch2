@@ -7,11 +7,15 @@ suggestionsEl.style.visibility = "hidden";
 searchInputEl.insertAdjacentElement("afterend", suggestionsEl);
 
 let lastValue = "";
+let nextQueryId = 0;
+let lastLoadedQueryId = -1;
 async function updateSuggestions() {
   const value = searchInputEl.value;
 
-  if (value.trim() === "" || value.length > 65) {
-    renderSuggestions([]);
+  if (value === "") {
+    suggestionsEl.style.visibility = "hidden";
+    nextQueryId++;
+    lastLoadedQueryId = nextQueryId;
     return;
   }
 
@@ -21,10 +25,19 @@ async function updateSuggestions() {
   }
   lastValue = value;
 
+  const thisQueryId = nextQueryId;
+  nextQueryId++;
+
   const res = await fetch(`/autocomplete?q=${encodeURIComponent(value)}`).then(
     (res) => res.json()
   );
   const options = res[1];
+
+  // this makes sure we don't load suggestions out of order
+  if (thisQueryId < lastLoadedQueryId) {
+    return;
+  }
+  lastLoadedQueryId = thisQueryId;
 
   renderSuggestions(options);
 }
@@ -135,7 +148,7 @@ searchInputEl.addEventListener("input", () => {
   updateSuggestions();
 });
 // and on focus
-searchInputEl.addEventListener("focus", updateSuggestions);
+searchInputEl.addEventListener("click", updateSuggestions);
 // on unfocus hide the suggestions
 searchInputEl.addEventListener("blur", (e) => {
   suggestionsEl.style.visibility = "hidden";

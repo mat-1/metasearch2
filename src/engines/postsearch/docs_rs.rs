@@ -1,5 +1,5 @@
-use reqwest::Url;
 use scraper::{Html, Selector};
+use url::Url;
 
 use crate::engines::{Response, CLIENT};
 
