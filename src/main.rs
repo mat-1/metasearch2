@@ -5,10 +5,7 @@ pub mod normalize;
 pub mod parse;
 pub mod web;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
-    // initialize tracing
-    tracing_subscriber::fmt::init();
-
     web::run().await;
 }

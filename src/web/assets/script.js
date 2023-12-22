@@ -42,7 +42,8 @@ function renderSuggestions(options) {
     optionEl.textContent = option;
     optionEl.className = "search-input-suggestion";
     suggestionsEl.appendChild(optionEl);
-    optionEl.addEventListener("click", () => {
+
+    optionEl.addEventListener("mousedown", () => {
       searchInputEl.value = option;
       searchInputEl.focus();
       searchInputEl.form.submit();
@@ -136,6 +137,6 @@ searchInputEl.addEventListener("input", () => {
 // and on focus
 searchInputEl.addEventListener("focus", updateSuggestions);
 // on unfocus hide the suggestions
-searchInputEl.addEventListener("blur", () => {
+searchInputEl.addEventListener("blur", (e) => {
   suggestionsEl.style.visibility = "hidden";
 });

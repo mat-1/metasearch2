@@ -8,7 +8,13 @@ edition = "2021"
 [dependencies]
 ammonia = "3.3.0"
 async-stream = "0.3.5"
-axum = { version = "0.7.2", features = ["http2"] }
+axum = { version = "0.7.2", default-features = false, features = [
+    "tokio",
+    "http1",
+    "http2",
+    "query",
+    "json",
+] }
 base64 = "0.21.5"
 bytes = "1.5.0"
 eyre = "0.6.11"
@@ -23,8 +29,7 @@ reqwest = { version = "0.11.23", default-features = false, features = [
 scraper = "0.18.1"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
-tokio = { version = "1.35.0", features = ["full"] }
+tokio = { version = "1.35.0", features = ["rt", "macros"] }
 tokio-stream = "0.1.14"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.0"
 urlencoding = "2.1.3"

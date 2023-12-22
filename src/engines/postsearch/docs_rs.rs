@@ -16,46 +16,58 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(body: &str) -> Option<String> {
+pub fn parse_response(body: &str, url: Url) -> Option<String> {
     let dom = Html::parse_document(body);
 
-    let title = dom
-        .select(&Selector::parse("h2 a").unwrap())
-        .next()?
-        .text()
-        .collect::<String>();
     let version = dom
         .select(&Selector::parse("h2 .version").unwrap())
         .next()?
         .text()
         .collect::<String>();
 
-    let url = Url::join(
-        &Url::parse("https://docs.rs").unwrap(),
-        &dom.select(
-            &Selector::parse("ul.pure-menu-list li.pure-menu-item:nth-last-child(2) a").unwrap(),
-        )
+    let page_title = dom
+        .select(&Selector::parse("h1").unwrap())
         .next()?
-        .value()
-        .attr("href")?
-        .replace("/crate/", "/"),
-    )
-    .ok()?;
+        .text()
+        .collect::<String>()
+        .trim()
+        .to_string();
 
     let doc_query = Selector::parse(".docblock").unwrap();
 
     let doc = dom.select(&doc_query).next()?;
+
     let doc_html = doc.inner_html();
+    let item_decl = dom
+        .select(&Selector::parse(".item-decl").unwrap())
+        .next()
+        .map(|el| el.html())
+        .unwrap_or_default();
+
     let doc_html = ammonia::Builder::default()
         .link_rel(None)
         .url_relative(ammonia::UrlRelative::RewriteWithBase(url.clone()))
-        .clean(&doc_html)
+        .clean(&format!("{item_decl}{doc_html}"))
         .to_string();
 
+    let (category, title) = page_title.split_once(' ').unwrap_or(("", &page_title));
+
+    let title_html = if category == "Crate" {
+        format!(
+            r#"<h2>{category} <a href="{url}">{title}</a> <span class="infobox-docs_rs-version">{version}</span></h2>"#,
+            url = html_escape::encode_quoted_attribute(&url.to_string()),
+            title = html_escape::encode_text(&title),
+            version = html_escape::encode_text(&version),
+        )
+    } else {
+        format!(
+            r#"<h2>{category} <a href="{url}">{title}</a></h2>"#,
+            url = html_escape::encode_quoted_attribute(&url.to_string()),
+            title = html_escape::encode_text(&title),
+        )
+    };
+
     Some(format!(
-        r#"<h2>Crate <a href="{url}">{title}</a> <span class="infobox-docs_rs-version">{version}</span></h2>
-<div class="infobox-docs.rs-answer">{doc_html}</div>"#,
-        url = html_escape::encode_quoted_attribute(&url.to_string()),
-        title = html_escape::encode_text(&title),
+        r#"{title_html}<div class="infobox-docs.rs-doc">{doc_html}</div>"#
     ))
 }

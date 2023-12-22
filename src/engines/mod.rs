@@ -10,6 +10,7 @@ use std::{
 
 use futures::future::join_all;
 use tokio::sync::mpsc;
+use url::Url;
 
 pub mod answer;
 pub mod postsearch;
@@ -119,11 +120,11 @@ impl Engine {
         }
     }
 
-    pub fn postsearch_parse_response(&self, body: &str) -> Option<String> {
+    pub fn postsearch_parse_response(&self, body: &str, url: Url) -> Option<String> {
         match self {
-            Engine::StackExchange => postsearch::stackexchange::parse_response(body),
-            Engine::GitHub => postsearch::github::parse_response(body),
-            Engine::DocsRs => postsearch::docs_rs::parse_response(body),
+            Engine::StackExchange => postsearch::stackexchange::parse_response(body, url),
+            Engine::GitHub => postsearch::github::parse_response(body, url),
+            Engine::DocsRs => postsearch::docs_rs::parse_response(body, url),
             _ => None,
         }
     }
@@ -346,8 +347,9 @@ pub async fn search_with_engines(
                 postsearch_requests.push(async {
                     let response = match request.send().await {
                         Ok(res) => {
+                            let url = res.url().clone();
                             let body = res.text().await?;
-                            engine.postsearch_parse_response(&body)
+                            engine.postsearch_parse_response(&body, url)
                         }
                         Err(e) => {
                             eprintln!("postsearch request error: {}", e);

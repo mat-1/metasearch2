@@ -80,8 +80,7 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
         return Ok(EngineResponse::new());
     }
 
-    // this is present on the wikipedia article for google
-    let extract = extract.replace("( )", "");
+    let extract = extract.replace("( )", "").replace("()", "");
 
     let page_title = title.replace(' ', "_");
     let page_url = format!("https://en.wikipedia.org/wiki/{page_title}");
