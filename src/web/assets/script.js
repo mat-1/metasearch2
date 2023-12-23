@@ -147,7 +147,7 @@ searchInputEl.addEventListener("input", () => {
   clearFocusedSuggestion();
   updateSuggestions();
 });
-// and on focus
+// and when they click suggestions
 searchInputEl.addEventListener("click", updateSuggestions);
 // on unfocus hide the suggestions
 searchInputEl.addEventListener("blur", (e) => {

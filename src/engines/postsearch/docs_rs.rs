@@ -35,9 +35,12 @@ pub fn parse_response(body: &str, url: Url) -> Option<String> {
 
     let doc_query = Selector::parse(".docblock").unwrap();
 
-    let doc = dom.select(&doc_query).next()?;
+    let doc_html = dom
+        .select(&doc_query)
+        .next()
+        .map(|doc| doc.inner_html())
+        .unwrap_or_default();
 
-    let doc_html = doc.inner_html();
     let item_decl = dom
         .select(&Selector::parse(".item-decl").unwrap())
         .next()
