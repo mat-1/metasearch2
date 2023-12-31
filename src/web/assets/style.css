@@ -96,8 +96,10 @@ h1 {
 .search-input-suggestion {
   cursor: pointer;
   padding: 0.3em 0.3em;
+  white-space: nowrap;
 }
-.search-input-suggestion.focused {
+.search-input-suggestion.focused,
+.search-input-suggestion:hover {
   background: #234;
 }
 
@@ -109,6 +111,7 @@ h1 {
 }
 .search-result-anchor {
   display: block;
+  word-break: break-all;
 }
 .search-result-url {
   margin: 0;
@@ -169,6 +172,7 @@ h1 {
   margin-bottom: 1rem;
   border: 1px solid #234;
   padding: 0.5rem;
+  word-break: break-word;
 }
 .answer h3 {
   margin: 0;
@@ -190,6 +194,10 @@ h1 {
 }
 .answer-calc-special {
   color: #e6b673;
+}
+.answer-calc-comment {
+  color: #acb6bf8c;
+  font-weight: normal;
 }
 
 /* infobox */
