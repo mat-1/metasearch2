@@ -22,6 +22,7 @@ pub enum Engine {
     Google,
     Bing,
     Brave,
+    Marginalia,
     // answer
     Useragent,
     Ip,
@@ -39,6 +40,7 @@ impl Engine {
             Engine::Google,
             Engine::Bing,
             Engine::Brave,
+            Engine::Marginalia,
             Engine::Useragent,
             Engine::Ip,
             Engine::Calc,
@@ -54,6 +56,7 @@ impl Engine {
             Engine::Google => "google",
             Engine::Bing => "bing",
             Engine::Brave => "brave",
+            Engine::Marginalia => "marginalia",
             Engine::Useragent => "useragent",
             Engine::Ip => "ip",
             Engine::Calc => "calc",
@@ -69,6 +72,7 @@ impl Engine {
             Engine::Google => 1.05,
             Engine::Bing => 1.,
             Engine::Brave => 1.25,
+            Engine::Marginalia => 0.3,
             _ => 1.,
         }
     }
@@ -78,6 +82,7 @@ impl Engine {
             Engine::Google => search::google::request(query).into(),
             Engine::Bing => search::bing::request(query).into(),
             Engine::Brave => search::brave::request(query).into(),
+            Engine::Marginalia => search::marginalia::request(query).into(),
             Engine::Useragent => answer::useragent::request(query).into(),
             Engine::Ip => answer::ip::request(query).into(),
             Engine::Calc => answer::calc::request(query).into(),
@@ -91,6 +96,7 @@ impl Engine {
             Engine::Google => search::google::parse_response(body),
             Engine::Bing => search::bing::parse_response(body),
             Engine::Brave => search::brave::parse_response(body),
+            Engine::Marginalia => search::marginalia::parse_response(body),
             Engine::Wikipedia => answer::wikipedia::parse_response(body),
             _ => eyre::bail!("engine {self:?} can't parse response"),
         }
