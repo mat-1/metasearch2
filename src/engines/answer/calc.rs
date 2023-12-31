@@ -1,4 +1,4 @@
-use std::{sync::LazyLock, time::Instant};
+use std::{cell::Cell, sync::LazyLock, time::Instant};
 
 use fend_core::SpanKind;
 
@@ -109,23 +109,17 @@ pub static FEND_CONTEXT: LazyLock<fend_core::Context> = LazyLock::new(|| {
     context
 });
 
-struct TimeoutInterrupt {
-    start: Instant,
-    timeout: u128,
+struct Interrupter {
+    invocations_left: Cell<u32>,
 }
 
-impl TimeoutInterrupt {
-    fn new_with_timeout(timeout: u128) -> Self {
-        Self {
-            start: Instant::now(),
-            timeout,
-        }
-    }
-}
-
-impl fend_core::Interrupt for TimeoutInterrupt {
+impl fend_core::Interrupt for Interrupter {
     fn should_interrupt(&self) -> bool {
-        Instant::now().duration_since(self.start).as_millis() > self.timeout
+        if self.invocations_left.get() == 0 {
+            return true;
+        }
+        self.invocations_left.set(self.invocations_left.get() - 1);
+        false
     }
 }
 
@@ -201,7 +195,9 @@ fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
     }
 
     // not a perfect anti-abuse but good enough for our purposes
-    let interrupt = TimeoutInterrupt::new_with_timeout(10);
+    let interrupt = Interrupter {
+        invocations_left: Cell::new(10000),
+    };
     let Ok(result) = fend_core::evaluate_with_interrupt(query, &mut context, &interrupt) else {
         return vec![];
     };
