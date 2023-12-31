@@ -234,6 +234,9 @@ h1 {
 .infobox code {
   font-weight: bold;
 }
+.infobox img {
+  max-width: 100%;
+}
 .infobox-docs_rs-version {
   opacity: 0.5;
   font-weight: normal;
