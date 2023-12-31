@@ -72,7 +72,7 @@ impl Engine {
             Engine::Google => 1.05,
             Engine::Bing => 1.,
             Engine::Brave => 1.25,
-            Engine::Marginalia => 0.3,
+            Engine::Marginalia => 0.15,
             _ => 1.,
         }
     }

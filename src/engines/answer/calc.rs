@@ -1,4 +1,4 @@
-use std::{cell::Cell, sync::LazyLock, time::Instant};
+use std::{cell::Cell, sync::LazyLock};
 
 use fend_core::SpanKind;
 
@@ -194,9 +194,12 @@ fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
         context.set_output_mode_terminal();
     }
 
-    // not a perfect anti-abuse but good enough for our purposes
+    // avoids stackoverflows and queries that take too long
+    // examples:
+    // - Y = (\f. (\x. f x x)) (\x. f x x); Y(Y)
+    // - 10**100000000
     let interrupt = Interrupter {
-        invocations_left: Cell::new(10000),
+        invocations_left: Cell::new(1000),
     };
     let Ok(result) = fend_core::evaluate_with_interrupt(query, &mut context, &interrupt) else {
         return vec![];
