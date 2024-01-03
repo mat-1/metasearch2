@@ -306,7 +306,13 @@ pub async fn search_with_engines(
                         start_time,
                     ))?;
 
-                    let response = engine.parse_response(&body)?;
+                    let response = match engine.parse_response(&body) {
+                        Ok(response) => response,
+                        Err(e) => {
+                            eprintln!("parse error: {}", e);
+                            EngineResponse::new()
+                        }
+                    };
 
                     progress_tx.send(ProgressUpdate::new(
                         ProgressUpdateData::Engine {
