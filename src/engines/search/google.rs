@@ -22,7 +22,8 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
         body,
         ParseOpts::new()
             // xpd is weird, some results have it but it's usually used for ads?
-            // the :first-child filters out the ads though since for ads the first child is always a span
+            // the :first-child filters out the ads though since for ads the first child is always a
+            // span
             .result("div.g > div, div.xpd > div:first-child")
             .title("h3")
             .href("a[href]")

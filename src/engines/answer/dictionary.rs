@@ -128,8 +128,9 @@ pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> eyre::Result
 
 fn key_to_title(key: &str) -> String {
     // https://github.com/wikimedia/mediawiki-title
-    // In general, the page title is converted to the mediawiki DB key format by trimming spaces,
-    // replacing whitespace symbols to underscores and applying wiki-specific capitalization rules.
+    // In general, the page title is converted to the mediawiki DB key format by
+    // trimming spaces, replacing whitespace symbols to underscores and applying
+    // wiki-specific capitalization rules.
 
     let title = key.trim().replace('_', " ");
     let mut c = title.chars();

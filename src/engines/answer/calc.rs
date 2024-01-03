@@ -78,7 +78,8 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
         }
     }
 
-    // if the result was a single hex number then we add the decimal equivalent below
+    // if the result was a single hex number then we add the decimal equivalent
+    // below
     if spans.len() == 1
         && spans[0].kind == fend_core::SpanKind::Number
         && spans[0].text.starts_with("0x")
@@ -145,27 +146,6 @@ fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
             }
         }
     }
-    // // match queries like "ord(≿)" or just "≿"
-    // let re = regex!(
-    //     r"^(?:(?:chr|charcode|char|charcode)(?:| for| of)\s*\(?\s*(\d+)\s*\)?)|(?:(\d+) (?:|to |into |as )(?:charcode|char|character))$"
-    // );
-    // if let Some(m) = re.captures(query) {
-    //     if let Some(ord) = m
-    //         .get(1)
-    //         .or_else(|| m.get(2))
-    //         .and_then(|m| m.as_str().parse::<u32>().ok())
-    //     {
-    //         let chr = std::char::from_u32(ord);
-    //         if let Some(chr) = chr {
-    //             return vec![Span {
-    //                 text: format!("'{chr}'"),
-    //                 kind: fend_core::SpanKind::String,
-    //             }];
-    //         } else {
-    //             return vec![];
-    //         }
-    //     }
-    // }
 
     // fend incorrectly triggers on these often
     {
@@ -174,12 +154,14 @@ fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
             return vec![];
         }
 
-        // probably a query operator thing or a url, fend evaluates these but it shouldn't
+        // probably a query operator thing or a url, fend evaluates these but it
+        // shouldn't
         if regex!("^[a-z]{2,}:").is_match(query) {
             return vec![];
         }
 
-        // if it starts and ends with quotes then the person was just searching in quotes and didn't mean to evaluate a string
+        // if it starts and ends with quotes then the person was just searching in
+        // quotes and didn't mean to evaluate a string
         if query.starts_with('"')
             && query.ends_with('"')
             && query.chars().filter(|c| *c == '"').count() == 2

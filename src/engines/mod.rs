@@ -546,7 +546,8 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
 
     for (engine, response) in responses {
         for (result_index, search_result) in response.search_results.into_iter().enumerate() {
-            // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a score of 0.33, etc.
+            // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a
+            // score of 0.33, etc.
             let base_result_score = 1. / (result_index + 1) as f64;
             let result_score = base_result_score * engine.weight();
 
@@ -554,7 +555,8 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
                 .iter_mut()
                 .find(|r| r.url == search_result.url)
             {
-                // if the weight of this engine is higher than every other one then replace the title and description
+                // if the weight of this engine is higher than every other one then replace the
+                // title and description
                 if engine.weight()
                     > existing_result
                         .engines
@@ -639,7 +641,8 @@ fn merge_autocomplete_responses(responses: HashMap<Engine, Vec<String>>) -> Vec<
 
     for (engine, response) in responses {
         for (result_index, autocomplete_result) in response.into_iter().enumerate() {
-            // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a score of 0.33, etc.
+            // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a
+            // score of 0.33, etc.
             let base_result_score = 1. / (result_index + 1) as f64;
             let result_score = base_result_score * engine.weight();
 
