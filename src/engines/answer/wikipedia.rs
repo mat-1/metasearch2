@@ -6,28 +6,22 @@ use url::Url;
 use crate::engines::{EngineResponse, CLIENT};
 
 pub fn request(query: &str) -> reqwest::RequestBuilder {
-    CLIENT
-        .get(
-            Url::parse_with_params(
-                "https://en.wikipedia.org/w/api.php",
-                &[
-                    ("format", "json"),
-                    ("action", "query"),
-                    ("prop", "extracts|pageimages"),
-                    ("exintro", ""),
-                    ("explaintext", ""),
-                    ("redirects", "1"),
-                    ("exsentences", "2"),
-                    ("titles", query),
-                ],
-            )
-            .unwrap(),
+    CLIENT.get(
+        Url::parse_with_params(
+            "https://en.wikipedia.org/w/api.php",
+            &[
+                ("format", "json"),
+                ("action", "query"),
+                ("prop", "extracts|pageimages"),
+                ("exintro", ""),
+                ("explaintext", ""),
+                ("redirects", "1"),
+                ("exsentences", "2"),
+                ("titles", query),
+            ],
         )
-        .header(
-            "User-Agent",
-            "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
-        )
-        .header("Accept-Language", "en-US,en;q=0.5")
+        .unwrap(),
+    )
 }
 
 #[derive(Debug, Deserialize)]

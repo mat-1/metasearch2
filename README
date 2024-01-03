@@ -5,9 +5,9 @@ it sources from google, bing, brave, and a few others.
 it's written in rust using no templating engine and with as little client-side
 javascript as possible.
 
-metasearch2 is a single binary with no cli or configuration file. if you want
-to configure it (like to change the default port or weights of engines) then
-you have to modify the source.
+metasearch2 is a single binary with no cli, configuration file, or database.
+if you want to configure it (like to change the default port or weights of
+engines) then you have to modify the source.
 
 build it with `cargo b -r`, the resulting binary will be in
 `target/release/metasearch2`. it runs on port 28019.

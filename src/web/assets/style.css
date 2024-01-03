@@ -56,6 +56,11 @@ a:visited {
 pre {
   white-space: pre-wrap;
 }
+blockquote {
+  margin: 0;
+  padding-left: 0.5em;
+  border-left: 0.25em solid #234;
+}
 
 /* index page */
 .main-container {
@@ -198,6 +203,17 @@ h1 {
 .answer-calc-comment {
   color: #acb6bf8c;
   font-weight: normal;
+}
+
+.answer-dictionary-word {
+  margin-top: 0;
+}
+.answer-dictionary-part-of-speech {
+  font-style: italic;
+  opacity: 0.8;
+}
+.answer-dictionary-example {
+  margin-bottom: 0.5em;
 }
 
 /* infobox */

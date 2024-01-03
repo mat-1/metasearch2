@@ -9,6 +9,7 @@ use std::{
 };
 
 use futures::future::join_all;
+use reqwest::header::HeaderMap;
 use tokio::sync::mpsc;
 use url::Url;
 
@@ -28,6 +29,7 @@ pub enum Engine {
     Ip,
     Calc,
     Wikipedia,
+    Dictionary,
     // post-search
     StackExchange,
     GitHub,
@@ -41,10 +43,13 @@ impl Engine {
             Engine::Bing,
             Engine::Brave,
             Engine::Marginalia,
+            // answer
             Engine::Useragent,
             Engine::Ip,
             Engine::Calc,
             Engine::Wikipedia,
+            Engine::Dictionary,
+            // post-search
             Engine::StackExchange,
             Engine::GitHub,
             Engine::DocsRs,
@@ -57,10 +62,13 @@ impl Engine {
             Engine::Bing => "bing",
             Engine::Brave => "brave",
             Engine::Marginalia => "marginalia",
+            // answer
             Engine::Useragent => "useragent",
             Engine::Ip => "ip",
             Engine::Calc => "calc",
             Engine::Wikipedia => "wikipedia",
+            Engine::Dictionary => "dictionary",
+            // post-search
             Engine::StackExchange => "stackexchange",
             Engine::GitHub => "github",
             Engine::DocsRs => "docs.rs",
@@ -78,6 +86,7 @@ impl Engine {
     }
 
     pub fn request(&self, query: &SearchQuery) -> RequestResponse {
+        #[allow(clippy::useless_conversion)]
         match self {
             Engine::Google => search::google::request(query).into(),
             Engine::Bing => search::bing::request(query).into(),
@@ -87,17 +96,20 @@ impl Engine {
             Engine::Ip => answer::ip::request(query).into(),
             Engine::Calc => answer::calc::request(query).into(),
             Engine::Wikipedia => answer::wikipedia::request(query).into(),
+            Engine::Dictionary => answer::dictionary::request(query).into(),
             _ => RequestResponse::None,
         }
     }
 
-    pub fn parse_response(&self, body: &str) -> eyre::Result<EngineResponse> {
+    pub fn parse_response(&self, res: &HttpResponse) -> eyre::Result<EngineResponse> {
+        #[allow(clippy::useless_conversion)]
         match self {
-            Engine::Google => search::google::parse_response(body),
-            Engine::Bing => search::bing::parse_response(body),
-            Engine::Brave => search::brave::parse_response(body),
-            Engine::Marginalia => search::marginalia::parse_response(body),
-            Engine::Wikipedia => answer::wikipedia::parse_response(body),
+            Engine::Google => search::google::parse_response(res.into()),
+            Engine::Bing => search::bing::parse_response(res.into()),
+            Engine::Brave => search::brave::parse_response(res.into()),
+            Engine::Marginalia => search::marginalia::parse_response(res.into()),
+            Engine::Wikipedia => answer::wikipedia::parse_response(res.into()),
+            Engine::Dictionary => answer::dictionary::parse_response(res.into()),
             _ => eyre::bail!("engine {self:?} can't parse response"),
         }
     }
@@ -184,6 +196,23 @@ impl From<reqwest::RequestBuilder> for RequestAutocompleteResponse {
 impl From<Vec<String>> for RequestAutocompleteResponse {
     fn from(res: Vec<String>) -> Self {
         Self::Instant(res)
+    }
+}
+
+pub struct HttpResponse {
+    pub res: reqwest::Response,
+    pub body: String,
+}
+
+impl<'a> From<&'a HttpResponse> for &'a str {
+    fn from(res: &'a HttpResponse) -> Self {
+        &res.body
+    }
+}
+
+impl From<HttpResponse> for reqwest::Response {
+    fn from(res: HttpResponse) -> Self {
+        res.res
     }
 }
 
@@ -286,7 +315,7 @@ pub async fn search_with_engines(
                         start_time,
                     ))?;
 
-                    let res = request.send().await?;
+                    let mut res = request.send().await?;
 
                     progress_tx.send(ProgressUpdate::new(
                         ProgressUpdateData::Engine {
@@ -296,7 +325,11 @@ pub async fn search_with_engines(
                         start_time,
                     ))?;
 
-                    let body = res.text().await?;
+                    let mut body_bytes = Vec::new();
+                    while let Some(chunk) = res.chunk().await? {
+                        body_bytes.extend_from_slice(&chunk);
+                    }
+                    let body = String::from_utf8_lossy(&body_bytes).to_string();
 
                     progress_tx.send(ProgressUpdate::new(
                         ProgressUpdateData::Engine {
@@ -306,7 +339,9 @@ pub async fn search_with_engines(
                         start_time,
                     ))?;
 
-                    let response = match engine.parse_response(&body) {
+                    let http_response = HttpResponse { res, body };
+
+                    let response = match engine.parse_response(&http_response) {
                         Ok(response) => response,
                         Err(e) => {
                             eprintln!("parse error: {}", e);
@@ -436,6 +471,19 @@ pub async fn autocomplete_with_engines(
 pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::ClientBuilder::new()
         .local_address(IpAddr::from_str("0.0.0.0").unwrap())
+        .default_headers({
+            let mut headers = HeaderMap::new();
+            // we pretend to be a normal browser so websites don't block us
+            // (since we're not entirely a bot, we're acting on behalf of the user)
+            headers.insert(
+                "User-Agent",
+                "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
+                    .parse()
+                    .unwrap(),
+            );
+            headers.insert("Accept-Language", "en-US,en;q=0.5".parse().unwrap());
+            headers
+        })
         .build()
         .unwrap()
 });

@@ -8,10 +8,7 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
         if regex!(r"^https:\/\/(stackoverflow\.com|serverfault\.com|superuser\.com|\w{1,}\.stackexchange\.com)\/questions\/\d+")
             .is_match(&search_result.url)
         {
-            return Some(CLIENT.get(search_result.url.as_str()).header(
-                "User-Agent",
-                "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
-            ));
+            return Some(CLIENT.get(search_result.url.as_str()));
         }
     }
 

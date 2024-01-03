@@ -6,10 +6,7 @@ use crate::engines::{Response, CLIENT};
 pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     for search_result in response.search_results.iter().take(8) {
         if search_result.url.starts_with("https://github.com/") {
-            return Some(CLIENT.get(search_result.url.as_str()).header(
-                "User-Agent",
-                "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
-            ));
+            return Some(CLIENT.get(search_result.url.as_str()));
         }
     }
 

@@ -6,13 +6,7 @@ use crate::{
 };
 
 pub fn request(query: &str) -> reqwest::RequestBuilder {
-    CLIENT
-        .get(Url::parse_with_params("https://search.brave.com/search", &[("q", query)]).unwrap())
-        .header(
-            "User-Agent",
-            "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
-        )
-        .header("Accept-Language", "en-US,en;q=0.5")
+    CLIENT.get(Url::parse_with_params("https://search.brave.com/search", &[("q", query)]).unwrap())
 }
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {

@@ -1,4 +1,5 @@
 pub mod calc;
+pub mod dictionary;
 pub mod ip;
 pub mod useragent;
 pub mod wikipedia;

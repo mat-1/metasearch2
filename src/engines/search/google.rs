@@ -7,20 +7,14 @@ use crate::{
 };
 
 pub fn request(query: &str) -> reqwest::RequestBuilder {
-    CLIENT
-        .get(
-            Url::parse_with_params(
-                "https://www.google.com/search",
-                // nfpr makes it not try to autocorrect
-                &[("q", query), ("nfpr", "1")],
-            )
-            .unwrap(),
+    CLIENT.get(
+        Url::parse_with_params(
+            "https://www.google.com/search",
+            // nfpr makes it not try to autocorrect
+            &[("q", query), ("nfpr", "1")],
         )
-        .header(
-            "User-Agent",
-            "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
-        )
-        .header("Accept-Language", "en-US,en;q=0.5")
+        .unwrap(),
+    )
 }
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
@@ -48,23 +42,18 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
 }
 
 pub fn request_autocomplete(query: &str) -> reqwest::RequestBuilder {
-    CLIENT
-        .get(
-            Url::parse_with_params(
-                "https://suggestqueries.google.com/complete/search",
-                &[
-                    ("output", "firefox"),
-                    ("client", "firefox"),
-                    ("hl", "US-en"),
-                    ("q", query),
-                ],
-            )
-            .unwrap(),
+    CLIENT.get(
+        Url::parse_with_params(
+            "https://suggestqueries.google.com/complete/search",
+            &[
+                ("output", "firefox"),
+                ("client", "firefox"),
+                ("hl", "US-en"),
+                ("q", query),
+            ],
         )
-        .header(
-            "User-Agent",
-            "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
-        )
+        .unwrap(),
+    )
 }
 
 pub fn parse_autocomplete_response(body: &str) -> eyre::Result<Vec<String>> {

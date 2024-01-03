@@ -8,20 +8,14 @@ use crate::{
 };
 
 pub fn request(query: &str) -> reqwest::RequestBuilder {
-    CLIENT
-        .get(
-            Url::parse_with_params(
-                "https://www.bing.com/search",
-                // filters=rcrse:"1" makes it not try to autocorrect
-                &[("q", query), ("filters", "rcrse:\"1\"")],
-            )
-            .unwrap(),
+    CLIENT.get(
+        Url::parse_with_params(
+            "https://www.bing.com/search",
+            // filters=rcrse:"1" makes it not try to autocorrect
+            &[("q", query), ("filters", "rcrse:\"1\"")],
         )
-        .header(
-            "User-Agent",
-            "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
-        )
-        .header("Accept-Language", "en-US,en;q=0.5")
+        .unwrap(),
+    )
 }
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
