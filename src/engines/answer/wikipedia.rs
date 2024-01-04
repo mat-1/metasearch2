@@ -75,7 +75,7 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     }
 
     let extract = extract
-        .replace("( ;", "(")
+        .replace("(; ", "(")
         .replace("( )", "")
         .replace("()", "");
 
