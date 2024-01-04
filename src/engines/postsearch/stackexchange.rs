@@ -15,7 +15,7 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(body: &str, _url: Url) -> Option<String> {
+pub fn parse_response(body: &str) -> Option<String> {
     let dom = Html::parse_document(body);
 
     let title = dom

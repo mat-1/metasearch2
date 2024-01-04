@@ -11,141 +11,64 @@ use std::{
 use futures::future::join_all;
 use reqwest::header::HeaderMap;
 use tokio::sync::mpsc;
-use url::Url;
+
+mod macros;
+use crate::{
+    engine_autocomplete_requests, engine_postsearch_requests, engine_requests, engine_weights,
+    engines,
+};
 
 pub mod answer;
 pub mod postsearch;
 pub mod search;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Engine {
+engines! {
     // search
-    Google,
-    Bing,
-    Brave,
-    Marginalia,
+    Google = "google",
+    Bing = "bing",
+    Brave = "brave",
+    Marginalia = "marginalia",
     // answer
-    Useragent,
-    Ip,
-    Calc,
-    Wikipedia,
-    Dictionary,
+    Useragent = "useragent",
+    Ip = "ip",
+    Calc = "calc",
+    Wikipedia = "wikipedia",
+    Dictionary = "dictionary",
     // post-search
-    StackExchange,
-    GitHub,
-    DocsRs,
+    StackExchange = "stackexchange",
+    GitHub = "github",
+    DocsRs = "docs.rs",
 }
 
-impl Engine {
-    pub fn all() -> &'static [Engine] {
-        &[
-            Engine::Google,
-            Engine::Bing,
-            Engine::Brave,
-            Engine::Marginalia,
-            // answer
-            Engine::Useragent,
-            Engine::Ip,
-            Engine::Calc,
-            Engine::Wikipedia,
-            Engine::Dictionary,
-            // post-search
-            Engine::StackExchange,
-            Engine::GitHub,
-            Engine::DocsRs,
-        ]
-    }
+engine_weights! {
+    Google = 1.05,
+    Bing = 1.0,
+    Brave = 1.25,
+    Marginalia = 0.15,
+    // defaults to 1.0
+}
 
-    pub fn id(&self) -> &'static str {
-        match self {
-            Engine::Google => "google",
-            Engine::Bing => "bing",
-            Engine::Brave => "brave",
-            Engine::Marginalia => "marginalia",
-            // answer
-            Engine::Useragent => "useragent",
-            Engine::Ip => "ip",
-            Engine::Calc => "calc",
-            Engine::Wikipedia => "wikipedia",
-            Engine::Dictionary => "dictionary",
-            // post-search
-            Engine::StackExchange => "stackexchange",
-            Engine::GitHub => "github",
-            Engine::DocsRs => "docs.rs",
-        }
-    }
+engine_requests! {
+    Google => search::google::request, parse_response,
+    Bing => search::bing::request, parse_response,
+    Brave => search::brave::request, parse_response,
+    Marginalia => search::marginalia::request, parse_response,
+    Useragent => answer::useragent::request, None,
+    Ip => answer::ip::request, None,
+    Calc => answer::calc::request, None,
+    Wikipedia => answer::wikipedia::request, parse_response,
+    Dictionary => answer::dictionary::request, parse_response,
+}
 
-    pub fn weight(&self) -> f64 {
-        match self {
-            Engine::Google => 1.05,
-            Engine::Bing => 1.,
-            Engine::Brave => 1.25,
-            Engine::Marginalia => 0.15,
-            _ => 1.,
-        }
-    }
+engine_autocomplete_requests! {
+    Google => search::google::request_autocomplete, parse_autocomplete_response,
+    Calc => answer::calc::request_autocomplete, None,
+}
 
-    pub fn request(&self, query: &SearchQuery) -> RequestResponse {
-        #[allow(clippy::useless_conversion)]
-        match self {
-            Engine::Google => search::google::request(query).into(),
-            Engine::Bing => search::bing::request(query).into(),
-            Engine::Brave => search::brave::request(query).into(),
-            Engine::Marginalia => search::marginalia::request(query).into(),
-            Engine::Useragent => answer::useragent::request(query).into(),
-            Engine::Ip => answer::ip::request(query).into(),
-            Engine::Calc => answer::calc::request(query).into(),
-            Engine::Wikipedia => answer::wikipedia::request(query).into(),
-            Engine::Dictionary => answer::dictionary::request(query).into(),
-            _ => RequestResponse::None,
-        }
-    }
-
-    pub fn parse_response(&self, res: &HttpResponse) -> eyre::Result<EngineResponse> {
-        #[allow(clippy::useless_conversion)]
-        match self {
-            Engine::Google => search::google::parse_response(res.into()),
-            Engine::Bing => search::bing::parse_response(res.into()),
-            Engine::Brave => search::brave::parse_response(res.into()),
-            Engine::Marginalia => search::marginalia::parse_response(res.into()),
-            Engine::Wikipedia => answer::wikipedia::parse_response(res.into()),
-            Engine::Dictionary => answer::dictionary::parse_response(res.into()),
-            _ => eyre::bail!("engine {self:?} can't parse response"),
-        }
-    }
-
-    pub fn request_autocomplete(&self, query: &str) -> Option<RequestAutocompleteResponse> {
-        match self {
-            Engine::Google => Some(search::google::request_autocomplete(query).into()),
-            Engine::Calc => Some(answer::calc::request_autocomplete(query).into()),
-            _ => None,
-        }
-    }
-
-    pub fn parse_autocomplete_response(&self, body: &str) -> eyre::Result<Vec<String>> {
-        match self {
-            Engine::Google => search::google::parse_autocomplete_response(body),
-            _ => eyre::bail!("engine {self:?} can't parse autocomplete response"),
-        }
-    }
-
-    pub fn postsearch_request(&self, response: &Response) -> Option<reqwest::RequestBuilder> {
-        match self {
-            Engine::StackExchange => postsearch::stackexchange::request(response),
-            Engine::GitHub => postsearch::github::request(response),
-            Engine::DocsRs => postsearch::docs_rs::request(response),
-            _ => None,
-        }
-    }
-
-    pub fn postsearch_parse_response(&self, body: &str, url: Url) -> Option<String> {
-        match self {
-            Engine::StackExchange => postsearch::stackexchange::parse_response(body, url),
-            Engine::GitHub => postsearch::github::parse_response(body, url),
-            Engine::DocsRs => postsearch::docs_rs::parse_response(body, url),
-            _ => None,
-        }
-    }
+engine_postsearch_requests! {
+    StackExchange => postsearch::stackexchange::request, parse_response,
+    GitHub => postsearch::github::request, parse_response,
+    DocsRs => postsearch::docs_rs::request, parse_response,
 }
 
 impl fmt::Display for Engine {
@@ -393,10 +316,15 @@ pub async fn search_with_engines(
             if let Some(request) = engine.postsearch_request(&response) {
                 postsearch_requests.push(async {
                     let response = match request.send().await {
-                        Ok(res) => {
-                            let url = res.url().clone();
-                            let body = res.text().await?;
-                            engine.postsearch_parse_response(&body, url)
+                        Ok(mut res) => {
+                            let mut body_bytes = Vec::new();
+                            while let Some(chunk) = res.chunk().await? {
+                                body_bytes.extend_from_slice(&chunk);
+                            }
+                            let body = String::from_utf8_lossy(&body_bytes).to_string();
+
+                            let http_response = HttpResponse { res, body };
+                            engine.postsearch_parse_response(&http_response)
                         }
                         Err(e) => {
                             eprintln!("postsearch request error: {}", e);

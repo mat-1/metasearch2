@@ -1,7 +1,6 @@
 use scraper::{Html, Selector};
-use url::Url;
 
-use crate::engines::{Response, CLIENT};
+use crate::engines::{HttpResponse, Response, CLIENT};
 
 pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     for search_result in response.search_results.iter().take(8) {
@@ -13,7 +12,9 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(body: &str, url: Url) -> Option<String> {
+pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> Option<String> {
+    let url = res.url().clone();
+
     let dom = Html::parse_document(body);
 
     let version = dom
