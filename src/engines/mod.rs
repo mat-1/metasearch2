@@ -399,16 +399,11 @@ pub async fn autocomplete_with_engines(
 pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::ClientBuilder::new()
         .local_address(IpAddr::from_str("0.0.0.0").unwrap())
+        // we pretend to be a normal browser so websites don't block us
+        // (since we're not entirely a bot, we're acting on behalf of the user)
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0")
         .default_headers({
             let mut headers = HeaderMap::new();
-            // we pretend to be a normal browser so websites don't block us
-            // (since we're not entirely a bot, we're acting on behalf of the user)
-            headers.insert(
-                "User-Agent",
-                "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
-                    .parse()
-                    .unwrap(),
-            );
             headers.insert("Accept-Language", "en-US,en;q=0.5".parse().unwrap());
             headers
         })
