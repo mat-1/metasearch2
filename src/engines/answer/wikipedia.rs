@@ -74,11 +74,17 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
         return Ok(EngineResponse::new());
     }
 
-    let extract = extract
-        .replace("(; ", "(")
-        .replace("( ; ", "(")
-        .replace("( )", "")
-        .replace("()", "");
+    let mut previous_extract = "".to_string();
+    let mut extract = extract.clone();
+    while previous_extract != extract {
+        previous_extract = extract.clone();
+        extract = extract
+            .replace("(, ", "(")
+            .replace("(; ", "(")
+            .replace("( ; ", "(")
+            .replace("( )", "")
+            .replace("()", "");
+    }
 
     let page_title = title.replace(' ', "_");
     let page_url = format!("https://en.wikipedia.org/wiki/{page_title}");
