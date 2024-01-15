@@ -3,7 +3,7 @@ a cute metasearch engine
 it sources from google, bing, brave, and a few others.
 
 there's a demo instance at https://s.matdoes.dev, but don't use it as your
-default or rely on it, please (so i don't get ratelimited by Google).
+default or rely on it, please (so i don't get ratelimited by google).
 
 it's written in rust using no templating engine and with as little client-side
 javascript as possible.

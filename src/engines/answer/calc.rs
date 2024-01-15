@@ -106,6 +106,7 @@ pub static FEND_CONTEXT: LazyLock<fend_core::Context> = LazyLock::new(|| {
     context.set_random_u32_fn(rand::random::<u32>);
 
     fend_core::evaluate("ord=(x: x to codepoint)", &mut context).unwrap();
+    fend_core::evaluate("chr=(x: x to character)", &mut context).unwrap();
 
     context
 });
@@ -125,28 +126,6 @@ impl fend_core::Interrupt for Interrupter {
 }
 
 fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
-    // match queries like "chr(8831)" or "8831 to char"
-    let re = regex!(
-        r"^(?:(?:chr|charcode|char|charcode)(?:| for| of)\s*\(?\s*(\d+)\s*\)?)|(?:(\d+) (?:|to |into |as )(?:charcode|char|character))$"
-    );
-    if let Some(m) = re.captures(query) {
-        if let Some(ord) = m
-            .get(1)
-            .or_else(|| m.get(2))
-            .and_then(|m| m.as_str().parse::<u32>().ok())
-        {
-            let chr = std::char::from_u32(ord);
-            if let Some(chr) = chr {
-                return vec![Span {
-                    text: format!("'{chr}'"),
-                    kind: fend_core::SpanKind::String,
-                }];
-            } else {
-                return vec![];
-            }
-        }
-    }
-
     // fend incorrectly triggers on these often
     {
         // at least 3 characters and not one of the short constants
