@@ -2,6 +2,9 @@ a cute metasearch engine
 
 it sources from google, bing, brave, and a few others.
 
+there's a demo instance at https://s.matdoes.dev, but don't use it as your
+default or rely on it, please (so i don't get ratelimited by Google).
+
 it's written in rust using no templating engine and with as little client-side
 javascript as possible.
 
@@ -12,5 +15,3 @@ engines) then you have to modify the source.
 build it with `cargo b -r`, the resulting binary will be at
 `target/release/metasearch2`. it runs on port 28019.
 
-There's a demo instance at https://s.matdoes.dev, but don't use it as your
-default or rely on it, please (so I don't get ratelimited by Google).
