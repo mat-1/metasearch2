@@ -9,5 +9,8 @@ metasearch2 is a single binary with no cli, configuration file, or database.
 if you want to configure it (like to change the default port or weights of
 engines) then you have to modify the source.
 
-build it with `cargo b -r`, the resulting binary will be in
+build it with `cargo b -r`, the resulting binary will be at
 `target/release/metasearch2`. it runs on port 28019.
+
+There's a demo instance at https://s.matdoes.dev, but don't use it as your
+default or rely on it, please (so I don't get ratelimited by Google).
