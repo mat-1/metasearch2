@@ -26,8 +26,20 @@ pub fn parse_response(body: &str) -> Option<String> {
         .attr("href")?;
     let url = format!("https://github.com{url_relative}");
 
-    let readme = dom.select(&Selector::parse("article").unwrap()).next()?;
-    let readme_html = readme.inner_html().trim().to_string();
+    let embedded_data_script = dom
+        .select(&Selector::parse("script[data-target='react-partial.embeddedData']").unwrap())
+        .last()?
+        .inner_html();
+    let embedded_data = serde_json::from_str::<serde_json::Value>(&embedded_data_script).ok()?;
+    let readme_html = embedded_data
+        .get("props")?
+        .get("initialPayload")?
+        .get("overview")?
+        .get("overviewFiles")?
+        .as_array()?
+        .first()?
+        .get("richText")?
+        .as_str()?;
 
     let mut readme_html = ammonia::Builder::default()
         .link_rel(None)
