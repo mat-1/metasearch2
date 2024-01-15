@@ -14,7 +14,7 @@ pub fn request(query: &str) -> EngineResponse {
     };
 
     EngineResponse::answer_html(format!(
-        r#"<p class="answer-calc-query">{query} =</p>
+        r#"<p class="answer-query">{query} =</p>
 <h3><b>{result_html}</b></h3>"#,
         query = html_escape::encode_text(&query),
     ))
@@ -87,7 +87,7 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
         let hex = spans[0].text.trim_start_matches("0x");
         if let Ok(num) = u64::from_str_radix(hex, 16) {
             result_html.push_str(&format!(
-                r#" <span class="answer-calc-comment">= {num}</span>"#,
+                r#" <span class="answer-comment">= {num}</span>"#,
                 num = num
             ));
         }

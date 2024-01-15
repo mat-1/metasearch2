@@ -34,6 +34,7 @@ engines! {
     Calc = "calc",
     Wikipedia = "wikipedia",
     Dictionary = "dictionary",
+    Timezone = "timezone",
     // post-search
     StackExchange = "stackexchange",
     GitHub = "github",
@@ -49,15 +50,18 @@ engine_weights! {
 }
 
 engine_requests! {
+    // search
     Google => search::google::request, parse_response,
     Bing => search::bing::request, parse_response,
     Brave => search::brave::request, parse_response,
     Marginalia => search::marginalia::request, parse_response,
+    // answer
     Useragent => answer::useragent::request, None,
     Ip => answer::ip::request, None,
     Calc => answer::calc::request, None,
     Wikipedia => answer::wikipedia::request, parse_response,
     Dictionary => answer::dictionary::request, parse_response,
+    Timezone => answer::timezone::request, None,
 }
 
 engine_autocomplete_requests! {

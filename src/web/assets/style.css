@@ -185,11 +185,17 @@ h1 {
   font-size: 1.2rem;
 }
 
-/* styles for specific answers */
-.answer-calc-query {
+/* styles that are somewhat answer-specific but get reused across other styles sometimes */
+.answer-query {
   margin: 0;
   opacity: 0.5;
 }
+.answer-comment {
+  color: #acb6bf8c;
+  font-weight: normal;
+}
+
+/* styles for specific answers */
 .answer-calc-constant {
   color: #d2a6ff;
   white-space: pre-wrap;
@@ -199,10 +205,6 @@ h1 {
 }
 .answer-calc-special {
   color: #e6b673;
-}
-.answer-calc-comment {
-  color: #acb6bf8c;
-  font-weight: normal;
 }
 
 .answer-dictionary-word {

@@ -1,6 +1,7 @@
 pub mod calc;
 pub mod dictionary;
 pub mod ip;
+pub mod timezone;
 pub mod useragent;
 pub mod wikipedia;
 
