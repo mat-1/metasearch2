@@ -4,11 +4,11 @@ use std::{
     net::IpAddr,
     ops::Deref,
     str::FromStr,
-    sync::LazyLock,
     time::Instant,
 };
 
 use futures::future::join_all;
+use once_cell::sync::Lazy;
 use reqwest::header::HeaderMap;
 use tokio::sync::mpsc;
 
@@ -400,7 +400,7 @@ pub async fn autocomplete_with_engines(
     Ok(merge_autocomplete_responses(autocomplete_results))
 }
 
-pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
+pub static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
     reqwest::ClientBuilder::new()
         .local_address(IpAddr::from_str("0.0.0.0").unwrap())
         // we pretend to be a normal browser so websites don't block us

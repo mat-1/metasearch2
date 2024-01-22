@@ -1,5 +1,3 @@
-#![feature(lazy_cell)]
-
 pub mod engines;
 pub mod normalize;
 pub mod parse;

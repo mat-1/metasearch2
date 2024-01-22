@@ -1,6 +1,7 @@
-use std::{cell::Cell, sync::LazyLock};
+use std::cell::Cell;
 
 use fend_core::SpanKind;
+use once_cell::sync::Lazy;
 
 use crate::engines::EngineResponse;
 
@@ -96,7 +97,7 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
     Some(result_html)
 }
 
-pub static FEND_CONTEXT: LazyLock<fend_core::Context> = LazyLock::new(|| {
+pub static FEND_CONTEXT: Lazy<fend_core::Context> = Lazy::new(|| {
     let mut context = fend_core::Context::new();
 
     // make lowercase f and c work

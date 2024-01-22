@@ -19,7 +19,7 @@ pub fn request(query: &str) -> RequestResponse {
                 "https://search.marginalia.nu/search",
                 &[
                     ("query", query),
-                    ("profile", "default"),
+                    ("profile", "corpo"),
                     ("js", "default"),
                     ("adtech", "default"),
                 ],

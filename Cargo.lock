@@ -937,6 +937,7 @@ dependencies = [
  "fend-core",
  "futures",
  "html-escape",
+ "once_cell",
  "rand",
  "regex",
  "reqwest",

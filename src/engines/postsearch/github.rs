@@ -48,7 +48,7 @@ pub fn parse_response(body: &str) -> Option<String> {
         .url_relative(ammonia::UrlRelative::RewriteWithBase(
             Url::parse("https://github.com").unwrap(),
         ))
-        .clean(&readme_html)
+        .clean(readme_html)
         .to_string();
 
     let readme_dom = Html::parse_fragment(&readme_html);
