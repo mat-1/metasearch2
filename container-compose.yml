@@ -1,0 +1,11 @@
+version: '3.7'
+
+services:
+  honeyup:
+    container_name: metasearch2
+    build:
+      context: .
+      dockerfile: Containerfile
+    ports:
+      - '28019:28019'
+    restart: unless-stopped
