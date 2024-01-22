@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  honeyup:
+  metasearch2:
     container_name: metasearch2
     build:
       context: .
