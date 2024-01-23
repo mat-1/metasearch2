@@ -2,10 +2,8 @@ version: '3.7'
 
 services:
   metasearch2:
-    container_name: metasearch2
     build:
       context: .
       dockerfile: Containerfile
-    ports:
-      - '28019:28019'
+    network_mode: "host"
     restart: unless-stopped
