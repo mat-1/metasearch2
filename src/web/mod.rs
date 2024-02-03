@@ -6,7 +6,7 @@ use std::net::SocketAddr;
 
 use axum::{http::header, routing::get, Router};
 
-pub const BIND_ADDRESS: &str = "[::]:28019";
+pub const BIND_ADDRESS: &str = "0.0.0.0:28019";
 
 pub async fn run() {
     let app = Router::new()
