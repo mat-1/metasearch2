@@ -1,0 +1,9 @@
+version: '3.7'
+
+services:
+  metasearch2:
+    build:
+      context: .
+      dockerfile: Containerfile
+    network_mode: "host"
+    restart: unless-stopped
