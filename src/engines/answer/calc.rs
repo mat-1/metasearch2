@@ -103,6 +103,32 @@ pub static FEND_CONTEXT: Lazy<fend_core::Context> = Lazy::new(|| {
     // make lowercase f and c work
     context.define_custom_unit_v1("f", "f", "°F", &fend_core::CustomUnitAttribute::Alias);
     context.define_custom_unit_v1("c", "c", "°C", &fend_core::CustomUnitAttribute::Alias);
+
+    context.define_custom_unit_v1(
+        "mb",
+        "mbs",
+        "megabyte",
+        &fend_core::CustomUnitAttribute::Alias,
+    );
+    context.define_custom_unit_v1(
+        "gb",
+        "gbs",
+        "gigabyte",
+        &fend_core::CustomUnitAttribute::Alias,
+    );
+    context.define_custom_unit_v1(
+        "tb",
+        "tbs",
+        "terabyte",
+        &fend_core::CustomUnitAttribute::Alias,
+    );
+    context.define_custom_unit_v1(
+        "pb",
+        "pbs",
+        "petabyte",
+        &fend_core::CustomUnitAttribute::Alias,
+    );
+
     // make random work
     context.set_random_u32_fn(rand::random::<u32>);
 
