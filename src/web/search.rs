@@ -58,8 +58,8 @@ fn render_engine_list(engines: &[engines::Engine]) -> String {
 fn render_search_result(result: &engines::SearchResult) -> String {
     format!(
         r#"<div class="search-result">
-    <a class="search-result-anchor" href="{url_attr}">
-        <span class="search-result-url" href="{url_attr}">{url}</span>
+    <a class="search-result-anchor" rel="noreferrer" href="{url_attr}">
+        <span class="search-result-url">{url}</span>
         <h3 class="search-result-title">{title}</h3>
     </a>
     <p class="search-result-description">{desc}</p>
@@ -78,8 +78,8 @@ fn render_featured_snippet(featured_snippet: &engines::FeaturedSnippet) -> Strin
     format!(
         r#"<div class="featured-snippet">
     <p class="search-result-description">{desc}</p>
-    <a class="search-result-anchor" href="{url_attr}">
-        <span class="search-result-url" href="{url_attr}">{url}</span>
+    <a class="search-result-anchor" rel="noreferrer" href="{url_attr}">
+        <span class="search-result-url">{url}</span>
         <h3 class="search-result-title">{title}</h3>
     </a>
     {engines_html}
