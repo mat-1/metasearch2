@@ -2090,8 +2090,3 @@ dependencies = [
  "quote",
  "syn 2.0.52",
 ]
-
-[[patch.unused]]
-name = "fend-core"
-version = "1.4.1"
-source = "git+https://github.com/printfn/fend?branch=main#5e5080231a5c22814ff778d3a1b4577467dd2ccd"

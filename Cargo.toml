@@ -39,7 +39,3 @@ tokio = { version = "1.36.0", features = ["rt", "macros"] }
 tokio-stream = "0.1.15"
 url = "2.5.0"
 urlencoding = "2.1.3"
-
-[patch.crates-io]
-# temporarily using git version of fend-core since it adds codepoint to character conversion
-fend-core = { git = "https://github.com/printfn/fend", branch = "main" }
