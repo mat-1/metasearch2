@@ -79,10 +79,9 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     while previous_extract != extract {
         previous_extract = extract.clone();
         extract = extract
+            .replace("( ", "(")
             .replace("(, ", "(")
             .replace("(; ", "(")
-            .replace("( ; ", "(")
-            .replace("( )", "")
             .replace("()", "");
     }
 
