@@ -9,5 +9,8 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
 
     let ip = &query.ip;
 
-    EngineResponse::answer_html(format!(r#"<h3><b>{ip}</b></h3>"#))
+    EngineResponse::answer_html(format!(
+        r#"<h3><b>{ip}</b></h3>"#,
+        ip = html_escape::encode_text(ip)
+    ))
 }

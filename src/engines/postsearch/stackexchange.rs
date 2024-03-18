@@ -48,6 +48,11 @@ pub fn parse_response(body: &str) -> Option<String> {
         .html()
         .to_string();
 
+    let answer_html = ammonia::Builder::default()
+        .url_relative(ammonia::UrlRelative::RewriteWithBase(url.clone()))
+        .clean(&answer_html)
+        .to_string();
+
     let url = format!("{url}#{answer_id}");
 
     Some(format!(

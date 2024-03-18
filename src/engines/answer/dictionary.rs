@@ -73,6 +73,7 @@ pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> eyre::Result
 
     html.push_str(&format!(
         "<h2 class=\"answer-dictionary-word\"><a href=\"https://en.wiktionary.org/wiki/{mediawiki_key}\">{word}</a></h2>",
+        mediawiki_key = html_escape::encode_text(mediawiki_key),
         word = html_escape::encode_text(&word),
     ));
 
