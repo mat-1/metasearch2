@@ -15,3 +15,12 @@ engines) then you have to modify the source.
 build it with `cargo b -r`, the resulting binary will be at
 `target/release/metasearch2`. it runs on port 28019.
 
+note that metasearch2 is primarily made for myself, so only features i actually
+use will be merged. however i highly encourage you to fork it to add features
+you want, and in fact that would make me very happy. also, the code is public
+domain so you do absolutely whatever you want with it.
+
+here's a probably incomplete list of maintained forks that add new features:
+- https://github.com/mrcbax/metasearch2/tree/seo_spam`
+- https://git.shrecked.dev/Shrecknt/metasearch
+
