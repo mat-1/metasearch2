@@ -18,6 +18,7 @@ pub fn request(query: &str) -> reqwest::RequestBuilder {
 }
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
+    // write to google.html
     parse_html_response_with_opts(
         body,
         ParseOpts::new()
@@ -29,7 +30,23 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
             .href("a[href]")
             .description("div[data-sncf], div[style='-webkit-line-clamp:2']")
             .featured_snippet("block-component")
-            .featured_snippet_description("div[data-attrid='wa:/description'] > span:first-child")
+            .featured_snippet_description(QueryMethod::Manual(Box::new(|el: &ElementRef| {
+                let Some(description_container_el) = el
+                    .select(
+                        &Selector::parse("div[data-attrid='wa:/description'] > span:first-child")
+                            .unwrap(),
+                    )
+                    .next()
+                else {
+                    return Ok(String::new());
+                };
+
+                // build the description
+                let mut description = String::new();
+                iter_featured_snippet_children(&mut description, &description_container_el);
+
+                Ok(description)
+            })))
             .featured_snippet_title("h3")
             .featured_snippet_href(QueryMethod::Manual(Box::new(|el: &ElementRef| {
                 let url = el
@@ -40,6 +57,31 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
                 clean_url(url)
             }))),
     )
+}
+
+// Google autocomplete responses sometimes include clickable links that include
+// text that we shouldn't show.
+// We can filter for these by removing any elements matching
+// [data-ved]:not([data-send-open-event])
+fn iter_featured_snippet_children(description: &mut String, el: &ElementRef) {
+    for inner_node in el.children() {
+        match inner_node.value() {
+            scraper::Node::Text(t) => {
+                description.push_str(&t.text);
+            }
+            scraper::Node::Element(inner_el) => {
+                if inner_el.attr("data-ved").is_none()
+                    || inner_el.attr("data-send-open-event").is_some()
+                {
+                    iter_featured_snippet_children(
+                        description,
+                        &ElementRef::wrap(inner_node).unwrap(),
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 pub fn request_autocomplete(query: &str) -> reqwest::RequestBuilder {

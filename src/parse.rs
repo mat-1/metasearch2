@@ -21,35 +21,42 @@ pub struct ParseOpts {
 }
 
 impl ParseOpts {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use]
     pub fn result(mut self, result: &'static str) -> Self {
         self.result = result;
         self
     }
 
+    #[must_use]
     pub fn title(mut self, title: impl Into<QueryMethod>) -> Self {
         self.title = title.into();
         self
     }
 
+    #[must_use]
     pub fn href(mut self, href: impl Into<QueryMethod>) -> Self {
         self.href = href.into();
         self
     }
 
+    #[must_use]
     pub fn description(mut self, description: impl Into<QueryMethod>) -> Self {
         self.description = description.into();
         self
     }
 
+    #[must_use]
     pub fn featured_snippet(mut self, featured_snippet: &'static str) -> Self {
         self.featured_snippet = featured_snippet;
         self
     }
 
+    #[must_use]
     pub fn featured_snippet_title(
         mut self,
         featured_snippet_title: impl Into<QueryMethod>,
@@ -58,11 +65,13 @@ impl ParseOpts {
         self
     }
 
+    #[must_use]
     pub fn featured_snippet_href(mut self, featured_snippet_href: impl Into<QueryMethod>) -> Self {
         self.featured_snippet_href = featured_snippet_href.into();
         self
     }
 
+    #[must_use]
     pub fn featured_snippet_description(
         mut self,
         featured_snippet_description: impl Into<QueryMethod>,
@@ -139,8 +148,7 @@ pub(super) fn parse_html_response_with_opts(
             el.select(&Selector::parse(s).unwrap()).next().map(|n| {
                 n.value()
                     .attr("href")
-                    .map(str::to_string)
-                    .unwrap_or_else(|| n.text().collect::<String>())
+                    .map_or_else(|| n.text().collect::<String>(), str::to_string)
             })
         })?;
         let description = description_query_method.call(&result)?;
@@ -165,29 +173,27 @@ pub(super) fn parse_html_response_with_opts(
         });
     }
 
-    let featured_snippet = if !featured_snippet_query.is_empty() {
-        if let Some(featured_snippet) = dom
-            .select(&Selector::parse(featured_snippet_query).unwrap())
-            .next()
-        {
-            let title = featured_snippet_title_query_method.call(&featured_snippet)?;
-            let url = featured_snippet_href_query_method.call(&featured_snippet)?;
-            let url = normalize_url(&url)?;
-            let description = featured_snippet_description_query_method.call(&featured_snippet)?;
+    let featured_snippet = if featured_snippet_query.is_empty() {
+        None
+    } else if let Some(featured_snippet) = dom
+        .select(&Selector::parse(featured_snippet_query).unwrap())
+        .next()
+    {
+        let title = featured_snippet_title_query_method.call(&featured_snippet)?;
+        let url = featured_snippet_href_query_method.call(&featured_snippet)?;
+        let url = normalize_url(&url)?;
+        let description = featured_snippet_description_query_method.call(&featured_snippet)?;
 
-            // this can happen on google if you search "what's my user agent"
-            let is_empty = description.is_empty() && title.is_empty();
-            if is_empty {
-                None
-            } else {
-                Some(EngineFeaturedSnippet {
-                    url,
-                    title,
-                    description,
-                })
-            }
-        } else {
+        // this can happen on google if you search "what's my user agent"
+        let is_empty = description.is_empty() && title.is_empty();
+        if is_empty {
             None
+        } else {
+            Some(EngineFeaturedSnippet {
+                url,
+                title,
+                description,
+            })
         }
     } else {
         None

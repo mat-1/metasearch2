@@ -41,7 +41,7 @@ fn render_beginning_of_html(query: &str) -> String {
 }
 
 fn render_end_of_html() -> String {
-    r#"</main></div></body></html>"#.to_string()
+    r"</main></div></body></html>".to_string()
 }
 
 fn render_engine_list(engines: &[engines::Engine]) -> String {
@@ -173,8 +173,10 @@ pub async fn route(
             // this could be exploited under some setups, but the ip is only used for the
             // "what is my ip" answer so it doesn't really matter
             .get("x-forwarded-for")
-            .map(|ip| ip.to_str().unwrap_or_default().to_string())
-            .unwrap_or_else(|| addr.ip().to_string()),
+            .map_or_else(
+                || addr.ip().to_string(),
+                |ip| ip.to_str().unwrap_or_default().to_string(),
+            ),
     };
 
     let s = stream! {

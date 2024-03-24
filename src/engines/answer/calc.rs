@@ -8,7 +8,7 @@ use crate::engines::EngineResponse;
 use super::regex;
 
 pub fn request(query: &str) -> EngineResponse {
-    let query = clean_query(query.to_string());
+    let query = clean_query(query);
 
     let Some(result_html) = evaluate(&query, true) else {
         return EngineResponse::new();
@@ -24,7 +24,7 @@ pub fn request(query: &str) -> EngineResponse {
 pub fn request_autocomplete(query: &str) -> Vec<String> {
     let mut results = Vec::new();
 
-    let query = clean_query(query.to_string());
+    let query = clean_query(query);
 
     if let Some(result) = evaluate(&query, false) {
         results.push(format!("= {result}"));
@@ -33,8 +33,8 @@ pub fn request_autocomplete(query: &str) -> Vec<String> {
     results
 }
 
-fn clean_query(query: String) -> String {
-    query.strip_suffix('=').unwrap_or(&query).trim().to_string()
+fn clean_query(query: &str) -> String {
+    query.strip_suffix('=').unwrap_or(query).trim().to_string()
 }
 
 #[derive(Debug)]
@@ -55,8 +55,7 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
             spans
                 .iter()
                 .map(|span| span.text.clone())
-                .collect::<Vec<_>>()
-                .join(""),
+                .collect::<String>(),
         );
     }
 
@@ -69,13 +68,13 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
             fend_core::SpanKind::String => "answer-calc-string",
             _ => "",
         };
-        if !class.is_empty() {
+        if class.is_empty() {
+            result_html.push_str(&html_escape::encode_text(&span.text));
+        } else {
             result_html.push_str(&format!(
                 r#"<span class="{class}">{text}</span>"#,
                 text = html_escape::encode_text(&span.text)
             ));
-        } else {
-            result_html.push_str(&html_escape::encode_text(&span.text));
         }
     }
 
@@ -87,10 +86,7 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
     {
         let hex = spans[0].text.trim_start_matches("0x");
         if let Ok(num) = u64::from_str_radix(hex, 16) {
-            result_html.push_str(&format!(
-                r#" <span class="answer-comment">= {num}</span>"#,
-                num = num
-            ));
+            result_html.push_str(&format!(r#" <span class="answer-comment">= {num}</span>"#));
         }
     }
 

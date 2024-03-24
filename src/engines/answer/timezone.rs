@@ -13,7 +13,7 @@ pub fn request(query: &str) -> EngineResponse {
 <h3><b>{time}</b> <span class="answer-comment">({date})</span></h3>"#,
             time = html_escape::encode_text(&time.format("%-I:%M %P").to_string()),
             date = html_escape::encode_text(&time.format("%B %-d").to_string()),
-            timezone = html_escape::encode_text(&timezone_to_string(&timezone)),
+            timezone = html_escape::encode_text(&timezone_to_string(timezone)),
         )),
         Some(TimeResponse::Conversion {
             source_timezone,
@@ -27,8 +27,8 @@ pub fn request(query: &str) -> EngineResponse {
 <h3><b>{target_time}</b> <span class="answer-comment">{target_timezone} ({delta})</span></h3>"#,
             source_time = html_escape::encode_text(&source_time.format("%-I:%M %P").to_string()),
             target_time = html_escape::encode_text(&target_time.format("%-I:%M %P").to_string()),
-            source_timezone = html_escape::encode_text(&timezone_to_string(&source_timezone)),
-            target_timezone = html_escape::encode_text(&timezone_to_string(&target_timezone)),
+            source_timezone = html_escape::encode_text(&timezone_to_string(source_timezone)),
+            target_timezone = html_escape::encode_text(&timezone_to_string(target_timezone)),
             delta = html_escape::encode_text(&{
                 let delta_minutes = (target_offset - source_offset).num_minutes();
                 if delta_minutes % 60 == 0 {
@@ -78,11 +78,10 @@ fn evaluate(query: &str) -> Option<TimeResponse> {
             let target_offset = target_timezone.offset_from_utc_date(&current_date);
 
             println!(
-                "source_offset: {:?} {:?}",
-                source_offset,
+                "source_offset: {source_offset:?} {:?}",
                 source_offset.tz_id()
             );
-            println!("target_offset: {:?}", target_offset);
+            println!("target_offset: {target_offset:?}");
 
             let source_time_naive = current_date.and_hms_opt(
                 if ampm == "pm" && hour != 12 {
@@ -134,15 +133,14 @@ fn evaluate(query: &str) -> Option<TimeResponse> {
 
 fn parse_timezone(timezone_name: &str) -> Option<Tz> {
     match timezone_name.to_lowercase().as_str() {
-        "cst" => Some(Tz::CST6CDT),
-        "cdt" => Some(Tz::CST6CDT),
+        "cst" | "cdt" => Some(Tz::CST6CDT),
         _ => Tz::from_str_insensitive(timezone_name)
             .ok()
             .or_else(|| Tz::from_str_insensitive(&format!("etc/{timezone_name}")).ok()),
     }
 }
 
-fn timezone_to_string(tz: &Tz) -> String {
+fn timezone_to_string(tz: Tz) -> String {
     match tz {
         Tz::CST6CDT => "CST".to_string(),
         _ => {

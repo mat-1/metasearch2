@@ -74,10 +74,10 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
         return Ok(EngineResponse::new());
     }
 
-    let mut previous_extract = "".to_string();
+    let mut previous_extract = String::new();
     let mut extract = extract.clone();
     while previous_extract != extract {
-        previous_extract = extract.clone();
+        previous_extract.clone_from(&extract);
         extract = extract
             .replace("( ", "(")
             .replace("(, ", "(")
