@@ -13,6 +13,7 @@ body {
   /* enough space for the infobox */
   max-width: 73.5rem;
   margin: 0 auto;
+  word-break: break-word;
 }
 main {
   max-width: 40rem;

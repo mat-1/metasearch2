@@ -102,7 +102,6 @@ fn render_results(response: Response) -> String {
             engines_html = render_engine_list(&[infobox.engine])
         ));
     }
-
     if let Some(answer) = &response.answer {
         html.push_str(&format!(
             r#"<div class="answer">{answer_html}{engines_html}</div>"#,
@@ -111,7 +110,7 @@ fn render_results(response: Response) -> String {
         ));
     }
     if let Some(featured_snippet) = &response.featured_snippet {
-        html.push_str(&render_featured_snippet(&featured_snippet));
+        html.push_str(&render_featured_snippet(featured_snippet));
     }
     for result in &response.search_results {
         html.push_str(&render_search_result(result));
