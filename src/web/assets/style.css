@@ -1,10 +1,40 @@
+:root {
+  /* body background */
+  --bg-1: #0b0e14;
+  /* background of the content */
+  --bg-2: #0d1017;
+  /* input suggestions background */
+  --bg-3: #0f131a;
+  /* mostly borders */
+  --bg-4: #234;
+
+  /* main text color */
+  --fg-1: #bfbdb6;
+  /* search result description */
+  --fg-2: #bba;
+  --fg-3: #998;
+
+  /* focus outline */
+  --accent: #e6b450;
+
+  --link: #29e;
+  --link-visited: #92e;
+
+  --positive: #7fd962;
+
+  --syntax-string: #aad94c;
+  --syntax-special: #e6b673;
+  --syntax-constant: #d2a6ff;
+  --syntax-comment: #acb6bf8c;
+}
+
 html {
   height: 100%;
 }
 body {
   font-family: monospace;
-  background-color: #0b0e14;
-  color: #bfbdb6;
+  background-color: var(--bg-1);
+  color: var(--fg-1);
   margin: 0;
   line-height: 1.2;
   height: 100%;
@@ -19,7 +49,7 @@ main {
   max-width: 40rem;
   /* margin: 0 0 0 10rem; */
   padding: 1rem 0.5rem;
-  background-color: #0d1017;
+  background-color: var(--bg-2);
   min-height: 100%;
 }
 @media screen and (max-width: 74rem) {
@@ -31,28 +61,28 @@ main {
 }
 input {
   font-family: monospace;
-  background-color: #0d1017;
-  color: #bfbdb6;
-  border: 1px solid #234;
+  background-color: var(--bg-2);
+  color: var(--fg-1);
+  border: 1px solid var(--bg-4);
   font-size: inherit;
   padding: 0.25rem;
 }
 input:focus-visible {
   outline: none;
-  border-color: #e6b450;
+  border-color: var(--accent);
 }
 :focus-visible {
-  outline: 1px solid #e6b450;
+  outline: 1px solid var(--accent);
 }
 input[type="submit"] {
   cursor: pointer;
 }
 a {
-  color: #29e;
+  color: var(--link);
   text-decoration: none;
 }
 a:visited {
-  color: #92e;
+  color: var(--link-visited);
 }
 pre {
   white-space: pre-wrap;
@@ -60,7 +90,7 @@ pre {
 blockquote {
   margin: 0;
   padding-left: 0.5em;
-  border-left: 0.25em solid #234;
+  border-left: 0.25em solid var(--bg-4);
 }
 
 /* index page */
@@ -93,9 +123,9 @@ h1 {
   position: absolute;
   text-align: left;
   margin-top: calc(1.9em + 1px);
-  background: #0f131a;
+  background: var(--bg-3);
   padding: 0.1em 0 0.3em 0;
-  border: 1px solid #234;
+  border: 1px solid var(--bg-4);
   border-top: transparent;
   z-index: 10;
 }
@@ -106,13 +136,13 @@ h1 {
 }
 .search-input-suggestion.focused,
 .search-input-suggestion:hover {
-  background: #234;
+  background: var(--bg-4);
 }
 
 /* search result */
 .search-result {
   padding-top: 1rem;
-  border-top: 1px solid #234;
+  border-top: 1px solid var(--bg-4);
   font-size: 1rem;
 }
 .search-result-anchor {
@@ -122,7 +152,7 @@ h1 {
 .search-result-url {
   margin: 0;
   font-size: 0.8rem;
-  color: #998;
+  color: var(--fg-3);
 }
 .search-result-title {
   margin: 0;
@@ -131,7 +161,7 @@ h1 {
 .search-result-description {
   margin: 0;
   font-size: 0.8em;
-  color: #bba;
+  color: var(--fg-2);
 }
 
 /* engine list */
@@ -146,7 +176,7 @@ h1 {
 /* featured snippet */
 .featured-snippet {
   margin-bottom: 1rem;
-  border: 1px solid #234;
+  border: 1px solid var(--bg-4);
   padding: 0.5rem;
   font-size: 1.2rem;
 }
@@ -157,7 +187,7 @@ h1 {
 /* progress update */
 .progress-updates {
   margin-bottom: 1rem;
-  border: 1px solid #234;
+  border: 1px solid var(--bg-4);
   padding: 0.5rem;
   min-height: 5em;
 }
@@ -169,14 +199,14 @@ h1 {
   opacity: 0.5;
 }
 .progress-update-done {
-  color: #7fd962;
+  color: var(--positive);
   font-weight: bold;
 }
 
 /* answer */
 .answer {
   margin-bottom: 1rem;
-  border: 1px solid #234;
+  border: 1px solid var(--bg-4);
   padding: 0.5rem;
   word-break: break-word;
 }
@@ -192,20 +222,20 @@ h1 {
   opacity: 0.5;
 }
 .answer-comment {
-  color: #acb6bf8c;
+  color: var(--syntax-comment);
   font-weight: normal;
 }
 
 /* styles for specific answers */
 .answer-calc-constant {
-  color: #d2a6ff;
+  color: var(--syntax-constant);
   white-space: pre-wrap;
 }
 .answer-calc-string {
-  color: #aad94c;
+  color: var(--syntax-string);
 }
 .answer-calc-special {
-  color: #e6b673;
+  color: var(--syntax-special);
 }
 
 .answer-dictionary-word {
@@ -222,7 +252,7 @@ h1 {
 /* infobox */
 .infobox {
   margin-bottom: 1rem;
-  border: 1px solid #234;
+  border: 1px solid var(--bg-4);
   padding: 0.5rem;
   position: absolute;
   top: 3.5rem;
@@ -251,7 +281,7 @@ h1 {
   margin: 0;
 }
 .infobox pre {
-  border: 1px solid #234;
+  border: 1px solid var(--bg-4);
   padding: 0.5rem;
   display: block;
 }
@@ -271,7 +301,7 @@ h1 {
 }
 .infobox-github-readme .markdown-alert {
   padding-left: 0.5em;
-  border-left: 0.25em solid #234;
+  border-left: 0.25em solid var(--bg-4);
 }
 .infobox-github-readme .markdown-alert-title {
   font-weight: bold;
