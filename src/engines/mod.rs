@@ -34,6 +34,7 @@ engines! {
     Calc = "calc",
     Wikipedia = "wikipedia",
     Dictionary = "dictionary",
+    Thesaurus = "thesaurus",
     Timezone = "timezone",
     // post-search
     StackExchange = "stackexchange",
@@ -61,6 +62,7 @@ engine_requests! {
     Calc => answer::calc::request, None,
     Wikipedia => answer::wikipedia::request, parse_response,
     Dictionary => answer::dictionary::request, parse_response,
+    Thesaurus => answer::thesaurus::request, parse_response,
     Timezone => answer::timezone::request, None,
 }
 

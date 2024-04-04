@@ -59,6 +59,6 @@ pub fn parse_response(body: &str) -> Option<String> {
         r#"<a href="{url}"><h2>{title}</h2></a>
 <div class="infobox-stackexchange-answer">{answer_html}</div>"#,
         url = html_escape::encode_quoted_attribute(&url.to_string()),
-        title = html_escape::encode_text(&title),
+        title = html_escape::encode_safe(&title),
     ))
 }

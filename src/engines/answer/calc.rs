@@ -17,7 +17,7 @@ pub fn request(query: &str) -> EngineResponse {
     EngineResponse::answer_html(format!(
         r#"<p class="answer-query">{query} =</p>
 <h3><b>{result_html}</b></h3>"#,
-        query = html_escape::encode_text(&query),
+        query = html_escape::encode_safe(&query),
     ))
 }
 
@@ -69,11 +69,11 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
             _ => "",
         };
         if class.is_empty() {
-            result_html.push_str(&html_escape::encode_text(&span.text));
+            result_html.push_str(&html_escape::encode_safe(&span.text));
         } else {
             result_html.push_str(&format!(
                 r#"<span class="{class}">{text}</span>"#,
-                text = html_escape::encode_text(&span.text)
+                text = html_escape::encode_safe(&span.text)
             ));
         }
     }

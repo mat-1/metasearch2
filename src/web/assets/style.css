@@ -238,7 +238,8 @@ h1 {
   color: var(--syntax-special);
 }
 
-.answer-dictionary-word {
+.answer-dictionary-word,
+.answer-thesaurus-word {
   margin-top: 0;
 }
 .answer-dictionary-part-of-speech {
@@ -247,6 +248,45 @@ h1 {
 }
 .answer-dictionary-example {
   margin-bottom: 0.5em;
+}
+
+.answer-thesaurus-item:not(:last-child) {
+  border-bottom: 1px solid var(--bg-4);
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+}
+.answer-thesaurus-word-description {
+  font-style: italic;
+  opacity: 0.8;
+}
+.answer-thesaurus-part-of-speech {
+  font-weight: bold;
+}
+.answer-thesaurus-as-in {
+  font-style: italic;
+}
+h3.answer-thesaurus-category-title {
+  margin-top: 0.5rem;
+}
+.answer-thesaurus-strongest {
+  opacity: 1;
+}
+.answer-thesaurus-strong {
+  opacity: 0.8;
+}
+.answer-thesaurus-weak {
+  opacity: 0.6;
+}
+.answer-thesaurus-list {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8em;
+  list-style-type: none;
+}
+.answer-thesaurus-list a {
+  text-decoration: underline;
 }
 
 /* infobox */

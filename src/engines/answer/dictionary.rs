@@ -73,8 +73,8 @@ pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> eyre::Result
 
     html.push_str(&format!(
         "<h2 class=\"answer-dictionary-word\"><a href=\"https://en.wiktionary.org/wiki/{mediawiki_key}\">{word}</a></h2>",
-        mediawiki_key = html_escape::encode_text(mediawiki_key),
-        word = html_escape::encode_text(&word),
+        mediawiki_key = html_escape::encode_safe(mediawiki_key),
+        word = html_escape::encode_safe(&word),
     ));
 
     let mut cleaner = ammonia::Builder::default();
@@ -87,7 +87,7 @@ pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> eyre::Result
     for entry in entries {
         html.push_str(&format!(
             "<span class=\"answer-dictionary-part-of-speech\">{part_of_speech}</span>",
-            part_of_speech = html_escape::encode_text(&entry.part_of_speech.to_lowercase())
+            part_of_speech = html_escape::encode_safe(&entry.part_of_speech.to_lowercase())
         ));
 
         html.push_str("<ol>");

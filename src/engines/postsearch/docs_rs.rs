@@ -57,14 +57,14 @@ pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> Option<Strin
         format!(
             r#"<h2>{category} <a href="{url}">{title}</a> <span class="infobox-docs_rs-version">{version}</span></h2>"#,
             url = html_escape::encode_quoted_attribute(&url.to_string()),
-            title = html_escape::encode_text(&title),
-            version = html_escape::encode_text(&version),
+            title = html_escape::encode_safe(&title),
+            version = html_escape::encode_safe(&version),
         )
     } else {
         format!(
             r#"<h2>{category} <a href="{url}">{title}</a></h2>"#,
             url = html_escape::encode_quoted_attribute(&url.to_string()),
-            title = html_escape::encode_text(&title),
+            title = html_escape::encode_safe(&title),
         )
     };
 

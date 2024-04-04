@@ -72,6 +72,6 @@ pub fn parse_response(body: &str) -> Option<String> {
         r#"<a href="{url}"><h1>{title}</h1></a>
 <div class="infobox-github-readme">{readme_html}</div>"#,
         url = html_escape::encode_quoted_attribute(&url),
-        title = html_escape::encode_text(&title),
+        title = html_escape::encode_safe(&title),
     ))
 }

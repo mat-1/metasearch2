@@ -11,9 +11,9 @@ pub fn request(query: &str) -> EngineResponse {
         Some(TimeResponse::Current { time, timezone }) => EngineResponse::answer_html(format!(
             r#"<p class="answer-query">Current time in {timezone}</p>
 <h3><b>{time}</b> <span class="answer-comment">({date})</span></h3>"#,
-            time = html_escape::encode_text(&time.format("%-I:%M %P").to_string()),
-            date = html_escape::encode_text(&time.format("%B %-d").to_string()),
-            timezone = html_escape::encode_text(&timezone_to_string(timezone)),
+            time = html_escape::encode_safe(&time.format("%-I:%M %P").to_string()),
+            date = html_escape::encode_safe(&time.format("%B %-d").to_string()),
+            timezone = html_escape::encode_safe(&timezone_to_string(timezone)),
         )),
         Some(TimeResponse::Conversion {
             source_timezone,
@@ -25,11 +25,11 @@ pub fn request(query: &str) -> EngineResponse {
         }) => EngineResponse::answer_html(format!(
             r#"<p class="answer-query">{source_time} {source_timezone} to {target_timezone}</p>
 <h3><b>{target_time}</b> <span class="answer-comment">{target_timezone} ({delta})</span></h3>"#,
-            source_time = html_escape::encode_text(&source_time.format("%-I:%M %P").to_string()),
-            target_time = html_escape::encode_text(&target_time.format("%-I:%M %P").to_string()),
-            source_timezone = html_escape::encode_text(&timezone_to_string(source_timezone)),
-            target_timezone = html_escape::encode_text(&timezone_to_string(target_timezone)),
-            delta = html_escape::encode_text(&{
+            source_time = html_escape::encode_safe(&source_time.format("%-I:%M %P").to_string()),
+            target_time = html_escape::encode_safe(&target_time.format("%-I:%M %P").to_string()),
+            source_timezone = html_escape::encode_safe(&timezone_to_string(source_timezone)),
+            target_timezone = html_escape::encode_safe(&timezone_to_string(target_timezone)),
+            delta = html_escape::encode_safe(&{
                 let delta_minutes = (target_offset - source_offset).num_minutes();
                 if delta_minutes % 60 == 0 {
                     format!("{:+}", delta_minutes / 60)

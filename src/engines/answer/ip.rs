@@ -11,6 +11,6 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
 
     EngineResponse::answer_html(format!(
         r#"<h3><b>{ip}</b></h3>"#,
-        ip = html_escape::encode_text(ip)
+        ip = html_escape::encode_safe(ip)
     ))
 }
