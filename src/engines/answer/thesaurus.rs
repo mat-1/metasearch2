@@ -50,6 +50,11 @@ pub struct ThesaurusItem {
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     let response = parse_thesaurus_com_response(body)?;
+
+    if response.items.is_empty() {
+        return Ok(EngineResponse::new());
+    }
+
     let rendered_html = render_thesaurus_html(response);
 
     Ok(EngineResponse::answer_html(rendered_html))
