@@ -82,6 +82,7 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
             .replace("( ", "(")
             .replace("(, ", "(")
             .replace("(; ", "(")
+            .replace(" ()", "")
             .replace("()", "");
     }
 
