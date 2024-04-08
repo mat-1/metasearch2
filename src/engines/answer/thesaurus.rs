@@ -1,4 +1,4 @@
-use eyre::eyre;
+use eyre::OptionExt;
 use scraper::{Html, Selector};
 use serde::Deserialize;
 use url::Url;
@@ -38,7 +38,7 @@ pub struct ThesaurusResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct ThesaurusItem {
-    /// Example `adjective`
+    /// Example: `adjective`
     pub part_of_speech: String,
     /// Example: `absurd, giddy, foolish`
     pub as_in: String,
@@ -66,7 +66,7 @@ fn parse_thesaurus_com_response(body: &str) -> eyre::Result<ThesaurusResponse> {
     let word = dom
         .select(&Selector::parse("h1").unwrap())
         .next()
-        .ok_or_else(|| eyre!("No title found"))?
+        .ok_or_eyre("No title found")?
         .text()
         .collect::<String>();
 
@@ -88,19 +88,19 @@ fn parse_thesaurus_com_item(
     let adjective_as_in_words = synonym_and_antonym_card_el
         .select(&Selector::parse("div:first-child > p").unwrap())
         .next()
-        .ok_or_else(|| eyre!("No adjective as in words found"))?
+        .ok_or_eyre("No adjective as in words found")?
         .text()
         .collect::<String>();
     let (part_of_speech, as_in) = adjective_as_in_words
         .split_once(" as in ")
-        .ok_or_else(|| eyre!("No 'as in' found"))?;
+        .ok_or_eyre("No 'as in' found")?;
     let part_of_speech = part_of_speech.trim().to_owned();
     let as_in = as_in.trim().to_owned();
 
     let matches_container_el = synonym_and_antonym_card_el
         .select(&Selector::parse("div:nth-child(2) > div:nth-child(2)").unwrap())
         .next()
-        .ok_or_else(|| eyre!("No matches container found"))?;
+        .ok_or_eyre("No matches container found")?;
 
     let mut strongest_matches = Vec::<String>::new();
     let mut strong_matches = Vec::<String>::new();
@@ -110,13 +110,13 @@ fn parse_thesaurus_com_item(
         let match_type = match_el
             .select(&Selector::parse("p").unwrap())
             .next()
-            .ok_or_else(|| eyre!("No match type found"))?
+            .ok_or_eyre("No match type found")?
             .text()
             .collect::<String>();
         let match_type = match_type
             .split(' ')
             .next()
-            .ok_or_else(|| eyre!("No match type found"))?;
+            .ok_or_eyre("No match type found")?;
 
         let matches = match_el
             .select(&Selector::parse("a").unwrap())

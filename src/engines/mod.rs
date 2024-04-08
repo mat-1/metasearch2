@@ -36,6 +36,7 @@ engines! {
     Dictionary = "dictionary",
     Thesaurus = "thesaurus",
     Timezone = "timezone",
+    RottenTomatoes = "rottentomatoes",
     // post-search
     StackExchange = "stackexchange",
     GitHub = "github",
@@ -64,6 +65,7 @@ engine_requests! {
     Dictionary => answer::dictionary::request, parse_response,
     Thesaurus => answer::thesaurus::request, parse_response,
     Timezone => answer::timezone::request, None,
+    RottenTomatoes => answer::rottentomatoes::request, parse_response,
 }
 
 engine_autocomplete_requests! {

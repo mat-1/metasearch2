@@ -5,6 +5,7 @@ pub mod thesaurus;
 pub mod timezone;
 pub mod useragent;
 pub mod wikipedia;
+pub mod rottentomatoes;
 
 macro_rules! regex {
     ($re:literal $(,)?) => {{
