@@ -1,4 +1,3 @@
-use std::time::Instant;
 use crate::engines::answer::regex;
 use crate::engines::{EngineResponse, RequestResponse, CLIENT};
 use html_escape::encode_safe;
