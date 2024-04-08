@@ -110,13 +110,13 @@ fn render_rottentomatoes_html(hit: &Hit) -> String {
             "<span>Tomatometer: </span>{tomatometer}<br>",
             tomatometer = rt
                 .critics_score
-                .map_or_else(|| "-".to_string(), |score| colorize_percentage(score))
+                .map_or_else(|| "-".to_string(), colorize_percentage)
         ));
         html.push_str(&format!(
             "<span>Audience score: </span>{audience_score}<br><br>",
             audience_score = rt
                 .audience_score
-                .map_or_else(|| "-".to_string(), |score| colorize_percentage(score))
+                .map_or_else(|| "-".to_string(), colorize_percentage)
         ));
     } else {
         html.push_str(r#"<span style="color: gray">(No reviews yet)</span><br><br>"#);
