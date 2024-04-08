@@ -866,6 +866,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "levenshtein"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db13adb97ab515a3691f56e4dbab09283d0b86cb45abd991d8634a9d6f501760"
+
+[[package]]
 name = "libc"
 version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -940,6 +946,7 @@ dependencies = [
  "fend-core",
  "futures",
  "html-escape",
+ "levenshtein",
  "once_cell",
  "rand",
  "regex",
