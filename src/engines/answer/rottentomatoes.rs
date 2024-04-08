@@ -43,21 +43,14 @@ struct Hit {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct HitRottenTomatoes {
-    audience_score: u8,
+    audience_score: Option<u8>,
     // aka tomatoscore
-    critics_score: u8,
+    critics_score: Option<u8>,
 }
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     let res: Value = serde_json::from_str(body)?;
-    let mut hit = None;
-    for i in 0..res["results"][0]["hits"].as_array().unwrap().len() {
-        if let Ok(h) = serde_json::from_value::<Hit>(res["results"][0]["hits"][i].clone()) {
-            hit = Some(h);
-            break;
-        };
-    }
-    let Some(hit) = hit else {
+    let Ok(hit) = serde_json::from_value::<Hit>(res["results"][0]["hits"][0].clone()) else {
         return Ok(EngineResponse::answer_html(
             r#"<span style="color: red">Error: Show not found</span>"#.to_string(),
         ));
@@ -85,11 +78,11 @@ fn render_rottentomatoes_html(hit: Hit) -> String {
     ));
     html.push_str(&format!(
         "<span>Tomatometer: </span>{tomatometer}<br>",
-        tomatometer = colorize_percentage(hit.rotten_tomatoes.critics_score)
+        tomatometer = hit.rotten_tomatoes.critics_score.map_or_else(|| "-".to_string(), |score| colorize_percentage(score))
     ));
     html.push_str(&format!(
         "<span>Audience score: </span>{audience_score}<br><br>",
-        audience_score = colorize_percentage(hit.rotten_tomatoes.audience_score)
+        audience_score = hit.rotten_tomatoes.audience_score.map_or_else(|| "-".to_string(), |score| colorize_percentage(score))
     ));
     html.push_str(&format!(
         "Description:<br>{description}<br><br>",
