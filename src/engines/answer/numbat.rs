@@ -78,7 +78,7 @@ fn is_potential_request(query: &str) -> bool {
     true
 }
 
-fn interpret(query: &str) -> Option<(Statement, InterpreterResult)> {
+fn interpret(query: &str) -> Option<(Statement, Markup)> {
     if !is_potential_request(query) {
         return None;
     }
@@ -98,16 +98,19 @@ fn interpret(query: &str) -> Option<(Statement, InterpreterResult)> {
         }
     };
 
-    Some((statements.into_iter().last()?, res))
-}
-
-fn evaluate_for_autocomplete(query: &str) -> Option<String> {
-    let (_statements, res) = interpret(query)?;
-
     let res_markup = match res {
         InterpreterResult::Value(val) => val.pretty_print(),
         InterpreterResult::Continue => return None,
     };
+    if res_markup.to_string().trim() == query {
+        return None;
+    }
+
+    Some((statements.into_iter().last()?, res_markup))
+}
+
+fn evaluate_for_autocomplete(query: &str) -> Option<String> {
+    let (_statements, res_markup) = interpret(query)?;
 
     Some(res_markup.to_string().trim().to_string())
 }
@@ -118,12 +121,7 @@ pub struct NumbatResponse {
 }
 
 fn evaluate(query: &str) -> Option<NumbatResponse> {
-    let (statement, res) = interpret(query)?;
-
-    let res_markup = match res {
-        InterpreterResult::Value(val) => val.pretty_print(),
-        InterpreterResult::Continue => return None,
-    };
+    let (statement, res_markup) = interpret(query)?;
 
     let statement_markup = statement.pretty_print();
     let query_html = markup_to_html(statement_markup);
