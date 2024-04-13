@@ -1,17 +1,18 @@
-use std::{collections::HashMap, net::SocketAddr};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use async_stream::stream;
 use axum::{
     body::Body,
-    extract::{ConnectInfo, Query},
+    extract::{ConnectInfo, Query, State},
     http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
 };
 use bytes::Bytes;
 use html_escape::{encode_text, encode_unquoted_attribute};
 
-use crate::engines::{
-    self, Engine, EngineProgressUpdate, ProgressUpdateData, Response, SearchQuery,
+use crate::{
+    config::Config,
+    engines::{self, Engine, EngineProgressUpdate, ProgressUpdateData, Response, SearchQuery},
 };
 
 fn render_beginning_of_html(query: &str) -> String {
@@ -144,6 +145,7 @@ fn render_engine_progress_update(
 
 pub async fn route(
     Query(params): Query<HashMap<String, String>>,
+    State(config): State<Arc<Config>>,
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
@@ -204,7 +206,7 @@ pub async fn route(
 
         let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let search_future = tokio::spawn(async move { engines::search(query, progress_tx).await });
+        let search_future = tokio::spawn(async move { engines::search(&config, &query, progress_tx).await });
 
         while let Some(progress_update) = progress_rx.recv().await {
             match progress_update.data {

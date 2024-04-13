@@ -2,13 +2,15 @@ pub mod autocomplete;
 pub mod opensearch;
 pub mod search;
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use axum::{http::header, routing::get, Router};
 
-pub const BIND_ADDRESS: &str = "0.0.0.0:28019";
+use crate::config::Config;
 
-pub async fn run() {
+pub async fn run(config: Config) {
+    let bind_addr = config.bind;
+
     let app = Router::new()
         .route(
             "/",
@@ -48,11 +50,12 @@ pub async fn run() {
         )
         .route("/opensearch.xml", get(opensearch::route))
         .route("/search", get(search::route))
-        .route("/autocomplete", get(autocomplete::route));
+        .route("/autocomplete", get(autocomplete::route))
+        .with_state(Arc::new(config));
 
-    println!("Listening on {BIND_ADDRESS}");
+    println!("Listening on {bind_addr}");
 
-    let listener = tokio::net::TcpListener::bind(BIND_ADDRESS).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(bind_addr).await.unwrap();
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),

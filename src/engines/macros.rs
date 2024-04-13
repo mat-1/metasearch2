@@ -19,6 +19,17 @@ macro_rules! engines {
                 }
             }
         }
+
+        impl FromStr for Engine {
+            type Err = ();
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s {
+                    $($id => Ok(Engine::$engine),)*
+                    _ => Err(()),
+                }
+            }
+        }
     };
 }
 
