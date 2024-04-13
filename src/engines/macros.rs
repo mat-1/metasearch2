@@ -19,18 +19,14 @@ macro_rules! engines {
                 }
             }
         }
-    };
-}
 
-#[macro_export]
-macro_rules! engine_weights {
-    ($($engine:ident = $weight:expr),* $(,)?) => {
-        impl Engine {
-            #[must_use]
-            pub fn weight(&self) -> f64 {
-                match self {
-                    $(Engine::$engine => $weight,)*
-                    _ => 1.,
+        impl FromStr for Engine {
+            type Err = ();
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s {
+                    $($id => Ok(Engine::$engine),)*
+                    _ => Err(()),
                 }
             }
         }

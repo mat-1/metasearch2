@@ -26,6 +26,7 @@
   --syntax-special: #e6b673;
   --syntax-constant: #d2a6ff;
   --syntax-comment: #acb6bf8c;
+  --syntax-func: #ffb454;
 }
 
 html {
@@ -236,6 +237,9 @@ h1 {
 }
 .answer-calc-special {
   color: var(--syntax-special);
+}
+.answer-calc-func {
+  color: var(--syntax-func);
 }
 
 .answer-dictionary-word,

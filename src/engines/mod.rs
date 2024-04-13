@@ -4,17 +4,19 @@ use std::{
     net::IpAddr,
     ops::Deref,
     str::FromStr,
+    sync::Arc,
     time::Instant,
 };
 
 use futures::future::join_all;
 use once_cell::sync::Lazy;
 use reqwest::header::HeaderMap;
+use serde::{Deserialize, Deserializer};
 use tokio::sync::mpsc;
 
 mod macros;
 use crate::{
-    engine_autocomplete_requests, engine_postsearch_requests, engine_requests, engine_weights,
+    config::Config, engine_autocomplete_requests, engine_postsearch_requests, engine_requests,
     engines,
 };
 
@@ -31,7 +33,8 @@ engines! {
     // answer
     Useragent = "useragent",
     Ip = "ip",
-    Calc = "calc",
+    Fend = "fend",
+    Numbat = "numbat",
     Wikipedia = "wikipedia",
     Dictionary = "dictionary",
     Thesaurus = "thesaurus",
@@ -40,15 +43,7 @@ engines! {
     // post-search
     StackExchange = "stackexchange",
     GitHub = "github",
-    DocsRs = "docs.rs",
-}
-
-engine_weights! {
-    Google = 1.05,
-    Bing = 1.0,
-    Brave = 1.25,
-    Marginalia = 0.15,
-    // defaults to 1.0
+    DocsRs = "docs_rs",
 }
 
 engine_requests! {
@@ -60,7 +55,8 @@ engine_requests! {
     // answer
     Useragent => answer::useragent::request, None,
     Ip => answer::ip::request, None,
-    Calc => answer::calc::request, None,
+    Fend => answer::fend::request, None,
+    Numbat => answer::numbat::request, None,
     Wikipedia => answer::wikipedia::request, parse_response,
     Dictionary => answer::dictionary::request, parse_response,
     Thesaurus => answer::thesaurus::request, parse_response,
@@ -70,7 +66,8 @@ engine_requests! {
 
 engine_autocomplete_requests! {
     Google => search::google::request_autocomplete, parse_autocomplete_response,
-    Calc => answer::calc::request_autocomplete, None,
+    Fend => answer::fend::request_autocomplete, None,
+    Numbat => answer::numbat::request_autocomplete, None,
 }
 
 engine_postsearch_requests! {
@@ -85,10 +82,23 @@ impl fmt::Display for Engine {
     }
 }
 
+impl<'de> Deserialize<'de> for Engine {
+    fn deserialize<D>(deserializer: D) -> Result<Engine, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Engine::from_str(&s).map_err(|_| serde::de::Error::custom(format!("invalid engine '{s}'")))
+    }
+}
+
 pub struct SearchQuery {
     pub query: String,
     pub request_headers: HashMap<String, String>,
     pub ip: String,
+    /// The config is part of the query so it's possible to make a query with a
+    /// custom config.
+    pub config: Arc<Config>,
 }
 
 impl Deref for SearchQuery {
@@ -226,18 +236,22 @@ impl ProgressUpdate {
     }
 }
 
-pub async fn search_with_engines(
-    engines: &[Engine],
+pub async fn search(
     query: &SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
 ) -> eyre::Result<()> {
     let start_time = Instant::now();
 
-    let mut requests = Vec::new();
-    for engine in engines {
-        requests.push(async {
-            let engine = *engine;
+    let progress_tx = &progress_tx;
 
+    let mut requests = Vec::new();
+    for &engine in Engine::all() {
+        let engine_config = query.config.engines.get(engine);
+        if !engine_config.enabled {
+            continue;
+        }
+
+        requests.push(async move {
             let request_response = engine.request(query);
 
             let response = match request_response {
@@ -311,7 +325,7 @@ pub async fn search_with_engines(
         join_all(response_futures).await.into_iter().collect();
     let responses = responses_result?;
 
-    let response = merge_engine_responses(responses);
+    let response = merge_engine_responses(&query.config, responses);
 
     let has_infobox = response.infobox.is_some();
 
@@ -324,9 +338,14 @@ pub async fn search_with_engines(
         // post-search
 
         let mut postsearch_requests = Vec::new();
-        for engine in engines {
+        for &engine in Engine::all() {
+            let engine_config = query.config.engines.get(engine);
+            if !engine_config.enabled {
+                continue;
+            }
+
             if let Some(request) = engine.postsearch_request(&response) {
-                postsearch_requests.push(async {
+                postsearch_requests.push(async move {
                     let response = match request.send().await {
                         Ok(mut res) => {
                             let mut body_bytes = Vec::new();
@@ -343,7 +362,7 @@ pub async fn search_with_engines(
                             None
                         }
                     };
-                    Ok((*engine, response))
+                    Ok((engine, response))
                 });
             }
         }
@@ -375,14 +394,16 @@ pub async fn search_with_engines(
     Ok(())
 }
 
-pub async fn autocomplete_with_engines(
-    engines: &[Engine],
-    query: &str,
-) -> eyre::Result<Vec<String>> {
+pub async fn autocomplete(config: &Config, query: &str) -> eyre::Result<Vec<String>> {
     let mut requests = Vec::new();
-    for engine in engines {
+    for &engine in Engine::all() {
+        let config = config.engines.get(engine);
+        if !config.enabled {
+            continue;
+        }
+
         if let Some(request) = engine.request_autocomplete(query) {
-            requests.push(async {
+            requests.push(async move {
                 let response = match request {
                     RequestAutocompleteResponse::Http(request) => {
                         let res = request.send().await?;
@@ -391,7 +412,7 @@ pub async fn autocomplete_with_engines(
                     }
                     RequestAutocompleteResponse::Instant(response) => response,
                 };
-                Ok((*engine, response))
+                Ok((engine, response))
             });
         }
     }
@@ -405,7 +426,7 @@ pub async fn autocomplete_with_engines(
         join_all(autocomplete_futures).await.into_iter().collect();
     let autocomplete_results = autocomplete_results_result?;
 
-    Ok(merge_autocomplete_responses(autocomplete_results))
+    Ok(merge_autocomplete_responses(config, autocomplete_results))
 }
 
 pub static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
@@ -422,19 +443,6 @@ pub static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
         .build()
         .unwrap()
 });
-
-pub async fn search(
-    query: SearchQuery,
-    progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
-) -> eyre::Result<()> {
-    let engines = Engine::all();
-    search_with_engines(engines, &query, progress_tx).await
-}
-
-pub async fn autocomplete(query: &str) -> eyre::Result<Vec<String>> {
-    let engines = Engine::all();
-    autocomplete_with_engines(engines, query).await
-}
 
 #[derive(Debug, Clone)]
 pub struct Response {
@@ -473,18 +481,20 @@ pub struct Infobox {
     pub engine: Engine,
 }
 
-fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Response {
+fn merge_engine_responses(config: &Config, responses: HashMap<Engine, EngineResponse>) -> Response {
     let mut search_results: Vec<SearchResult> = Vec::new();
     let mut featured_snippet: Option<FeaturedSnippet> = None;
     let mut answer: Option<Answer> = None;
     let mut infobox: Option<Infobox> = None;
 
     for (engine, response) in responses {
+        let engine_config = config.engines.get(engine);
+
         for (result_index, search_result) in response.search_results.into_iter().enumerate() {
             // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a
             // score of 0.33, etc.
             let base_result_score = 1. / (result_index + 1) as f64;
-            let result_score = base_result_score * engine.weight();
+            let result_score = base_result_score * engine_config.weight;
 
             if let Some(existing_result) = search_results
                 .iter_mut()
@@ -492,11 +502,14 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
             {
                 // if the weight of this engine is higher than every other one then replace the
                 // title and description
-                if engine.weight()
+                if engine_config.weight
                     > existing_result
                         .engines
                         .iter()
-                        .map(Engine::weight)
+                        .map(|&other_engine| {
+                            let other_engine_config = config.engines.get(other_engine);
+                            other_engine_config.weight
+                        })
                         .max_by(|a, b| a.partial_cmp(b).unwrap())
                         .unwrap_or(0.)
                 {
@@ -519,9 +532,11 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
 
         if let Some(engine_featured_snippet) = response.featured_snippet {
             // if it has a higher weight than the current featured snippet
-            let featured_snippet_weight =
-                featured_snippet.as_ref().map_or(0., |s| s.engine.weight());
-            if engine.weight() > featured_snippet_weight {
+            let featured_snippet_weight = featured_snippet.as_ref().map_or(0., |s| {
+                let other_engine_config = config.engines.get(s.engine);
+                other_engine_config.weight
+            });
+            if engine_config.weight > featured_snippet_weight {
                 featured_snippet = Some(FeaturedSnippet {
                     url: engine_featured_snippet.url,
                     title: engine_featured_snippet.title,
@@ -533,8 +548,11 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
 
         if let Some(engine_answer_html) = response.answer_html {
             // if it has a higher weight than the current answer
-            let answer_weight = answer.as_ref().map_or(0., |s| s.engine.weight());
-            if engine.weight() > answer_weight {
+            let answer_weight = answer.as_ref().map_or(0., |s| {
+                let other_engine_config = config.engines.get(s.engine);
+                other_engine_config.weight
+            });
+            if engine_config.weight > answer_weight {
                 answer = Some(Answer {
                     html: engine_answer_html,
                     engine,
@@ -544,8 +562,11 @@ fn merge_engine_responses(responses: HashMap<Engine, EngineResponse>) -> Respons
 
         if let Some(engine_infobox_html) = response.infobox_html {
             // if it has a higher weight than the current infobox
-            let infobox_weight = infobox.as_ref().map_or(0., |s| s.engine.weight());
-            if engine.weight() > infobox_weight {
+            let infobox_weight = infobox.as_ref().map_or(0., |s| {
+                let other_engine_config = config.engines.get(s.engine);
+                other_engine_config.weight
+            });
+            if engine_config.weight > infobox_weight {
                 infobox = Some(Infobox {
                     html: engine_infobox_html,
                     engine,
@@ -569,15 +590,20 @@ pub struct AutocompleteResult {
     pub score: f64,
 }
 
-fn merge_autocomplete_responses(responses: HashMap<Engine, Vec<String>>) -> Vec<String> {
+fn merge_autocomplete_responses(
+    config: &Config,
+    responses: HashMap<Engine, Vec<String>>,
+) -> Vec<String> {
     let mut autocomplete_results: Vec<AutocompleteResult> = Vec::new();
 
     for (engine, response) in responses {
+        let engine_config = config.engines.get(engine);
+
         for (result_index, autocomplete_result) in response.into_iter().enumerate() {
             // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a
             // score of 0.33, etc.
             let base_result_score = 1. / (result_index + 1) as f64;
-            let result_score = base_result_score * engine.weight();
+            let result_score = base_result_score * engine_config.weight;
 
             if let Some(existing_result) = autocomplete_results
                 .iter_mut()
