@@ -5,6 +5,10 @@ google = { weight = 1.05 }
 bing = { weight = 1.0 }
 brave = { weight = 1.25 }
 
+# calculators (give them a high weight so they're always the first thing in autocomplete)
+numbat = { weight = 10 }
+fend = { enabled = false, weight = 10 }
+
 [engines.marginalia]
 args = { profile = "corpo", js = "default", adtech = "default" }
 weight = 0.15

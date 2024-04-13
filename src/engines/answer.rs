@@ -1,6 +1,7 @@
-pub mod calc;
 pub mod dictionary;
+pub mod fend;
 pub mod ip;
+pub mod numbat;
 pub mod thesaurus;
 pub mod timezone;
 pub mod useragent;

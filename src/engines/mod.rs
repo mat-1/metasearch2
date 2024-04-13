@@ -33,7 +33,8 @@ engines! {
     // answer
     Useragent = "useragent",
     Ip = "ip",
-    Calc = "calc",
+    Fend = "fend",
+    Numbat = "numbat",
     Wikipedia = "wikipedia",
     Dictionary = "dictionary",
     Thesaurus = "thesaurus",
@@ -53,7 +54,8 @@ engine_requests! {
     // answer
     Useragent => answer::useragent::request, None,
     Ip => answer::ip::request, None,
-    Calc => answer::calc::request, None,
+    Fend => answer::fend::request, None,
+    Numbat => answer::numbat::request, None,
     Wikipedia => answer::wikipedia::request, parse_response,
     Dictionary => answer::dictionary::request, parse_response,
     Thesaurus => answer::thesaurus::request, parse_response,
@@ -62,7 +64,8 @@ engine_requests! {
 
 engine_autocomplete_requests! {
     Google => search::google::request_autocomplete, parse_autocomplete_response,
-    Calc => answer::calc::request_autocomplete, None,
+    Fend => answer::fend::request_autocomplete, None,
+    Numbat => answer::numbat::request_autocomplete, None,
 }
 
 engine_postsearch_requests! {
