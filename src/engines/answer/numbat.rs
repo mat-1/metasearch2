@@ -109,7 +109,7 @@ fn evaluate_for_autocomplete(query: &str) -> Option<String> {
         InterpreterResult::Continue => return None,
     };
 
-    Some(res_markup.to_string())
+    Some(res_markup.to_string().trim().to_string())
 }
 
 pub struct NumbatResponse {
