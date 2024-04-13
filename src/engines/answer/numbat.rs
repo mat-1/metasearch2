@@ -105,6 +105,7 @@ fn interpret(query: &str) -> Option<(Statement, Markup)> {
     if res_markup.to_string().trim() == query {
         return None;
     }
+    let res_markup = fix_markup(res_markup);
 
     Some((statements.into_iter().last()?, res_markup))
 }
@@ -123,7 +124,7 @@ pub struct NumbatResponse {
 fn evaluate(query: &str) -> Option<NumbatResponse> {
     let (statement, res_markup) = interpret(query)?;
 
-    let statement_markup = statement.pretty_print();
+    let statement_markup = fix_markup(statement.pretty_print());
     let query_html = markup_to_html(statement_markup);
     let result_html = markup_to_html(res_markup);
 
@@ -133,9 +134,28 @@ fn evaluate(query: &str) -> Option<NumbatResponse> {
     })
 }
 
+fn fix_markup(markup: Markup) -> Markup {
+    let mut reordered_markup: Vec<FormattedString> = Vec::new();
+    const LEFT_SIDE_UNITS: &[&str] = &["$", "€", "£", "¥"];
+    for s in markup.0 {
+        let FormattedString(_output_type, format_type, content) = s.clone();
+
+        if format_type == FormatType::Unit && LEFT_SIDE_UNITS.contains(&content.as_str()) {
+            // remove the last markup if it's whitespace
+            if let Some(FormattedString(_, FormatType::Whitespace, _)) = reordered_markup.last() {
+                reordered_markup.pop();
+            }
+            reordered_markup.insert(reordered_markup.len() - 1, s);
+        } else {
+            reordered_markup.push(s);
+        }
+    }
+    Markup(reordered_markup)
+}
+
 fn markup_to_html(markup: Markup) -> String {
     let mut html = String::new();
-    for FormattedString(_output_type, format_type, content) in markup.0 {
+    for FormattedString(_, format_type, content) in markup.0 {
         let class = match format_type {
             FormatType::Value => "answer-calc-constant",
             FormatType::String => "answer-calc-string",
@@ -170,7 +190,7 @@ pub static NUMBAT_CTX: Lazy<numbat::Context> = Lazy::new(|| {
         ("tb", "TB"),
         ("pb", "PB"),
     ] {
-        let _ = ctx.interpret(&format!("unit {alias} = {canonical}"), CodeSource::Internal);
+        let _ = ctx.interpret(&format!("let {alias} = {canonical}"), CodeSource::Internal);
     }
 
     // lowercase aliases (so for example usd and USD are the same unit)
@@ -186,7 +206,7 @@ pub static NUMBAT_CTX: Lazy<numbat::Context> = Lazy::new(|| {
         // add every lowercase aliases for every unit as long as that alias isn't
         // already taken
         if !unit_names.contains(&name_lower) {
-            let _ = ctx.interpret(&format!("unit {name_lower} = {name}"), CodeSource::Internal);
+            let _ = ctx.interpret(&format!("let {name_lower} = {name}"), CodeSource::Internal);
         }
     }
 
