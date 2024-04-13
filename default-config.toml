@@ -4,6 +4,7 @@ bind = "0.0.0.0:28019"
 google = { weight = 1.05 }
 bing = { weight = 1.0 }
 brave = { weight = 1.25 }
-marginalia = { weight = 0.15 }
 
-# etc
+[engines.marginalia]
+args = { profile = "corpo", js = "default", adtech = "default" }
+weight = 0.15

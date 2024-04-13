@@ -2,6 +2,9 @@ a cute metasearch engine
 
 it sources from google, bing, brave, and a few others.
 
+it's written in rust using no templating engine and with as little client-side
+javascript as possible.
+
 there's a demo instance at https://s.matdoes.dev, but don't use it as your
 default or rely on it, please (so i don't get ratelimited by google).
 
@@ -15,15 +18,3 @@ run of metasearch2. alternatively, you can copy the example-config.toml in the
 repo and rename it to config.toml.
 
 the default port is port 28019.
-
-CONTRIBUTING
-
-it's written in rust using no templating engine and with as little client-side
-javascript as possible.
-
-FORKS
-
-here's a probably incomplete list of maintained forks that add new features:
-
-- https://github.com/mrcbax/metasearch2/tree/seo_spam
-- https://git.shrecked.dev/Shrecknt/metasearch

@@ -34,21 +34,6 @@ macro_rules! engines {
 }
 
 #[macro_export]
-macro_rules! engine_weights {
-    ($($engine:ident = $weight:expr),* $(,)?) => {
-        impl Engine {
-            #[must_use]
-            pub fn weight(&self) -> f64 {
-                match self {
-                    $(Engine::$engine => $weight,)*
-                    _ => 1.,
-                }
-            }
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! engine_parse_response {
     ($res:ident, $module:ident::$engine_id:ident::None) => {
         None

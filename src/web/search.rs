@@ -187,6 +187,7 @@ pub async fn route(
                 || addr.ip().to_string(),
                 |ip| ip.to_str().unwrap_or_default().to_string(),
             ),
+        config,
     };
 
     let s = stream! {
@@ -206,7 +207,7 @@ pub async fn route(
 
         let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let search_future = tokio::spawn(async move { engines::search(&config, &query, progress_tx).await });
+        let search_future = tokio::spawn(async move { engines::search( &query, progress_tx).await });
 
         while let Some(progress_update) = progress_rx.recv().await {
             match progress_update.data {

@@ -4,6 +4,7 @@ use std::{
     net::IpAddr,
     ops::Deref,
     str::FromStr,
+    sync::Arc,
     time::Instant,
 };
 
@@ -90,6 +91,9 @@ pub struct SearchQuery {
     pub query: String,
     pub request_headers: HashMap<String, String>,
     pub ip: String,
+    /// The config is part of the query so it's possible to make a query with a
+    /// custom config.
+    pub config: Arc<Config>,
 }
 
 impl Deref for SearchQuery {
@@ -228,7 +232,6 @@ impl ProgressUpdate {
 }
 
 pub async fn search(
-    config: &Config,
     query: &SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
 ) -> eyre::Result<()> {
@@ -238,7 +241,7 @@ pub async fn search(
 
     let mut requests = Vec::new();
     for &engine in Engine::all() {
-        let engine_config = config.engines.get(engine);
+        let engine_config = query.config.engines.get(engine);
         if !engine_config.enabled {
             continue;
         }
@@ -317,7 +320,7 @@ pub async fn search(
         join_all(response_futures).await.into_iter().collect();
     let responses = responses_result?;
 
-    let response = merge_engine_responses(config, responses);
+    let response = merge_engine_responses(&query.config, responses);
 
     let has_infobox = response.infobox.is_some();
 
@@ -331,7 +334,7 @@ pub async fn search(
 
         let mut postsearch_requests = Vec::new();
         for &engine in Engine::all() {
-            let engine_config = config.engines.get(engine);
+            let engine_config = query.config.engines.get(engine);
             if !engine_config.enabled {
                 continue;
             }
