@@ -27,39 +27,47 @@ pub mod search;
 engines! {
     // search
     Google = "google",
+    GoogleScholar = "google-scholar",
     Bing = "bing",
     Brave = "brave",
     Marginalia = "marginalia",
+    RightDao = "rightdao",
+    Stract = "stract",
+    Yep = "yep",
     // answer
-    Useragent = "useragent",
-    Ip = "ip",
-    Fend = "fend",
-    Numbat = "numbat",
-    Wikipedia = "wikipedia",
     Dictionary = "dictionary",
+    Fend = "fend",
+    Ip = "ip",
+    Numbat = "numbat",
     Thesaurus = "thesaurus",
     Timezone = "timezone",
+    Useragent = "useragent",
+    Wikipedia = "wikipedia",
     // post-search
-    StackExchange = "stackexchange",
-    GitHub = "github",
     DocsRs = "docs_rs",
+    GitHub = "github",
+    StackExchange = "stackexchange",
 }
 
 engine_requests! {
     // search
-    Google => search::google::request, parse_response,
     Bing => search::bing::request, parse_response,
     Brave => search::brave::request, parse_response,
+    GoogleScholar => search::google_scholar::request, parse_response,
+    Google => search::google::request, parse_response,
     Marginalia => search::marginalia::request, parse_response,
+    RightDao => search::rightdao::request, parse_response,
+    Stract => search::stract::request, parse_response,
+    Yep => search::yep::request, parse_response,
     // answer
-    Useragent => answer::useragent::request, None,
-    Ip => answer::ip::request, None,
-    Fend => answer::fend::request, None,
-    Numbat => answer::numbat::request, None,
-    Wikipedia => answer::wikipedia::request, parse_response,
     Dictionary => answer::dictionary::request, parse_response,
+    Fend => answer::fend::request, None,
+    Ip => answer::ip::request, None,
+    Numbat => answer::numbat::request, None,
     Thesaurus => answer::thesaurus::request, parse_response,
     Timezone => answer::timezone::request, None,
+    Useragent => answer::useragent::request, None,
+    Wikipedia => answer::wikipedia::request, parse_response,
 }
 
 engine_autocomplete_requests! {
