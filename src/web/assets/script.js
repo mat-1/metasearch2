@@ -113,7 +113,6 @@ document.addEventListener("keydown", (e) => {
   const focusedEl = document.querySelector(":focus");
   if (
     focusedEl &&
-    focusedEl != searchInputEl &&
     (focusedEl.tagName == "input" ||
       focusedEl.getAttribute("contenteditable") !== null)
   )
