@@ -7,7 +7,8 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
         return EngineResponse::new();
     }
 
-    EngineResponse::answer_html(
-        r#"<div contenteditable id='notepad' placeholder='Notes' style='width:100%;color:white;outline:none;min-height:4em;font-size:12px;'></div>"#.to_string()
-    )
+    // This allows pasting styles which is undesired behavior, and the
+    // `contenteditable="plaintext-only"` attribute currently only works on Chrome.
+    // This should be updated when the attribute becomes available in more browsers
+    EngineResponse::answer_html(r#"<div contenteditable class="answer-notepad"></div>"#.to_string())
 }

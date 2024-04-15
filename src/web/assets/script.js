@@ -113,7 +113,8 @@ document.addEventListener("keydown", (e) => {
   const focusedEl = document.querySelector(":focus");
   if (
     focusedEl &&
-    (focusedEl.tagName == "input" ||
+    (focusedEl.tagName.toLowerCase() == "input" ||
+      focusedEl.tagName.toLowerCase() == "textarea" ||
       focusedEl.getAttribute("contenteditable") !== null)
   )
     return;
