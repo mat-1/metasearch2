@@ -47,6 +47,7 @@ engines! {
     // post-search
     DocsRs = "docs_rs",
     GitHub = "github",
+    Mdn = "mdn",
     StackExchange = "stackexchange",
 }
 
@@ -79,9 +80,10 @@ engine_autocomplete_requests! {
 }
 
 engine_postsearch_requests! {
-    StackExchange => postsearch::stackexchange::request, parse_response,
-    GitHub => postsearch::github::request, parse_response,
     DocsRs => postsearch::docs_rs::request, parse_response,
+    GitHub => postsearch::github::request, parse_response,
+    Mdn => postsearch::mdn::request, parse_response,
+    StackExchange => postsearch::stackexchange::request, parse_response,
 }
 
 impl fmt::Display for Engine {
