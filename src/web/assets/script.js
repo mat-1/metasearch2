@@ -1,4 +1,5 @@
 const searchInputEl = document.getElementById("search-input");
+const notepadEl = document.getElementById("notepad");
 
 // add an element with search suggestions after the search input
 const suggestionsEl = document.createElement("div");
@@ -108,6 +109,9 @@ document.addEventListener("keydown", (e) => {
 
     return;
   }
+
+  // if the currently selected element is the notepad, don't do anything
+  if (notepadEl && notepadEl.matches(":focus")) return;
 
   // if the user starts typing but they don't have focus on the input, focus it
 
