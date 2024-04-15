@@ -14,17 +14,17 @@ pub struct Config {
 impl Config {
     pub fn read_or_create() -> eyre::Result<Self> {
         let default_config_str = include_str!("../default-config.toml");
-        let default_config = toml::from_str(default_config_str)?;
+        let mut config: Config = toml::from_str(default_config_str)?;
 
         let config_path = Path::new("config.toml");
         if config_path.exists() {
-            let mut given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
-            given_config.update(default_config);
-            Ok(given_config)
+            let given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
+            config.update(given_config);
+            Ok(config)
         } else {
             println!("No config found, creating one at {config_path:?}");
             fs::write(config_path, default_config_str)?;
-            Ok(default_config)
+            Ok(config)
         }
     }
 

@@ -38,6 +38,7 @@ engines! {
     Dictionary = "dictionary",
     Fend = "fend",
     Ip = "ip",
+    Notepad = "notepad",
     Numbat = "numbat",
     Thesaurus = "thesaurus",
     Timezone = "timezone",
@@ -46,6 +47,7 @@ engines! {
     // post-search
     DocsRs = "docs_rs",
     GitHub = "github",
+    Mdn = "mdn",
     StackExchange = "stackexchange",
 }
 
@@ -63,6 +65,7 @@ engine_requests! {
     Dictionary => answer::dictionary::request, parse_response,
     Fend => answer::fend::request, None,
     Ip => answer::ip::request, None,
+    Notepad => answer::notepad::request, None,
     Numbat => answer::numbat::request, None,
     Thesaurus => answer::thesaurus::request, parse_response,
     Timezone => answer::timezone::request, None,
@@ -77,9 +80,10 @@ engine_autocomplete_requests! {
 }
 
 engine_postsearch_requests! {
-    StackExchange => postsearch::stackexchange::request, parse_response,
-    GitHub => postsearch::github::request, parse_response,
     DocsRs => postsearch::docs_rs::request, parse_response,
+    GitHub => postsearch::github::request, parse_response,
+    Mdn => postsearch::mdn::request, parse_response,
+    StackExchange => postsearch::stackexchange::request, parse_response,
 }
 
 impl fmt::Display for Engine {
