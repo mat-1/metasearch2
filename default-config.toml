@@ -17,3 +17,8 @@ fend = { enabled = false, weight = 10 }
 [engines.marginalia]
 args = { profile = "corpo", js = "default", adtech = "default" }
 weight = 0.15
+
+[engines.mdn]
+# the number of sections of text to display
+# 1 is just the summary and 0 is no limit
+max_sections = 1

@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::engines::Engine;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Config {
     pub bind: SocketAddr,
     pub engines: EnginesConfig,
@@ -43,7 +43,7 @@ impl Config {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct EnginesConfig {
     #[serde(flatten)]
     pub map: HashMap<Engine, DefaultableEngineConfig>,
@@ -75,7 +75,7 @@ impl EnginesConfig {
     }
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum DefaultableEngineConfig {
     Boolean(bool),
@@ -98,7 +98,7 @@ impl Default for DefaultableEngineConfig {
     }
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct FullEngineConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,

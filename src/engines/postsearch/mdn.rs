@@ -1,6 +1,12 @@
 use scraper::{Html, Selector};
+use serde::Deserialize;
 
-use crate::engines::{HttpResponse, Response, CLIENT};
+use crate::engines::{Engine, HttpResponse, Response, CLIENT};
+
+#[derive(Deserialize)]
+pub struct MdnConfig {
+    pub max_sections: usize,
+}
 
 pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     for search_result in response.search_results.iter().take(8) {
@@ -15,7 +21,16 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> Option<String> {
+pub fn parse_response(HttpResponse { res, body, config }: &HttpResponse) -> Option<String> {
+    let config_toml = config.engines.get(Engine::Mdn).extra.clone();
+    let config: MdnConfig = match toml::Value::Table(config_toml).try_into() {
+        Ok(args) => args,
+        Err(err) => {
+            eprintln!("Failed to parse Mdn config: {err}");
+            return None;
+        }
+    };
+
     let url = res.url().clone();
 
     let dom = Html::parse_document(body);
@@ -30,11 +45,18 @@ pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> Option<Strin
 
     let doc_query = Selector::parse(".section-content").unwrap();
 
+    let max_sections = if config.max_sections == 0 {
+        usize::MAX
+    } else {
+        config.max_sections
+    };
+
     let doc_html = dom
         .select(&doc_query)
-        .next()
         .map(|doc| doc.inner_html())
-        .unwrap_or_default();
+        .take(max_sections)
+        .collect::<Vec<_>>()
+        .join("<br />");
 
     let doc_html = ammonia::Builder::default()
         .link_rel(None)
