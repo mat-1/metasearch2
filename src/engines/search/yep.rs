@@ -42,13 +42,14 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
 
     let search_results = response
         .results
-        .iter()
+        .into_iter()
         .map(|result| {
             let description_html = scraper::Html::parse_document(&result.snippet);
+            let description = description_html.root_element().text().collect();
             EngineSearchResult {
-                url: result.url.clone(),
-                title: result.title.clone(),
-                description: description_html.root_element().text().collect(),
+                url: result.url,
+                title: result.title,
+                description,
             }
         })
         .collect();
