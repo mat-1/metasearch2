@@ -1,4 +1,4 @@
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 
 use crate::engines::{HttpResponse, Response, CLIENT};
 
@@ -25,14 +25,13 @@ pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<S
         .trim()
         .to_string();
 
-    let doc_query = Selector::parse(".mw-parser-output").unwrap();
+    let doc_query = Selector::parse(".mw-parser-output > p").unwrap();
 
     let doc_html = dom
         .select(&doc_query)
         .next()
-        .map(|doc| strip_gallery(doc))
-        .unwrap_or_default()
-        .join("");
+        .map(|doc| doc.html())
+        .unwrap_or_default();
 
     let doc_html = ammonia::Builder::default()
         .link_rel(None)
@@ -51,38 +50,4 @@ pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<S
     Some(format!(
         r#"{title_html}<div class="infobox-minecraft_wiki-article">{doc_html}</div>"#
     ))
-}
-
-fn strip_gallery(doc: ElementRef) -> Vec<String> {
-    let mut gallery = false;
-    doc.children()
-        .filter(|elem| {
-            let value = elem.value();
-            if gallery {
-                return false;
-            }
-            match value {
-                scraper::Node::Element(_) => {
-                    let elem = ElementRef::wrap(*elem).unwrap();
-                    let is_gallery_title = elem.first_child().map_or(false, |elem| {
-                        elem.value().as_element().map_or(false, |_| {
-                            let elem = ElementRef::wrap(elem).unwrap();
-                            elem.text().collect::<String>() == "Gallery"
-                        })
-                    });
-                    if is_gallery_title {
-                        gallery = true;
-                        return false;
-                    }
-                    true
-                }
-                _ => true,
-            }
-        })
-        .map(|elem| {
-            ElementRef::wrap(elem)
-                .map(|elem| elem.html())
-                .unwrap_or_default()
-        })
-        .collect()
 }
