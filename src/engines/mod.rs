@@ -27,7 +27,7 @@ pub mod search;
 engines! {
     // search
     Google = "google",
-    GoogleScholar = "google-scholar",
+    GoogleScholar = "google_scholar",
     Bing = "bing",
     Brave = "brave",
     Marginalia = "marginalia",

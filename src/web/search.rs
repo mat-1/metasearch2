@@ -45,18 +45,29 @@ fn render_end_of_html() -> String {
     r"</main></div></body></html>".to_string()
 }
 
-fn render_engine_list(engines: &[engines::Engine]) -> String {
+fn render_engine_list(engines: &[engines::Engine], config: Arc<Config>) -> String {
     let mut html = String::new();
+    let mut first_iter = true;
     for engine in engines {
+        if config.engine_list_separator && !first_iter {
+            html.push_str(" &middot; ");
+        }
+        first_iter = false;
+        let raw_engine_id = &engine.id();
+        let engine_id = if config.engine_list_separator {
+            raw_engine_id.replace('_', " ")
+        } else {
+            raw_engine_id.to_string()
+        };
         html.push_str(&format!(
             r#"<span class="engine-list-item">{engine}</span>"#,
-            engine = encode_text(&engine.id())
+            engine = encode_text(&engine_id)
         ));
     }
     format!(r#"<div class="engine-list">{html}</div>"#)
 }
 
-fn render_search_result(result: &engines::SearchResult) -> String {
+fn render_search_result(result: &engines::SearchResult, config: Arc<Config>) -> String {
     format!(
         r#"<div class="search-result">
     <a class="search-result-anchor" rel="noreferrer" href="{url_attr}">
@@ -71,11 +82,15 @@ fn render_search_result(result: &engines::SearchResult) -> String {
         url = encode_text(&result.url),
         title = encode_text(&result.title),
         desc = encode_text(&result.description),
-        engines_html = render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>())
+        engines_html =
+            render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>(), config)
     )
 }
 
-fn render_featured_snippet(featured_snippet: &engines::FeaturedSnippet) -> String {
+fn render_featured_snippet(
+    featured_snippet: &engines::FeaturedSnippet,
+    config: Arc<Config>,
+) -> String {
     format!(
         r#"<div class="featured-snippet">
     <p class="search-result-description">{desc}</p>
@@ -90,7 +105,7 @@ fn render_featured_snippet(featured_snippet: &engines::FeaturedSnippet) -> Strin
         url_attr = encode_unquoted_attribute(&featured_snippet.url),
         url = encode_text(&featured_snippet.url),
         title = encode_text(&featured_snippet.title),
-        engines_html = render_engine_list(&[featured_snippet.engine])
+        engines_html = render_engine_list(&[featured_snippet.engine], config)
     )
 }
 
@@ -100,21 +115,24 @@ fn render_results(response: Response) -> String {
         html.push_str(&format!(
             r#"<div class="infobox">{infobox_html}{engines_html}</div>"#,
             infobox_html = &infobox.html,
-            engines_html = render_engine_list(&[infobox.engine])
+            engines_html = render_engine_list(&[infobox.engine], response.config.clone())
         ));
     }
     if let Some(answer) = &response.answer {
         html.push_str(&format!(
             r#"<div class="answer">{answer_html}{engines_html}</div>"#,
             answer_html = &answer.html,
-            engines_html = render_engine_list(&[answer.engine])
+            engines_html = render_engine_list(&[answer.engine], response.config.clone())
         ));
     }
     if let Some(featured_snippet) = &response.featured_snippet {
-        html.push_str(&render_featured_snippet(featured_snippet));
+        html.push_str(&render_featured_snippet(
+            featured_snippet,
+            response.config.clone(),
+        ));
     }
     for result in &response.search_results {
-        html.push_str(&render_search_result(result));
+        html.push_str(&render_search_result(result, response.config.clone()));
     }
 
     if response.infobox.is_none()
@@ -187,7 +205,7 @@ pub async fn route(
                 || addr.ip().to_string(),
                 |ip| ip.to_str().unwrap_or_default().to_string(),
             ),
-        config,
+        config: config.clone(),
     };
 
     let s = stream! {
@@ -230,7 +248,7 @@ pub async fn route(
                     third_part.push_str(&format!(
                         r#"<div class="infobox postsearch-infobox">{infobox_html}{engines_html}</div>"#,
                         infobox_html = &infobox.html,
-                        engines_html = render_engine_list(&[infobox.engine])
+                        engines_html = render_engine_list(&[infobox.engine], config.clone())
                     ));
                 }
             }
