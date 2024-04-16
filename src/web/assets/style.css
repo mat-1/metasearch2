@@ -365,3 +365,12 @@ h3.answer-thesaurus-category-title {
 .postsearch-infobox p {
   margin-bottom: 1em;
 }
+.infobox-minecraft_wiki-article > .notaninfobox {
+  display: none !important;
+}
+.noexcerpt, .navigation-not-searchable {
+  display: none !important;
+}
+.mcw-mainpage-icon {
+  display: inline-block;
+}

@@ -48,6 +48,7 @@ engines! {
     DocsRs = "docs_rs",
     GitHub = "github",
     Mdn = "mdn",
+    MinecraftWiki = "minecraft_wiki",
     StackExchange = "stackexchange",
 }
 
@@ -83,6 +84,7 @@ engine_postsearch_requests! {
     DocsRs => postsearch::docs_rs::request, parse_response,
     GitHub => postsearch::github::request, parse_response,
     Mdn => postsearch::mdn::request, parse_response,
+    MinecraftWiki => postsearch::minecraft_wiki::request, parse_response,
     StackExchange => postsearch::stackexchange::request, parse_response,
 }
 
