@@ -1,5 +1,5 @@
 use chrono::{DateTime, TimeZone};
-use chrono_tz::{OffsetComponents, OffsetName, Tz};
+use chrono_tz::{OffsetComponents, Tz};
 
 use crate::engines::EngineResponse;
 
@@ -76,12 +76,6 @@ fn evaluate(query: &str) -> Option<TimeResponse> {
 
             let source_offset = source_timezone.offset_from_utc_date(&current_date);
             let target_offset = target_timezone.offset_from_utc_date(&current_date);
-
-            println!(
-                "source_offset: {source_offset:?} {:?}",
-                source_offset.tz_id()
-            );
-            println!("target_offset: {target_offset:?}");
 
             let source_time_naive = current_date.and_hms_opt(
                 if ampm == "pm" && hour != 12 {

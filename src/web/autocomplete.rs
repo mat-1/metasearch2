@@ -6,6 +6,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use tracing::error;
 
 use crate::{config::Config, engines};
 
@@ -22,7 +23,7 @@ pub async fn route(
     let res = match engines::autocomplete(&config, &query).await {
         Ok(res) => res,
         Err(err) => {
-            eprintln!("Autocomplete error for {query}: {err}");
+            error!("Autocomplete error for {query}: {err}");
             return (StatusCode::INTERNAL_SERVER_ERROR, Json((query, vec![])));
         }
     };

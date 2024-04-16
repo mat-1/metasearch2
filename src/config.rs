@@ -2,6 +2,7 @@ use std::{collections::HashMap, fs, net::SocketAddr, path::Path};
 
 use once_cell::sync::Lazy;
 use serde::Deserialize;
+use tracing::info;
 
 use crate::engines::Engine;
 
@@ -22,7 +23,7 @@ impl Config {
             config.update(given_config);
             Ok(config)
         } else {
-            println!("No config found, creating one at {config_path:?}");
+            info!("No config found, creating one at {config_path:?}");
             fs::write(config_path, default_config_str)?;
             Ok(config)
         }

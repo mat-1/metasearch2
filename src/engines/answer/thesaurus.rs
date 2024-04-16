@@ -1,6 +1,7 @@
 use eyre::eyre;
 use scraper::{Html, Selector};
 use serde::Deserialize;
+use tracing::error;
 use url::Url;
 
 use crate::engines::{EngineResponse, RequestResponse, CLIENT};
@@ -134,7 +135,7 @@ fn parse_thesaurus_com_item(
                 weak_matches = matches;
             }
             _ => {
-                eprintln!("Unknown thesaurus match type: {match_type}");
+                error!("Unknown thesaurus match type: {match_type}");
             }
         }
     }

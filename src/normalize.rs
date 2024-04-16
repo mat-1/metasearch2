@@ -1,3 +1,4 @@
+use tracing::error;
 use url::Url;
 
 pub fn normalize_url(url: &str) -> eyre::Result<String> {
@@ -7,7 +8,7 @@ pub fn normalize_url(url: &str) -> eyre::Result<String> {
     }
 
     let Ok(mut url) = Url::parse(url) else {
-        eprintln!("failed to parse url: {url}");
+        error!("failed to parse url: {url}");
         return Ok(url.to_string());
     };
 

@@ -5,6 +5,7 @@ pub mod search;
 use std::{net::SocketAddr, sync::Arc};
 
 use axum::{http::header, routing::get, Router};
+use tracing::info;
 
 use crate::config::Config;
 
@@ -53,7 +54,7 @@ pub async fn run(config: Config) {
         .route("/autocomplete", get(autocomplete::route))
         .with_state(Arc::new(config));
 
-    println!("Listening on {bind_addr}");
+    info!("Listening on {bind_addr}");
 
     let listener = tokio::net::TcpListener::bind(bind_addr).await.unwrap();
     axum::serve(
