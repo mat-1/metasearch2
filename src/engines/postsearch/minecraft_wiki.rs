@@ -31,7 +31,7 @@ pub fn parse_response(
         .trim()
         .to_string();
 
-    let doc_query = Selector::parse(".mw-parser-output").unwrap(); // > :not(h2:has(>#Gallery) ~ *)").unwrap();
+    let doc_query = Selector::parse(".mw-parser-output").unwrap();
 
     let doc_html = dom
         .select(&doc_query)
@@ -69,7 +69,7 @@ fn strip_gallery(doc: ElementRef) -> Vec<String> {
             }
             match value {
                 scraper::Node::Element(_) => {
-                    let elem = ElementRef::wrap(elem.clone()).unwrap();
+                    let elem = ElementRef::wrap(*elem).unwrap();
                     let is_gallery_title = elem.first_child().map_or(false, |elem| {
                         elem.value().as_element().map_or(false, |_| {
                             let elem = ElementRef::wrap(elem).unwrap();

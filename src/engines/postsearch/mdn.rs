@@ -1,5 +1,6 @@
 use scraper::{Html, Selector};
 use serde::Deserialize;
+use tracing::error;
 
 use crate::engines::{Engine, HttpResponse, Response, CLIENT};
 
@@ -26,7 +27,7 @@ pub fn parse_response(HttpResponse { res, body, config }: &HttpResponse) -> Opti
     let config: MdnConfig = match toml::Value::Table(config_toml).try_into() {
         Ok(args) => args,
         Err(err) => {
-            eprintln!("Failed to parse Mdn config: {err}");
+            error!("Failed to parse Mdn config: {err}");
             return None;
         }
     };
