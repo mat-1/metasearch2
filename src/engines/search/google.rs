@@ -18,7 +18,6 @@ pub fn request(query: &str) -> reqwest::RequestBuilder {
 }
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
-    // write to google.html
     parse_html_response_with_opts(
         body,
         ParseOpts::new()
@@ -28,7 +27,7 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
             .result("div.g > div, div.xpd > div:first-child")
             .title("h3")
             .href("a[href]")
-            .description("div[data-sncf], div[style='-webkit-line-clamp:2']")
+            .description("div[data-sncf='2'], div[style='-webkit-line-clamp:2']")
             .featured_snippet("block-component")
             .featured_snippet_description(QueryMethod::Manual(Box::new(|el: &ElementRef| {
                 let Some(description_container_el) = el

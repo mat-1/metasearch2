@@ -1,14 +1,18 @@
-use tracing::error;
+use std::borrow::Cow;
+
+use tracing::{error, warn};
 use url::Url;
 
+#[tracing::instrument]
 pub fn normalize_url(url: &str) -> eyre::Result<String> {
     let url = url.trim_end_matches('#');
     if url.is_empty() {
+        warn!("url is empty");
         return Ok(String::new());
     }
 
     let Ok(mut url) = Url::parse(url) else {
-        error!("failed to parse url: {url}");
+        error!("failed to parse url");
         return Ok(url.to_string());
     };
 
@@ -56,7 +60,13 @@ pub fn normalize_url(url: &str) -> eyre::Result<String> {
 
     // url decode and encode path
     let path = url.path().to_string();
-    let path = urlencoding::decode(&path)?;
+    let path = match urlencoding::decode(&path) {
+        Ok(path) => path,
+        Err(e) => {
+            warn!("failed to decode path: {e}");
+            Cow::Owned(path)
+        }
+    };
     url.set_path(path.as_ref());
 
     let url = url.to_string();

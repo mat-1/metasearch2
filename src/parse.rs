@@ -6,6 +6,7 @@ use crate::{
 };
 
 use scraper::{Html, Selector};
+use tracing::trace;
 
 #[derive(Default)]
 pub struct ParseOpts {
@@ -152,15 +153,19 @@ pub(super) fn parse_html_response_with_opts(
             })
         })?;
         let description = description_query_method.call(&result)?;
+        trace!("url: {url}, title: {title}, description: {description}");
+        trace!("result: {:?}", result.value().classes().collect::<Vec<_>>());
 
         // this can happen on google if you search "roll d6"
         let is_empty = description.is_empty() && title.is_empty();
         if is_empty {
+            trace!("empty content for {url} ({title}), skipping");
             continue;
         }
 
         // this can happen on google if it gives you a featured snippet
         if description.is_empty() {
+            trace!("empty description for {url} ({title}), skipping");
             continue;
         }
 

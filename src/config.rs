@@ -34,15 +34,15 @@ impl Config {
     // Update the current config with the given config. This is used to make it so
     // the default-config.toml is always used as a fallback if the user decides to
     // use the default for something.
-    pub fn update(&mut self, other: Self) {
-        self.bind = other.bind;
-        self.engine_list_separator = self.engine_list_separator.or(other.engine_list_separator);
+    pub fn update(&mut self, new: Config) {
+        self.bind = new.bind;
+        self.engine_list_separator = new.engine_list_separator.or(self.engine_list_separator);
         assert_ne!(self.engine_list_separator, None);
-        for (key, value) in other.engines.map {
+        for (key, new) in new.engines.map {
             if let Some(existing) = self.engines.map.get_mut(&key) {
-                existing.update(value);
+                existing.update(new);
             } else {
-                self.engines.map.insert(key, value);
+                self.engines.map.insert(key, new);
             }
         }
     }
@@ -88,12 +88,11 @@ pub enum DefaultableEngineConfig {
 }
 
 impl DefaultableEngineConfig {
-    pub fn update(&mut self, other: Self) {
-        match (self, other) {
-            (Self::Boolean(existing), Self::Boolean(other)) => *existing = other,
-            (Self::Full(existing), Self::Full(other)) => existing.update(other),
-            _ => (),
-        }
+    pub fn update(&mut self, new: Self) {
+        let mut self_full = FullEngineConfig::from(self.clone());
+        let other_full = FullEngineConfig::from(new);
+        self_full.update(other_full);
+        *self = DefaultableEngineConfig::Full(self_full);
     }
 }
 
@@ -147,11 +146,11 @@ impl Default for FullEngineConfig {
 }
 
 impl FullEngineConfig {
-    pub fn update(&mut self, other: Self) {
-        self.enabled = other.enabled;
-        if other.weight != 0. {
-            self.weight = other.weight;
+    pub fn update(&mut self, new: Self) {
+        self.enabled = new.enabled;
+        if new.weight != 0. {
+            self.weight = new.weight;
         }
-        self.extra = other.extra;
+        self.extra = new.extra;
     }
 }
