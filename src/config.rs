@@ -9,7 +9,8 @@ use crate::engines::Engine;
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub bind: SocketAddr,
-    pub engine_list_separator: bool,
+    #[serde(default)]
+    pub engine_list_separator: Option<bool>,
     pub engines: EnginesConfig,
 }
 
@@ -35,7 +36,8 @@ impl Config {
     // use the default for something.
     pub fn update(&mut self, other: Self) {
         self.bind = other.bind;
-        self.engine_list_separator |= other.engine_list_separator;
+        self.engine_list_separator = self.engine_list_separator.or(other.engine_list_separator);
+        assert_ne!(self.engine_list_separator, None);
         for (key, value) in other.engines.map {
             if let Some(existing) = self.engines.map.get_mut(&key) {
                 existing.update(value);

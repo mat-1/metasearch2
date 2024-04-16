@@ -49,12 +49,12 @@ fn render_engine_list(engines: &[engines::Engine], config: Arc<Config>) -> Strin
     let mut html = String::new();
     let mut first_iter = true;
     for engine in engines {
-        if config.engine_list_separator && !first_iter {
+        if config.engine_list_separator.unwrap() && !first_iter {
             html.push_str(" &middot; ");
         }
         first_iter = false;
         let raw_engine_id = &engine.id();
-        let engine_id = if config.engine_list_separator {
+        let engine_id = if config.engine_list_separator.unwrap() {
             raw_engine_id.replace('_', " ")
         } else {
             raw_engine_id.to_string()
