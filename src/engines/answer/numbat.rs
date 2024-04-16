@@ -8,6 +8,7 @@ use numbat::{
     InterpreterResult, InterpreterSettings, Statement,
 };
 use once_cell::sync::Lazy;
+use tracing::debug;
 
 use crate::engines::EngineResponse;
 
@@ -94,7 +95,7 @@ fn interpret(query: &str) -> Option<(Statement, Markup)> {
     ) {
         Ok(r) => r,
         Err(err) => {
-            eprintln!("numbat error: {}", err);
+            debug!("numbat error: {err}");
             return None;
         }
     };

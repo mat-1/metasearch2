@@ -13,6 +13,7 @@ use once_cell::sync::Lazy;
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Deserializer};
 use tokio::sync::mpsc;
+use tracing::{error, info};
 
 mod macros;
 use crate::{
@@ -249,11 +250,14 @@ impl ProgressUpdate {
     }
 }
 
+#[tracing::instrument(fields(query = %query.query), skip(progress_tx))]
 pub async fn search(
     query: &SearchQuery,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
 ) -> eyre::Result<()> {
     let start_time = Instant::now();
+
+    info!("Doing search");
 
     let progress_tx = &progress_tx;
 
@@ -310,7 +314,7 @@ pub async fn search(
                     let response = match engine.parse_response(&http_response) {
                         Ok(response) => response,
                         Err(e) => {
-                            eprintln!("parse error: {e}");
+                            error!("parse error: {e}");
                             EngineResponse::new()
                         }
                     };
@@ -379,7 +383,7 @@ pub async fn search(
                             engine.postsearch_parse_response(&http_response)
                         }
                         Err(e) => {
-                            eprintln!("postsearch request error: {e}");
+                            error!("postsearch request error: {e}");
                             None
                         }
                     };

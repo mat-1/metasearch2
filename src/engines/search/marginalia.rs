@@ -1,5 +1,6 @@
 use reqwest::Url;
 use serde::Deserialize;
+use tracing::error;
 
 use crate::{
     engines::{Engine, EngineResponse, RequestResponse, SearchQuery, CLIENT},
@@ -29,7 +30,7 @@ pub fn request(query: &SearchQuery) -> RequestResponse {
     let config: MarginaliaConfig = match toml::Value::Table(config_toml).try_into() {
         Ok(args) => args,
         Err(err) => {
-            eprintln!("Failed to parse Marginalia config: {err}");
+            error!("Failed to parse Marginalia config: {err}");
             return RequestResponse::None;
         }
     };
