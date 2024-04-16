@@ -28,7 +28,7 @@ pub mod search;
 engines! {
     // search
     Google = "google",
-    GoogleScholar = "google-scholar",
+    GoogleScholar = "google_scholar",
     Bing = "bing",
     Brave = "brave",
     Marginalia = "marginalia",
@@ -49,6 +49,7 @@ engines! {
     DocsRs = "docs_rs",
     GitHub = "github",
     Mdn = "mdn",
+    MinecraftWiki = "minecraft_wiki",
     StackExchange = "stackexchange",
 }
 
@@ -84,6 +85,7 @@ engine_postsearch_requests! {
     DocsRs => postsearch::docs_rs::request, parse_response,
     GitHub => postsearch::github::request, parse_response,
     Mdn => postsearch::mdn::request, parse_response,
+    MinecraftWiki => postsearch::minecraft_wiki::request, parse_response,
     StackExchange => postsearch::stackexchange::request, parse_response,
 }
 
@@ -154,6 +156,7 @@ impl From<Vec<String>> for RequestAutocompleteResponse {
 pub struct HttpResponse {
     pub res: reqwest::Response,
     pub body: String,
+    pub config: Arc<Config>,
 }
 
 impl<'a> From<&'a HttpResponse> for &'a str {
@@ -302,7 +305,11 @@ pub async fn search(
                         start_time,
                     ))?;
 
-                    let http_response = HttpResponse { res, body };
+                    let http_response = HttpResponse {
+                        res,
+                        body,
+                        config: query.config.clone(),
+                    };
 
                     let response = match engine.parse_response(&http_response) {
                         Ok(response) => response,
@@ -339,7 +346,7 @@ pub async fn search(
         join_all(response_futures).await.into_iter().collect();
     let responses = responses_result?;
 
-    let response = merge_engine_responses(&query.config, responses);
+    let response = merge_engine_responses(query.config.clone(), responses);
 
     let has_infobox = response.infobox.is_some();
 
@@ -368,7 +375,11 @@ pub async fn search(
                             }
                             let body = String::from_utf8_lossy(&body_bytes).to_string();
 
-                            let http_response = HttpResponse { res, body };
+                            let http_response = HttpResponse {
+                                res,
+                                body,
+                                config: query.config.clone(),
+                            };
                             engine.postsearch_parse_response(&http_response)
                         }
                         Err(e) => {
@@ -464,6 +475,7 @@ pub struct Response {
     pub featured_snippet: Option<FeaturedSnippet>,
     pub answer: Option<Answer>,
     pub infobox: Option<Infobox>,
+    pub config: Arc<Config>,
 }
 
 #[derive(Debug, Clone)]
@@ -495,7 +507,10 @@ pub struct Infobox {
     pub engine: Engine,
 }
 
-fn merge_engine_responses(config: &Config, responses: HashMap<Engine, EngineResponse>) -> Response {
+fn merge_engine_responses(
+    config: Arc<Config>,
+    responses: HashMap<Engine, EngineResponse>,
+) -> Response {
     let mut search_results: Vec<SearchResult> = Vec::new();
     let mut featured_snippet: Option<FeaturedSnippet> = None;
     let mut answer: Option<Answer> = None;
@@ -596,6 +611,7 @@ fn merge_engine_responses(config: &Config, responses: HashMap<Engine, EngineResp
         featured_snippet,
         answer,
         infobox,
+        config,
     }
 }
 

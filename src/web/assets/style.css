@@ -292,6 +292,18 @@ h3.answer-thesaurus-category-title {
 .answer-thesaurus-list a {
   text-decoration: underline;
 }
+.answer-notepad {
+  width: calc( 100% - 4px );
+  height: fit-content;
+  overflow-y: show;
+  background-color: transparent;
+  color: white;
+  border: none;
+  outline: none;
+  min-height: 4em;
+  font-size: 12px;
+  resize: none;
+}
 
 /* infobox */
 .infobox {
@@ -352,4 +364,13 @@ h3.answer-thesaurus-category-title {
 }
 .postsearch-infobox p {
   margin-bottom: 1em;
+}
+.infobox-minecraft_wiki-article > .notaninfobox {
+  display: none !important;
+}
+.noexcerpt, .navigation-not-searchable {
+  display: none !important;
+}
+.mcw-mainpage-icon {
+  display: inline-block;
 }

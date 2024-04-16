@@ -50,7 +50,9 @@ pub struct WiktionaryDefinition {
     pub examples: Vec<String>,
 }
 
-pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> eyre::Result<EngineResponse> {
+pub fn parse_response(
+    HttpResponse { res, body, .. }: &HttpResponse,
+) -> eyre::Result<EngineResponse> {
     let url = res.url();
 
     let Ok(res) = serde_json::from_str::<WiktionaryResponse>(body) else {

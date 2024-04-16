@@ -5,4 +5,5 @@
 pub mod docs_rs;
 pub mod github;
 pub mod mdn;
+pub mod minecraft_wiki;
 pub mod stackexchange;
