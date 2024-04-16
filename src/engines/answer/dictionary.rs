@@ -51,11 +51,7 @@ pub struct WiktionaryDefinition {
 }
 
 pub fn parse_response(
-    HttpResponse {
-        res,
-        body,
-        config: _config,
-    }: &HttpResponse,
+    HttpResponse { res, body, .. }: &HttpResponse,
 ) -> eyre::Result<EngineResponse> {
     let url = res.url();
 
