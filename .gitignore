@@ -1,6 +1,5 @@
 /target
 /config.toml
-/debug-config.toml
 
 # convenience script i use for deploying the site to my server, feel free to
 # write your own here too

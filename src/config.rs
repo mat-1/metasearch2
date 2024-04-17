@@ -21,16 +21,8 @@ impl Config {
         let default_config_str = include_str!("../default-config.toml");
         let mut config: Config = toml::from_str(default_config_str)?;
 
-        #[allow(unused_mut)]
-        let mut config_path = Path::new("config.toml");
-        #[cfg(debug_assertions)]
-        {
-            let debug_config_path = Path::new("debug-config.toml");
-            if debug_config_path.exists() {
-                config_path = debug_config_path;
-            }
-        }
-
+        let config_path = std::env::args().next().unwrap_or("config.toml".into());
+        let config_path = Path::new(&config_path);
         if config_path.exists() {
             let given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
             config.update(given_config);
