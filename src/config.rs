@@ -11,6 +11,8 @@ pub struct Config {
     pub bind: SocketAddr,
     #[serde(default)]
     pub engine_list_separator: Option<bool>,
+    #[serde(default)]
+    pub version_info: Option<bool>,
     pub engines: EnginesConfig,
 }
 
@@ -19,7 +21,8 @@ impl Config {
         let default_config_str = include_str!("../default-config.toml");
         let mut config: Config = toml::from_str(default_config_str)?;
 
-        let config_path = Path::new("config.toml");
+        let config_path = std::env::args().nth(1).unwrap_or("config.toml".into());
+        let config_path = Path::new(&config_path);
         if config_path.exists() {
             let given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
             config.update(given_config);
@@ -38,6 +41,8 @@ impl Config {
         self.bind = new.bind;
         self.engine_list_separator = new.engine_list_separator.or(self.engine_list_separator);
         assert_ne!(self.engine_list_separator, None);
+        self.version_info = new.version_info.or(self.version_info);
+        assert_ne!(self.version_info, None);
         for (key, new) in new.engines.map {
             if let Some(existing) = self.engines.map.get_mut(&key) {
                 existing.update(new);

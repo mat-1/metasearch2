@@ -1,6 +1,7 @@
 bind = "0.0.0.0:28019"
 
 engine_list_separator = false
+version_info = false
 
 [engines]
 google = { weight = 1.05 }
