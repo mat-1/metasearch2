@@ -1,4 +1,4 @@
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 
 use crate::engines::{HttpResponse, Response, CLIENT};
 

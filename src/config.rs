@@ -49,7 +49,7 @@ impl Config {
         self.bind = new.bind;
         self.engine_list_separator = new.engine_list_separator.or(self.engine_list_separator);
         assert_ne!(self.engine_list_separator, None);
-        self.version_info = other.version_info.or(self.version_info);
+        self.version_info = new.version_info.or(self.version_info);
         assert_ne!(self.version_info, None);
         for (key, new) in new.engines.map {
             if let Some(existing) = self.engines.map.get_mut(&key) {
