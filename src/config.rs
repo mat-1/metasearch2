@@ -11,6 +11,8 @@ pub struct Config {
     pub bind: SocketAddr,
     #[serde(default)]
     pub engine_list_separator: Option<bool>,
+    #[serde(default)]
+    pub version_info: Option<bool>,
     pub engines: EnginesConfig,
 }
 
@@ -19,7 +21,16 @@ impl Config {
         let default_config_str = include_str!("../default-config.toml");
         let mut config: Config = toml::from_str(default_config_str)?;
 
-        let config_path = Path::new("config.toml");
+        #[allow(unused_mut)]
+        let mut config_path = Path::new("config.toml");
+        #[cfg(debug_assertions)]
+        {
+            let debug_config_path = Path::new("debug-config.toml");
+            if debug_config_path.exists() {
+                config_path = debug_config_path;
+            }
+        }
+
         if config_path.exists() {
             let given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
             config.update(given_config);
@@ -36,8 +47,10 @@ impl Config {
     // use the default for something.
     pub fn update(&mut self, other: Self) {
         self.bind = other.bind;
-        self.engine_list_separator = self.engine_list_separator.or(other.engine_list_separator);
+        self.engine_list_separator = other.engine_list_separator.or(self.engine_list_separator);
         assert_ne!(self.engine_list_separator, None);
+        self.version_info = other.version_info.or(self.version_info);
+        assert_ne!(self.version_info, None);
         for (key, value) in other.engines.map {
             if let Some(existing) = self.engines.map.get_mut(&key) {
                 existing.update(value);
