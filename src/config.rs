@@ -21,7 +21,10 @@ impl Config {
         let default_config_str = include_str!("../default-config.toml");
         let mut config: Config = toml::from_str(default_config_str)?;
 
-        let config_path = std::env::args().next().unwrap_or("config.toml".into());
+        let config_path = std::env::args()
+            .skip(1)
+            .next()
+            .unwrap_or("config.toml".into());
         let config_path = Path::new(&config_path);
         if config_path.exists() {
             let given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
