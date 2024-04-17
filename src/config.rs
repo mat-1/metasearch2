@@ -2,48 +2,58 @@ use std::{collections::HashMap, fs, net::SocketAddr, path::Path};
 
 use once_cell::sync::Lazy;
 use serde::Deserialize;
+use tracing::info;
 
 use crate::engines::Engine;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Config {
     pub bind: SocketAddr,
+    #[serde(default)]
+    pub engine_list_separator: Option<bool>,
+    #[serde(default)]
+    pub version_info: Option<bool>,
     pub engines: EnginesConfig,
 }
 
 impl Config {
     pub fn read_or_create() -> eyre::Result<Self> {
         let default_config_str = include_str!("../default-config.toml");
-        let default_config = toml::from_str(default_config_str)?;
+        let mut config: Config = toml::from_str(default_config_str)?;
 
-        let config_path = Path::new("config.toml");
+        let config_path = std::env::args().nth(1).unwrap_or("config.toml".into());
+        let config_path = Path::new(&config_path);
         if config_path.exists() {
-            let mut given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
-            given_config.update(default_config);
-            Ok(given_config)
+            let given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
+            config.update(given_config);
+            Ok(config)
         } else {
-            println!("No config found, creating one at {config_path:?}");
+            info!("No config found, creating one at {config_path:?}");
             fs::write(config_path, default_config_str)?;
-            Ok(default_config)
+            Ok(config)
         }
     }
 
     // Update the current config with the given config. This is used to make it so
     // the default-config.toml is always used as a fallback if the user decides to
     // use the default for something.
-    pub fn update(&mut self, other: Self) {
-        self.bind = other.bind;
-        for (key, value) in other.engines.map {
+    pub fn update(&mut self, new: Config) {
+        self.bind = new.bind;
+        self.engine_list_separator = new.engine_list_separator.or(self.engine_list_separator);
+        assert_ne!(self.engine_list_separator, None);
+        self.version_info = new.version_info.or(self.version_info);
+        assert_ne!(self.version_info, None);
+        for (key, new) in new.engines.map {
             if let Some(existing) = self.engines.map.get_mut(&key) {
-                existing.update(value);
+                existing.update(new);
             } else {
-                self.engines.map.insert(key, value);
+                self.engines.map.insert(key, new);
             }
         }
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct EnginesConfig {
     #[serde(flatten)]
     pub map: HashMap<Engine, DefaultableEngineConfig>,
@@ -75,7 +85,7 @@ impl EnginesConfig {
     }
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum DefaultableEngineConfig {
     Boolean(bool),
@@ -83,12 +93,11 @@ pub enum DefaultableEngineConfig {
 }
 
 impl DefaultableEngineConfig {
-    pub fn update(&mut self, other: Self) {
-        match (self, other) {
-            (Self::Boolean(existing), Self::Boolean(other)) => *existing = other,
-            (Self::Full(existing), Self::Full(other)) => existing.update(other),
-            _ => (),
-        }
+    pub fn update(&mut self, new: Self) {
+        let mut self_full = FullEngineConfig::from(self.clone());
+        let other_full = FullEngineConfig::from(new);
+        self_full.update(other_full);
+        *self = DefaultableEngineConfig::Full(self_full);
     }
 }
 
@@ -98,7 +107,7 @@ impl Default for DefaultableEngineConfig {
     }
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct FullEngineConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
@@ -142,11 +151,11 @@ impl Default for FullEngineConfig {
 }
 
 impl FullEngineConfig {
-    pub fn update(&mut self, other: Self) {
-        self.enabled = other.enabled;
-        if other.weight != 0. {
-            self.weight = other.weight;
+    pub fn update(&mut self, new: Self) {
+        self.enabled = new.enabled;
+        if new.weight != 0. {
+            self.weight = new.weight;
         }
-        self.extra = other.extra;
+        self.extra = new.extra;
     }
 }

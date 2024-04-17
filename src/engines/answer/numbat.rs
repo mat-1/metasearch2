@@ -8,6 +8,7 @@ use numbat::{
     InterpreterResult, InterpreterSettings, Statement,
 };
 use once_cell::sync::Lazy;
+use tracing::debug;
 
 use crate::engines::EngineResponse;
 
@@ -93,7 +94,8 @@ fn interpret(query: &str) -> Option<(Statement, Markup)> {
         CodeSource::Text,
     ) {
         Ok(r) => r,
-        Err(_) => {
+        Err(err) => {
+            debug!("numbat error: {err}");
             return None;
         }
     };
@@ -185,10 +187,15 @@ pub static NUMBAT_CTX: Lazy<numbat::Context> = Lazy::new(|| {
     // (the lowercase alias code won't work for these because they have prefixes)
     for (alias, canonical) in &[
         ("kb", "kB"),
+        ("kib", "KiB"),
         ("mb", "MB"),
+        ("mib", "MiB"),
         ("gb", "GB"),
+        ("gib", "GiB"),
         ("tb", "TB"),
+        ("tib", "TiB"),
         ("pb", "PB"),
+        ("pib", "PiB"),
     ] {
         let _ = ctx.interpret(&format!("let {alias} = {canonical}"), CodeSource::Internal);
     }

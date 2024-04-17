@@ -17,4 +17,4 @@ the config.toml file is created in your current working directory on the first
 run of metasearch2. alternatively, you can copy the default-config.toml in the
 repo and rename it to config.toml.
 
-the default port is port 28019.
+the default port is 28019.

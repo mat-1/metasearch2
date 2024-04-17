@@ -109,6 +109,16 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 
+  // if the currently selected element is not the search bar and is contenteditable, don't do anything
+  const focusedEl = document.querySelector(":focus");
+  if (
+    focusedEl &&
+    (focusedEl.tagName.toLowerCase() == "input" ||
+      focusedEl.tagName.toLowerCase() == "textarea" ||
+      focusedEl.getAttribute("contenteditable") !== null)
+  )
+    return;
+
   // if the user starts typing but they don't have focus on the input, focus it
 
   // no modifier keys

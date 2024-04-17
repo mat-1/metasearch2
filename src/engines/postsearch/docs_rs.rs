@@ -12,7 +12,7 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(HttpResponse { res, body }: &HttpResponse) -> Option<String> {
+pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<String> {
     let url = res.url().clone();
 
     let dom = Html::parse_document(body);
