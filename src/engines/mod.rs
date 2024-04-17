@@ -43,6 +43,7 @@ engines! {
     Numbat = "numbat",
     Thesaurus = "thesaurus",
     Timezone = "timezone",
+    RottenTomatoes = "rottentomatoes",
     Useragent = "useragent",
     Wikipedia = "wikipedia",
     // post-search
@@ -71,6 +72,7 @@ engine_requests! {
     Numbat => answer::numbat::request, None,
     Thesaurus => answer::thesaurus::request, parse_response,
     Timezone => answer::timezone::request, None,
+    RottenTomatoes => answer::rottentomatoes::request, parse_response,
     Useragent => answer::useragent::request, None,
     Wikipedia => answer::wikipedia::request, parse_response,
 }

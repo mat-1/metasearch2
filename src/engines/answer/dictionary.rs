@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use eyre::eyre;
+use eyre::OptionExt;
 use serde::Deserialize;
 use url::Url;
 
@@ -61,9 +61,9 @@ pub fn parse_response(
 
     let mediawiki_key = url
         .path_segments()
-        .ok_or_else(|| eyre!("url has no path segments"))?
+        .ok_or_eyre("url has no path segments")?
         .last()
-        .ok_or_else(|| eyre!("url has no last path segment"))?;
+        .ok_or_eyre("url has no last path segment")?;
 
     let word = key_to_title(mediawiki_key);
 
