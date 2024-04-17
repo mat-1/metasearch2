@@ -40,6 +40,11 @@ body {
   line-height: 1.2;
   height: 100%;
 }
+.version-info {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+}
 .results-container {
   /* enough space for the infobox */
   max-width: 73.5rem;
