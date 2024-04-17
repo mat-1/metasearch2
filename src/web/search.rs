@@ -45,7 +45,7 @@ fn render_end_of_html() -> String {
     r"</main></div></body></html>".to_string()
 }
 
-fn render_engine_list(engines: &[engines::Engine], config: Arc<Config>) -> String {
+fn render_engine_list(engines: &[engines::Engine], config: &Config) -> String {
     let mut html = String::new();
     let mut first_iter = true;
     for engine in engines {
@@ -67,7 +67,7 @@ fn render_engine_list(engines: &[engines::Engine], config: Arc<Config>) -> Strin
     format!(r#"<div class="engine-list">{html}</div>"#)
 }
 
-fn render_search_result(result: &engines::SearchResult, config: Arc<Config>) -> String {
+fn render_search_result(result: &engines::SearchResult, config: &Config) -> String {
     format!(
         r#"<div class="search-result">
     <a class="search-result-anchor" rel="noreferrer" href="{url_attr}">
@@ -87,10 +87,7 @@ fn render_search_result(result: &engines::SearchResult, config: Arc<Config>) -> 
     )
 }
 
-fn render_featured_snippet(
-    featured_snippet: &engines::FeaturedSnippet,
-    config: Arc<Config>,
-) -> String {
+fn render_featured_snippet(featured_snippet: &engines::FeaturedSnippet, config: &Config) -> String {
     format!(
         r#"<div class="featured-snippet">
     <p class="search-result-description">{desc}</p>
@@ -115,24 +112,21 @@ fn render_results(response: Response) -> String {
         html.push_str(&format!(
             r#"<div class="infobox">{infobox_html}{engines_html}</div>"#,
             infobox_html = &infobox.html,
-            engines_html = render_engine_list(&[infobox.engine], response.config.clone())
+            engines_html = render_engine_list(&[infobox.engine], &response.config)
         ));
     }
     if let Some(answer) = &response.answer {
         html.push_str(&format!(
             r#"<div class="answer">{answer_html}{engines_html}</div>"#,
             answer_html = &answer.html,
-            engines_html = render_engine_list(&[answer.engine], response.config.clone())
+            engines_html = render_engine_list(&[answer.engine], &response.config)
         ));
     }
     if let Some(featured_snippet) = &response.featured_snippet {
-        html.push_str(&render_featured_snippet(
-            featured_snippet,
-            response.config.clone(),
-        ));
+        html.push_str(&render_featured_snippet(featured_snippet, &response.config));
     }
     for result in &response.search_results {
-        html.push_str(&render_search_result(result, response.config.clone()));
+        html.push_str(&render_search_result(result, &response.config));
     }
 
     if response.infobox.is_none()
@@ -248,7 +242,7 @@ pub async fn route(
                     third_part.push_str(&format!(
                         r#"<div class="infobox postsearch-infobox">{infobox_html}{engines_html}</div>"#,
                         infobox_html = &infobox.html,
-                        engines_html = render_engine_list(&[infobox.engine], config.clone())
+                        engines_html = render_engine_list(&[infobox.engine], &config)
                     ));
                 }
             }

@@ -58,6 +58,7 @@ macro_rules! engine_requests {
                 }
             }
 
+            #[tracing::instrument(skip(self, res), fields(engine = %self))]
             pub fn parse_response(&self, res: &HttpResponse) -> eyre::Result<EngineResponse> {
                 #[allow(clippy::useless_conversion)]
                 match self {
