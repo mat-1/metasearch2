@@ -55,26 +55,17 @@ fn render_end_of_html() -> String {
 
 fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
     let mut html = String::new();
-    let mut first_iter = true;
-    for engine in engines {
-        if config.engine_list_separator.unwrap() && !first_iter {
+    for (i, engine) in engines.iter().enumerate() {
+        if config.ui.show_engine_list_separator.unwrap() && i > 0 {
             html.push_str(" &middot; ");
         }
-        first_iter = false;
         let raw_engine_id = &engine.id();
-        let engine_id = if config.engine_list_separator.unwrap() {
+        let engine_id = if config.ui.show_engine_list_separator.unwrap() {
             raw_engine_id.replace('_', " ")
         } else {
             raw_engine_id.to_string()
         };
-        html.push_str(
-            &html! {
-                span."engine-list-item" {
-                    (engine_id)
-                }
-            }
-            .into_string(),
-        )
+        html.push_str(&html! { span."engine-list-item" { (engine_id) } }.into_string())
     }
     html! {
         div."engine-list" {

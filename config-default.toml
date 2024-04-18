@@ -1,0 +1,13 @@
+# See https://github.com/mat-1/metasearch2/blob/master/config-base.toml and
+# https://github.com/mat-1/metasearch2/blob/master/src/config.rs for some of
+# the possible options
+
+bind = "0.0.0.0:28019"
+
+[ui]
+# engine_list_separator = true
+# version_info = true
+
+[engines]
+# numbat = false
+# fend = true

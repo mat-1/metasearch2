@@ -1,3 +1,5 @@
+# This is the config that's used as a fallback when a field is missing from the user's config.toml.
+
 bind = "0.0.0.0:28019"
 
 engine_list_separator = false
