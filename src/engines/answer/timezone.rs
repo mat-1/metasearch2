@@ -1,5 +1,6 @@
 use chrono::{DateTime, TimeZone};
 use chrono_tz::{OffsetComponents, Tz};
+use maud::html;
 
 use crate::engines::EngineResponse;
 
@@ -8,13 +9,15 @@ use super::regex;
 pub fn request(query: &str) -> EngineResponse {
     match evaluate(query) {
         None => EngineResponse::new(),
-        Some(TimeResponse::Current { time, timezone }) => EngineResponse::answer_html(format!(
-            r#"<p class="answer-query">Current time in {timezone}</p>
-<h3><b>{time}</b> <span class="answer-comment">({date})</span></h3>"#,
-            time = html_escape::encode_safe(&time.format("%-I:%M %P").to_string()),
-            date = html_escape::encode_safe(&time.format("%B %-d").to_string()),
-            timezone = html_escape::encode_safe(&timezone_to_string(timezone)),
-        )),
+        Some(TimeResponse::Current { time, timezone }) => EngineResponse::answer_html(html! {
+            p."answer-query" { "Current time in " (timezone_to_string(timezone)) }
+            h3 {
+                b { (time.format("%-I:%M %P")) }
+                span."answer-comment" {
+                    "(" (time.format("%B %-d")) ")"
+                }
+            }
+        }),
         Some(TimeResponse::Conversion {
             source_timezone,
             target_timezone,
@@ -22,22 +25,31 @@ pub fn request(query: &str) -> EngineResponse {
             target_time,
             source_offset,
             target_offset,
-        }) => EngineResponse::answer_html(format!(
-            r#"<p class="answer-query">{source_time} {source_timezone} to {target_timezone}</p>
-<h3><b>{target_time}</b> <span class="answer-comment">{target_timezone} ({delta})</span></h3>"#,
-            source_time = html_escape::encode_safe(&source_time.format("%-I:%M %P").to_string()),
-            target_time = html_escape::encode_safe(&target_time.format("%-I:%M %P").to_string()),
-            source_timezone = html_escape::encode_safe(&timezone_to_string(source_timezone)),
-            target_timezone = html_escape::encode_safe(&timezone_to_string(target_timezone)),
-            delta = html_escape::encode_safe(&{
-                let delta_minutes = (target_offset - source_offset).num_minutes();
-                if delta_minutes % 60 == 0 {
-                    format!("{:+}", delta_minutes / 60)
-                } else {
-                    format!("{:+}:{}", delta_minutes / 60, delta_minutes % 60)
+        }) => {
+            let delta_minutes = (target_offset - source_offset).num_minutes();
+            let delta = if delta_minutes % 60 == 0 {
+                format!("{:+}", delta_minutes / 60)
+            } else {
+                format!("{:+}:{}", delta_minutes / 60, delta_minutes % 60)
+            };
+
+            EngineResponse::answer_html(html! {
+                p."answer-query" {
+                    (source_time.format("%-I:%M %P"))
+                    " "
+                    (timezone_to_string(source_timezone))
+                    " to "
+                    (timezone_to_string(target_timezone))
+                }
+                h3 {
+                    b { (target_time.format("%-I:%M %P")) }
+                    " "
+                    span."answer-comment" {
+                        (timezone_to_string(target_timezone)) " (" (delta) ")"
+                    }
                 }
             })
-        )),
+        }
     }
 }
 

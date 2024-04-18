@@ -1,4 +1,5 @@
 use eyre::eyre;
+use maud::{html, PreEscaped};
 use scraper::{Html, Selector};
 use serde::Deserialize;
 use tracing::error;
@@ -149,23 +150,24 @@ fn parse_thesaurus_com_item(
     })
 }
 
-fn render_thesaurus_html(ThesaurusResponse { word, items }: ThesaurusResponse) -> String {
-    let mut html = String::new();
+fn render_thesaurus_html(
+    ThesaurusResponse { word, items }: ThesaurusResponse,
+) -> PreEscaped<String> {
+    html! {
+        h2."answer-thesaurus-word" {
+            a href={ "https://www.thesaurus.com/browse/" (word) } {
+                (word)
+            }
+        }
+        div."answer-thesaurus-items" {
+            @for item in items {
+                div."answer-thesaurus-item" {
+                    (render_thesaurus_item_html(item))
+                }
+            }
+        }
 
-    html.push_str(&format!(
-        "<h2 class=\"answer-thesaurus-word\"><a href=\"https://www.thesaurus.com/browse/{word}\">{word}</a></h2>",
-        word = html_escape::encode_safe(&word)
-    ));
-
-    html.push_str("<div class=\"answer-thesaurus-items\">");
-    for item in items {
-        html.push_str("<div class=\"answer-thesaurus-item\">");
-        html.push_str(&render_thesaurus_item_html(item));
-        html.push_str("</div>");
     }
-    html.push_str("</div>");
-
-    html
 }
 
 fn render_thesaurus_item_html(
@@ -176,53 +178,46 @@ fn render_thesaurus_item_html(
         strong_matches,
         weak_matches,
     }: ThesaurusItem,
-) -> String {
+) -> PreEscaped<String> {
     let mut html = String::new();
 
-    html.push_str(&format!(
-        "<span class=\"answer-thesaurus-word-description\"><span class=\"answer-thesaurus-part-of-speech\">{part_of_speech}</span>, as in <span class=\"answer-thesaurus-as-in\">{as_in}</span></span>",
-        part_of_speech = html_escape::encode_safe(&part_of_speech.to_lowercase()),
-        as_in = html_escape::encode_safe(&as_in)
-    ));
+    html.push_str(
+        &html! {
+            span."answer-thesaurus-word-description" {
+                span."answer-thesaurus-part-of-speech" { (part_of_speech.to_lowercase()) }
+                ", as in "
+                span."answer-thesaurus-as-in" { (as_in) }
+            }
+        }
+        .into_string(),
+    );
 
     let render_matches = |matches: Vec<String>, strength: &str| {
         if matches.is_empty() {
-            return String::new();
+            return PreEscaped::default();
         }
 
-        let mut html = String::new();
-
-        html.push_str(&format!(
-            "<div class=\"answer-thesaurus-{strength_id}\">",
-            strength_id = html_escape::encode_safe(&strength.to_lowercase().replace(' ', "-"))
-        ));
-
-        html.push_str(&format!(
-            "<h3 class=\"answer-thesaurus-category-title\">{strength} {match_or_matches}</h3>",
-            strength = html_escape::encode_safe(&strength),
-            match_or_matches = if matches.len() == 1 {
-                "match"
-            } else {
-                "matches"
+        html! {
+            div.{ "answer-thesaurus-" (strength.to_lowercase().replace(' ', "-")) } {
+                h3."answer-thesaurus-category-title" {
+                    (strength)
+                    " "
+                    (if matches.len() == 1 { "match" } else { "matches" })
+                }
+                ul."answer-thesaurus-list" {
+                    @for synonym in matches {
+                        li {
+                            a href={ "https://www.thesaurus.com/browse/" (synonym) } { (synonym) }
+                        }
+                    }
+                }
             }
-        ));
-        html.push_str("<ul class=\"answer-thesaurus-list\">");
-        for synonym in matches {
-            html.push_str(&format!(
-                "<li><a href=\"https://www.thesaurus.com/browse/{synonym}\">{synonym}</a></li>",
-                synonym = html_escape::encode_safe(&synonym)
-            ));
         }
-        html.push_str("</ul>");
-
-        html.push_str("</div>");
-
-        html
     };
 
-    html.push_str(&render_matches(strongest_matches, "Strongest"));
-    html.push_str(&render_matches(strong_matches, "Strong"));
-    html.push_str(&render_matches(weak_matches, "Weak"));
+    html.push_str(&render_matches(strongest_matches, "Strongest").into_string());
+    html.push_str(&render_matches(strong_matches, "Strong").into_string());
+    html.push_str(&render_matches(weak_matches, "Weak").into_string());
 
-    html
+    PreEscaped(html)
 }

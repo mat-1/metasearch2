@@ -1,3 +1,5 @@
+use maud::html;
+
 use crate::engines::{EngineResponse, SearchQuery};
 
 use super::regex;
@@ -10,5 +12,7 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
     // This allows pasting styles which is undesired behavior, and the
     // `contenteditable="plaintext-only"` attribute currently only works on Chrome.
     // This should be updated when the attribute becomes available in more browsers
-    EngineResponse::answer_html(r#"<div contenteditable class="answer-notepad"></div>"#.to_string())
+    EngineResponse::answer_html(html! {
+        div."answer-notepad" contenteditable="plaintext-only" {}
+    })
 }

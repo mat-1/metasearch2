@@ -9,6 +9,7 @@ use std::{
 };
 
 use futures::future::join_all;
+use maud::PreEscaped;
 use once_cell::sync::Lazy;
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Deserializer};
@@ -189,8 +190,8 @@ pub struct EngineFeaturedSnippet {
 pub struct EngineResponse {
     pub search_results: Vec<EngineSearchResult>,
     pub featured_snippet: Option<EngineFeaturedSnippet>,
-    pub answer_html: Option<String>,
-    pub infobox_html: Option<String>,
+    pub answer_html: Option<PreEscaped<String>>,
+    pub infobox_html: Option<PreEscaped<String>>,
 }
 
 impl EngineResponse {
@@ -200,7 +201,7 @@ impl EngineResponse {
     }
 
     #[must_use]
-    pub fn answer_html(html: String) -> Self {
+    pub fn answer_html(html: PreEscaped<String>) -> Self {
         Self {
             answer_html: Some(html),
             ..Default::default()
@@ -208,7 +209,7 @@ impl EngineResponse {
     }
 
     #[must_use]
-    pub fn infobox_html(html: String) -> Self {
+    pub fn infobox_html(html: PreEscaped<String>) -> Self {
         Self {
             infobox_html: Some(html),
             ..Default::default()
@@ -497,13 +498,13 @@ pub struct FeaturedSnippet {
 
 #[derive(Debug, Clone)]
 pub struct Answer {
-    pub html: String,
+    pub html: PreEscaped<String>,
     pub engine: Engine,
 }
 
 #[derive(Debug, Clone)]
 pub struct Infobox {
-    pub html: String,
+    pub html: PreEscaped<String>,
     pub engine: Engine,
 }
 

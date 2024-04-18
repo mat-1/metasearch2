@@ -1,3 +1,4 @@
+use maud::{html, PreEscaped};
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -15,7 +16,7 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(body: &str) -> Option<String> {
+pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
     let dom = Html::parse_document(body);
 
     let title = dom
@@ -55,10 +56,12 @@ pub fn parse_response(body: &str) -> Option<String> {
 
     let url = format!("{url}#{answer_id}");
 
-    Some(format!(
-        r#"<a href="{url}"><h2>{title}</h2></a>
-<div class="infobox-stackexchange-answer">{answer_html}</div>"#,
-        url = html_escape::encode_quoted_attribute(&url.to_string()),
-        title = html_escape::encode_safe(&title),
-    ))
+    Some(html! {
+        a href=(url) {
+            h2 { (title) }
+        }
+        div."infobox-stackexchange-answer" {
+            (PreEscaped(answer_html))
+        }
+    })
 }

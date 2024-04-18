@@ -1,6 +1,7 @@
 use std::cell::Cell;
 
 use fend_core::SpanKind;
+use maud::{html, PreEscaped};
 use once_cell::sync::Lazy;
 
 use crate::engines::EngineResponse;
@@ -10,15 +11,14 @@ use super::regex;
 pub fn request(query: &str) -> EngineResponse {
     let query = clean_query(query);
 
-    let Some(result_html) = evaluate(&query, true) else {
+    let Some(result_html) = evaluate_to_html(&query, true) else {
         return EngineResponse::new();
     };
 
-    EngineResponse::answer_html(format!(
-        r#"<p class="answer-query">{query} =</p>
-<h3><b>{result_html}</b></h3>"#,
-        query = html_escape::encode_safe(&query),
-    ))
+    EngineResponse::answer_html(html! {
+        p."answer-query" { (query) " =" }
+        h3 { b { (result_html) } }
+    })
 }
 
 pub fn request_autocomplete(query: &str) -> Vec<String> {
@@ -26,7 +26,7 @@ pub fn request_autocomplete(query: &str) -> Vec<String> {
 
     let query = clean_query(query);
 
-    if let Some(result) = evaluate(&query, false) {
+    if let Some(result) = evaluate_to_plaintext(&query, false) {
         results.push(format!("= {result}"));
     }
 
@@ -43,20 +43,24 @@ pub struct Span {
     pub kind: SpanKind,
 }
 
-fn evaluate(query: &str, html: bool) -> Option<String> {
+fn evaluate_to_plaintext(query: &str, html: bool) -> Option<String> {
     let spans = evaluate_into_spans(query, html);
-
     if spans.is_empty() {
         return None;
     }
 
-    if !html {
-        return Some(
-            spans
-                .iter()
-                .map(|span| span.text.clone())
-                .collect::<String>(),
-        );
+    return Some(
+        spans
+            .iter()
+            .map(|span| span.text.clone())
+            .collect::<String>(),
+    );
+}
+
+fn evaluate_to_html(query: &str, html: bool) -> Option<PreEscaped<String>> {
+    let spans = evaluate_into_spans(query, html);
+    if spans.is_empty() {
+        return None;
     }
 
     let mut result_html = String::new();
@@ -69,12 +73,16 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
             _ => "",
         };
         if class.is_empty() {
-            result_html.push_str(&html_escape::encode_safe(&span.text));
+            result_html.push_str(&html! { (span.text) }.into_string());
         } else {
-            result_html.push_str(&format!(
-                r#"<span class="{class}">{text}</span>"#,
-                text = html_escape::encode_safe(&span.text)
-            ));
+            result_html.push_str(
+                &html! {
+                    span.(class) {
+                        (span.text)
+                    }
+                }
+                .into_string(),
+            );
         }
     }
 
@@ -86,11 +94,16 @@ fn evaluate(query: &str, html: bool) -> Option<String> {
     {
         let hex = spans[0].text.trim_start_matches("0x");
         if let Ok(num) = u64::from_str_radix(hex, 16) {
-            result_html.push_str(&format!(r#" <span class="answer-comment">= {num}</span>"#));
+            result_html.push_str(
+                &html! {
+                    span."answer-comment" { " = " (num) }
+                }
+                .into_string(),
+            );
         }
     }
 
-    Some(result_html)
+    Some(PreEscaped(result_html))
 }
 
 pub static FEND_CONTEXT: Lazy<fend_core::Context> = Lazy::new(|| {

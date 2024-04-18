@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use eyre::eyre;
+use maud::{html, PreEscaped};
 use serde::Deserialize;
 use url::Url;
 
@@ -67,17 +68,9 @@ pub fn parse_response(
 
     let word = key_to_title(mediawiki_key);
 
-    let mut html = String::new();
-
     let Some(entries) = res.0.get("en") else {
         return Ok(EngineResponse::new());
     };
-
-    html.push_str(&format!(
-        "<h2 class=\"answer-dictionary-word\"><a href=\"https://en.wiktionary.org/wiki/{mediawiki_key}\">{word}</a></h2>",
-        mediawiki_key = html_escape::encode_safe(mediawiki_key),
-        word = html_escape::encode_safe(&word),
-    ));
 
     let mut cleaner = ammonia::Builder::default();
     cleaner
@@ -86,11 +79,28 @@ pub fn parse_response(
             Url::parse("https://en.wiktionary.org").unwrap(),
         ));
 
+    let mut html = String::new();
+
+    html.push_str(
+        &html! {
+            h2."answer-dictionary-word" {
+                a href={ "https://en.wiktionary.org/wiki/" (mediawiki_key) } {
+                    (word)
+                }
+            }
+        }
+        .into_string(),
+    );
+
     for entry in entries {
-        html.push_str(&format!(
-            "<span class=\"answer-dictionary-part-of-speech\">{part_of_speech}</span>",
-            part_of_speech = html_escape::encode_safe(&entry.part_of_speech.to_lowercase())
-        ));
+        html.push_str(
+            &html! {
+                span."answer-dictionary-part-of-speech" {
+                    (entry.part_of_speech.to_lowercase())
+                }
+            }
+            .into_string(),
+        );
 
         html.push_str("<ol>");
         let mut previous_definitions = Vec::<String>::new();
@@ -113,12 +123,19 @@ pub fn parse_response(
                 .clean(&definition.definition.replace('“', "\""))
                 .to_string();
 
-            html.push_str(&format!("<p>{definition_html}</p>"));
+            html.push_str(&html! { p { (PreEscaped(definition_html)) } }.into_string());
 
             if !definition.examples.is_empty() {
                 for example in &definition.examples {
                     let example_html = cleaner.clean(example).to_string();
-                    html.push_str(&format!("<blockquote class=\"answer-dictionary-example\">{example_html}</blockquote>"));
+                    html.push_str(
+                        &html! {
+                            blockquote."answer-dictionary-example" {
+                                (PreEscaped(example_html))
+                            }
+                        }
+                        .into_string(),
+                    );
                 }
             }
             html.push_str("</li>");
@@ -126,7 +143,7 @@ pub fn parse_response(
         html.push_str("</ol>");
     }
 
-    Ok(EngineResponse::answer_html(html))
+    Ok(EngineResponse::answer_html(PreEscaped(html)))
 }
 
 fn key_to_title(key: &str) -> String {

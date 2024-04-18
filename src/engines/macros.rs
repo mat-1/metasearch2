@@ -115,7 +115,7 @@ macro_rules! engine_postsearch_requests {
             }
 
             #[must_use]
-            pub fn postsearch_parse_response(&self, res: &HttpResponse) -> Option<String> {
+            pub fn postsearch_parse_response(&self, res: &HttpResponse) -> Option<maud::PreEscaped<String>> {
                 match self {
                     $(
                         Engine::$engine => $crate::engine_parse_response! { res, $module::$engine_id::$parse_response }?,

@@ -1,3 +1,4 @@
+use maud::{html, PreEscaped};
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -13,7 +14,7 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(body: &str) -> Option<String> {
+pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
     let dom = Html::parse_document(body);
 
     let url_relative = dom
@@ -68,10 +69,12 @@ pub fn parse_response(body: &str) -> Option<String> {
         .collect::<String>()
     };
 
-    Some(format!(
-        r#"<a href="{url}"><h1>{title}</h1></a>
-<div class="infobox-github-readme">{readme_html}</div>"#,
-        url = html_escape::encode_quoted_attribute(&url),
-        title = html_escape::encode_safe(&title),
-    ))
+    Some(html! {
+        a href=(url) {
+            h1 { (title) }
+        }
+        div."infobox-github-readme" {
+            (PreEscaped(readme_html))
+        }
+    })
 }
