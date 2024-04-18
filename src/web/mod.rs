@@ -47,7 +47,7 @@ pub async fn run(config: Config) {
         .route("/autocomplete", get(autocomplete::route))
         .with_state(Arc::new(config));
 
-    info!("Listening on {bind_addr}");
+    info!("Listening on http://{bind_addr}");
 
     let listener = tokio::net::TcpListener::bind(bind_addr).await.unwrap();
     axum::serve(
