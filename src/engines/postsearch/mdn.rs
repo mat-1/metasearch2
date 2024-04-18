@@ -1,3 +1,4 @@
+use maud::{html, PreEscaped};
 use scraper::{Html, Selector};
 use serde::Deserialize;
 use tracing::error;
@@ -22,7 +23,9 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(HttpResponse { res, body, config }: &HttpResponse) -> Option<String> {
+pub fn parse_response(
+    HttpResponse { res, body, config }: &HttpResponse,
+) -> Option<PreEscaped<String>> {
     let config_toml = config.engines.get(Engine::Mdn).extra.clone();
     let config: MdnConfig = match toml::Value::Table(config_toml).try_into() {
         Ok(args) => args,
@@ -57,7 +60,7 @@ pub fn parse_response(HttpResponse { res, body, config }: &HttpResponse) -> Opti
         .map(|doc| doc.inner_html())
         .take(max_sections)
         .collect::<Vec<_>>()
-        .join("<br />");
+        .join("<br>");
 
     let doc_html = ammonia::Builder::default()
         .link_rel(None)
@@ -65,13 +68,16 @@ pub fn parse_response(HttpResponse { res, body, config }: &HttpResponse) -> Opti
         .clean(&doc_html)
         .to_string();
 
-    let title_html = format!(
-        r#"<h2><a href="{url}">{title}</a></h2>"#,
-        url = html_escape::encode_quoted_attribute(&url.to_string()),
-        title = html_escape::encode_safe(&page_title),
-    );
+    let title_html = html! {
+        h2 {
+            a href=(url) { (page_title) }
+        }
+    };
 
-    Some(format!(
-        r#"{title_html}<div class="infobox-mdn-article">{doc_html}</div>"#
-    ))
+    Some(html! {
+        (title_html)
+        div."infobox-mdn-article" {
+            (PreEscaped(doc_html))
+        }
+    })
 }

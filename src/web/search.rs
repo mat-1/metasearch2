@@ -8,7 +8,7 @@ use axum::{
     response::IntoResponse,
 };
 use bytes::Bytes;
-use html_escape::{encode_text, encode_unquoted_attribute};
+use maud::{html, PreEscaped};
 
 use crate::{
     config::Config,
@@ -16,28 +16,36 @@ use crate::{
 };
 
 fn render_beginning_of_html(query: &str) -> String {
+    let head_html = html! {
+        head {
+            meta charset="UTF-8";
+            meta name="viewport" content="width=device-width, initial-scale=1.0";
+            title {
+                (query)
+                " - metasearch"
+            }
+            link rel="stylesheet" href="/style.css";
+            script src="/script.js" defer {}
+            link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
+        }
+    }.into_string();
+    let form_html = html! {
+        form."search-form" action="/search" method="get" {
+            input #"search-input"  type="text" name="q" placeholder="Search" value=(query) autofocus onfocus="this.select()" autocomplete="off";
+            input type="submit" value="Search";
+        }
+    }.into_string();
+
     format!(
         r#"<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{} - metasearch</title>
-    <link rel="stylesheet" href="/style.css">
-    <script src="/script.js" defer></script>
-    <link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml"/>
-</head>
+{head_html}
 <body>
     <div class="results-container">
     <main>
-    <form action="/search" method="get" class="search-form">
-        <input type="text" name="q" placeholder="Search" value="{}" id="search-input" autofocus onfocus="this.select()" autocomplete="off">
-        <input type="submit" value="Search">
-    </form>
+    {form_html}
     <div class="progress-updates">
-"#,
-        encode_text(query),
-        encode_unquoted_attribute(query)
+"#
     )
 }
 
@@ -45,7 +53,7 @@ fn render_end_of_html() -> String {
     r"</main></div></body></html>".to_string()
 }
 
-fn render_engine_list(engines: &[engines::Engine], config: &Config) -> String {
+fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
     let mut html = String::new();
     let mut first_iter = true;
     for engine in engines {
@@ -59,85 +67,92 @@ fn render_engine_list(engines: &[engines::Engine], config: &Config) -> String {
         } else {
             raw_engine_id.to_string()
         };
-        html.push_str(&format!(
-            r#"<span class="engine-list-item">{engine}</span>"#,
-            engine = encode_text(&engine_id)
-        ));
+        html.push_str(
+            &html! {
+                span."engine-list-item" {
+                    (engine_id)
+                }
+            }
+            .into_string(),
+        )
     }
-    format!(r#"<div class="engine-list">{html}</div>"#)
+    html! {
+        div."engine-list" {
+            (PreEscaped(html))
+        }
+    }
 }
 
-fn render_search_result(result: &engines::SearchResult, config: &Config) -> String {
-    format!(
-        r#"<div class="search-result">
-    <a class="search-result-anchor" rel="noreferrer" href="{url_attr}">
-        <span class="search-result-url">{url}</span>
-        <h3 class="search-result-title">{title}</h3>
-    </a>
-    <p class="search-result-description">{desc}</p>
-    {engines_html}
-    </div>
-"#,
-        url_attr = encode_unquoted_attribute(&result.url),
-        url = encode_text(&result.url),
-        title = encode_text(&result.title),
-        desc = encode_text(&result.description),
-        engines_html =
-            render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>(), config)
-    )
+fn render_search_result(result: &engines::SearchResult, config: &Config) -> PreEscaped<String> {
+    html! {
+        div."search-result" {
+            a."search-result-anchor" rel="noreferrer" href=(result.url) {
+                span."search-result-url" { (result.url) }
+                h3."search-result-title" { (result.title) }
+            }
+            p."search-result-description" { (result.description) }
+            (render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>(), config))
+        }
+    }
 }
 
-fn render_featured_snippet(featured_snippet: &engines::FeaturedSnippet, config: &Config) -> String {
-    format!(
-        r#"<div class="featured-snippet">
-    <p class="search-result-description">{desc}</p>
-    <a class="search-result-anchor" rel="noreferrer" href="{url_attr}">
-        <span class="search-result-url">{url}</span>
-        <h3 class="search-result-title">{title}</h3>
-    </a>
-    {engines_html}
-    </div>
-"#,
-        desc = encode_text(&featured_snippet.description),
-        url_attr = encode_unquoted_attribute(&featured_snippet.url),
-        url = encode_text(&featured_snippet.url),
-        title = encode_text(&featured_snippet.title),
-        engines_html = render_engine_list(&[featured_snippet.engine], config)
-    )
+fn render_featured_snippet(
+    featured_snippet: &engines::FeaturedSnippet,
+    config: &Config,
+) -> PreEscaped<String> {
+    html! {
+        div."featured-snippet" {
+            p."search-result-description" { (featured_snippet.description) }
+            a."search-result-anchor" rel="noreferrer" href=(featured_snippet.url) {
+                span."search-result-url" { (featured_snippet.url) }
+                h3."search-result-title" { (featured_snippet.title) }
+            }
+            (render_engine_list(&[featured_snippet.engine], config))
+        }
+    }
 }
 
-fn render_results(response: Response) -> String {
+fn render_results(response: Response) -> PreEscaped<String> {
     let mut html = String::new();
     if let Some(infobox) = &response.infobox {
-        html.push_str(&format!(
-            r#"<div class="infobox">{infobox_html}{engines_html}</div>"#,
-            infobox_html = &infobox.html,
-            engines_html = render_engine_list(&[infobox.engine], &response.config)
-        ));
+        html.push_str(
+            &html! {
+                div."infobox" {
+                    (infobox.html)
+                    (render_engine_list(&[infobox.engine], &response.config))
+                }
+            }
+            .into_string(),
+        );
     }
     if let Some(answer) = &response.answer {
-        html.push_str(&format!(
-            r#"<div class="answer">{answer_html}{engines_html}</div>"#,
-            answer_html = &answer.html,
-            engines_html = render_engine_list(&[answer.engine], &response.config)
-        ));
+        html.push_str(
+            &html! {
+                div."answer" {
+                    (answer.html)
+                    (render_engine_list(&[answer.engine], &response.config))
+                }
+            }
+            .into_string(),
+        );
     }
     if let Some(featured_snippet) = &response.featured_snippet {
-        html.push_str(&render_featured_snippet(featured_snippet, &response.config));
+        html.push_str(&render_featured_snippet(featured_snippet, &response.config).into_string());
     }
     for result in &response.search_results {
-        html.push_str(&render_search_result(result, &response.config));
+        html.push_str(&render_search_result(result, &response.config).into_string());
     }
 
-    if response.infobox.is_none()
-        && response.answer.is_none()
-        && response.featured_snippet.is_none()
-        && response.search_results.is_empty()
-    {
-        html.push_str(r#"<p>No results.</p>"#);
+    if html.is_empty() {
+        html.push_str(
+            &html! {
+                p { "No results." }
+            }
+            .into_string(),
+        );
     }
 
-    html
+    PreEscaped(html)
 }
 
 fn render_engine_progress_update(
@@ -149,10 +164,22 @@ fn render_engine_progress_update(
         EngineProgressUpdate::Requesting => "requesting",
         EngineProgressUpdate::Downloading => "downloading",
         EngineProgressUpdate::Parsing => "parsing",
-        EngineProgressUpdate::Done => "<span class=\"progress-update-done\">done</span>",
+        EngineProgressUpdate::Done => {
+            &{ html! { span."progress-update-done" { "done" } }.into_string() }
+        }
     };
 
-    format!(r#"<span class="progress-update-time">{time_ms:>4}ms</span> {engine} {message}"#)
+    html! {
+        span."progress-update-time" {
+            (format!("{time_ms:>4}"))
+            "ms"
+        }
+        " "
+        (engine)
+        " "
+        (PreEscaped(message))
+    }
+    .into_string()
 }
 
 pub async fn route(
@@ -235,24 +262,27 @@ pub async fn route(
 
                     second_part.push_str("</div>"); // close progress-updates
                     second_part.push_str("<style>.progress-updates{display:none}</style>");
-                    second_part.push_str(&render_results(results));
+                    second_part.push_str(&render_results(results).into_string());
                     yield Ok(Bytes::from(second_part));
                 },
                 ProgressUpdateData::PostSearchInfobox(infobox) => {
-                    third_part.push_str(&format!(
-                        r#"<div class="infobox postsearch-infobox">{infobox_html}{engines_html}</div>"#,
-                        infobox_html = &infobox.html,
-                        engines_html = render_engine_list(&[infobox.engine], &config)
-                    ));
+                    third_part.push_str(&html! {
+                        div."infobox"."postsearch-infobox" {
+                            (infobox.html)
+                            (render_engine_list(&[infobox.engine], &config))
+                        }
+                    }.into_string());
                 }
             }
         }
 
         if let Err(e) = search_future.await? {
-            let error_html = format!(
-                r#"<h1>Error: {}</p>"#,
-                encode_text(&e.to_string())
-            );
+            let error_html = html! {
+                h1 {
+                    "Error: "
+                    (e)
+                }
+            }.into_string();
             yield R::Ok(Bytes::from(error_html));
             return;
         };

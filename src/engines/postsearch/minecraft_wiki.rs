@@ -1,3 +1,4 @@
+use maud::{html, PreEscaped};
 use scraper::{Html, Selector};
 
 use crate::engines::{HttpResponse, Response, CLIENT};
@@ -12,7 +13,7 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<String> {
+pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<PreEscaped<String>> {
     let url = res.url().clone();
 
     let dom = Html::parse_document(body);
@@ -41,13 +42,16 @@ pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<S
         .clean(&doc_html)
         .to_string();
 
-    let title_html = format!(
-        r#"<h2><a href="{url}">{title}</a></h2>"#,
-        url = html_escape::encode_quoted_attribute(&url.to_string()),
-        title = html_escape::encode_safe(&page_title),
-    );
+    let title_html = html! {
+        h2 {
+            a href=(url) { (page_title) }
+        }
+    };
 
-    Some(format!(
-        r#"{title_html}<div class="infobox-minecraft_wiki-article">{doc_html}</div>"#
-    ))
+    Some(html! {
+        (title_html)
+        div."infobox-minecraft_wiki-article" {
+            (PreEscaped(doc_html))
+        }
+    })
 }

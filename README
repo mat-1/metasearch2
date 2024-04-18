@@ -2,8 +2,7 @@ a cute metasearch engine
 
 it sources from google, bing, brave, and a few others.
 
-it's written in rust using no templating engine and with as little client-side
-javascript as possible.
+it's written in rust, using as little client-side javascript as possible.
 
 there's a demo instance at https://s.matdoes.dev, but don't use it as your
 default or rely on it, please (so i don't get ratelimited by google).

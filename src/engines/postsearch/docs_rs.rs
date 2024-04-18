@@ -1,3 +1,4 @@
+use maud::{html, PreEscaped};
 use scraper::{Html, Selector};
 
 use crate::engines::{HttpResponse, Response, CLIENT};
@@ -12,7 +13,7 @@ pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     None
 }
 
-pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<String> {
+pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<PreEscaped<String>> {
     let url = res.url().clone();
 
     let dom = Html::parse_document(body);
@@ -53,22 +54,21 @@ pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<S
 
     let (category, title) = page_title.split_once(' ').unwrap_or(("", &page_title));
 
-    let title_html = if category == "Crate" {
-        format!(
-            r#"<h2>{category} <a href="{url}">{title}</a> <span class="infobox-docs_rs-version">{version}</span></h2>"#,
-            url = html_escape::encode_quoted_attribute(&url.to_string()),
-            title = html_escape::encode_safe(&title),
-            version = html_escape::encode_safe(&version),
-        )
-    } else {
-        format!(
-            r#"<h2>{category} <a href="{url}">{title}</a></h2>"#,
-            url = html_escape::encode_quoted_attribute(&url.to_string()),
-            title = html_escape::encode_safe(&title),
-        )
+    let title_html = html! {
+        h2 {
+            (category)
+            " "
+            a href=(url) { (title) }
+            @if category == "Crate" {
+                span."infobox-docs_rs-version" { (version) }
+            }
+        }
     };
 
-    Some(format!(
-        r#"{title_html}<div class="infobox-docs.rs-doc">{doc_html}</div>"#
-    ))
+    Some(html! {
+        (title_html)
+        div."infobox-docs_rs-doc" {
+            (PreEscaped(doc_html))
+        }
+    })
 }

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use fend_core::SpanKind;
+use maud::{html, PreEscaped};
 use numbat::{
     markup::{FormatType, FormattedString, Markup},
     pretty_print::PrettyPrint,
@@ -23,10 +24,10 @@ pub fn request(query: &str) -> EngineResponse {
         return EngineResponse::new();
     };
 
-    EngineResponse::answer_html(format!(
-        r#"<p class="answer-query">{query_html} =</p>
-<h3><b>{result_html}</b></h3>"#
-    ))
+    EngineResponse::answer_html(html! {
+        p."answer-query" { (query_html) " =" }
+        h3 { b { (result_html) } }
+    })
 }
 
 pub fn request_autocomplete(query: &str) -> Vec<String> {
@@ -119,8 +120,8 @@ fn evaluate_for_autocomplete(query: &str) -> Option<String> {
 }
 
 pub struct NumbatResponse {
-    pub query_html: String,
-    pub result_html: String,
+    pub query_html: PreEscaped<String>,
+    pub result_html: PreEscaped<String>,
 }
 
 fn evaluate(query: &str) -> Option<NumbatResponse> {
@@ -155,7 +156,7 @@ fn fix_markup(markup: Markup) -> Markup {
     Markup(reordered_markup)
 }
 
-fn markup_to_html(markup: Markup) -> String {
+fn markup_to_html(markup: Markup) -> PreEscaped<String> {
     let mut html = String::new();
     for FormattedString(_, format_type, content) in markup.0 {
         let class = match format_type {
@@ -165,15 +166,17 @@ fn markup_to_html(markup: Markup) -> String {
             _ => "",
         };
         if class.is_empty() {
-            html.push_str(&html_escape::encode_safe(&content));
+            html.push_str(&html! {(content)}.into_string());
         } else {
-            html.push_str(&format!(
-                r#"<span class="{class}">{content}</span>"#,
-                content = html_escape::encode_safe(&content)
-            ));
+            html.push_str(
+                &html! {
+                    span.(class) { (content) }
+                }
+                .into_string(),
+            );
         }
     }
-    html
+    PreEscaped(html)
 }
 
 pub static NUMBAT_CTX: Lazy<numbat::Context> = Lazy::new(|| {

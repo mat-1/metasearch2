@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use maud::html;
 use serde::Deserialize;
 use url::Url;
 
@@ -89,10 +90,10 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
     let page_title = title.replace(' ', "_");
     let page_url = format!("https://en.wikipedia.org/wiki/{page_title}");
 
-    Ok(EngineResponse::infobox_html(format!(
-        r#"<a href="{page_url}"><h2>{title}</h2></a><p>{extract}</p>"#,
-        page_url = html_escape::encode_quoted_attribute(&page_url),
-        title = html_escape::encode_safe(title),
-        extract = html_escape::encode_safe(&extract),
-    )))
+    Ok(EngineResponse::infobox_html(html! {
+        a href=(page_url) {
+            h2 { (title) }
+        }
+        p { (extract) }
+    }))
 }
