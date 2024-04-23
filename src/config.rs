@@ -10,6 +10,7 @@ use crate::engines::Engine;
 pub struct Config {
     pub bind: SocketAddr,
     pub ui: UiConfig,
+    pub captcha: Option<CaptchaConfig>,
     pub engines: EnginesConfig,
 }
 
@@ -19,6 +20,12 @@ pub struct UiConfig {
     pub show_engine_list_separator: Option<bool>,
     #[serde(default)]
     pub show_version_info: Option<bool>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct CaptchaConfig {
+    pub site_key: String,
+    pub secret_key: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -55,6 +62,9 @@ impl Config {
         assert_ne!(self.ui.show_engine_list_separator, None);
         self.ui.show_version_info = new.ui.show_version_info.or(self.ui.show_version_info);
         assert_ne!(self.ui.show_version_info, None);
+
+        self.captcha = new.captcha.or(self.captcha.clone());
+
         for (key, new) in new.engines.map {
             if let Some(existing) = self.engines.map.get_mut(&key) {
                 existing.update(new);

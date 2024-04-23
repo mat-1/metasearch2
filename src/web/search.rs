@@ -6,6 +6,7 @@ use axum::{
     extract::{ConnectInfo, Query, State},
     http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
+    Form, Json,
 };
 use bytes::Bytes;
 use maud::{html, PreEscaped};
@@ -13,6 +14,7 @@ use maud::{html, PreEscaped};
 use crate::{
     config::Config,
     engines::{self, Engine, EngineProgressUpdate, ProgressUpdateData, Response, SearchQuery},
+    web::captcha,
 };
 
 fn render_beginning_of_html(query: &str) -> String {
@@ -27,6 +29,15 @@ fn render_beginning_of_html(query: &str) -> String {
             link rel="stylesheet" href="/style.css";
             script src="/script.js" defer {}
             link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
+            (PreEscaped(r#"<!-- Google tag (gtag.js) -->
+            <script async src="https://www.googletagmanager.com/gtag/js?id=G-NM1Q7B09WN"></script>
+            <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-NM1Q7B09WN');
+            </script>"#))
         }
     }.into_string();
     let form_html = html! {
@@ -56,10 +67,14 @@ fn render_end_of_html() -> String {
 fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
     let mut html = String::new();
     for (i, engine) in engines.iter().enumerate() {
+        let raw_engine_id = engine.id();
+        if raw_engine_id == "ads" {
+            // ad indicator is already shown next to url
+            continue;
+        }
         if config.ui.show_engine_list_separator.unwrap() && i > 0 {
             html.push_str(" &middot; ");
         }
-        let raw_engine_id = &engine.id();
         let engine_id = if config.ui.show_engine_list_separator.unwrap() {
             raw_engine_id.replace('_', " ")
         } else {
@@ -75,10 +90,16 @@ fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscape
 }
 
 fn render_search_result(result: &engines::SearchResult, config: &Config) -> PreEscaped<String> {
+    let is_ad = result.engines.iter().any(|e| e.id() == "ads");
     html! {
         div."search-result" {
             a."search-result-anchor" rel="noreferrer" href=(result.url) {
-                span."search-result-url" { (result.url) }
+                span."search-result-url" {
+                    @if is_ad {
+                        "Ad · "
+                    }
+                    (result.url)
+                }
                 h3."search-result-title" { (result.title) }
             }
             p."search-result-description" { (result.description) }
@@ -173,12 +194,45 @@ fn render_engine_progress_update(
     .into_string()
 }
 
-pub async fn route(
+pub async fn post(
     Query(params): Query<HashMap<String, String>>,
     State(config): State<Arc<Config>>,
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-) -> impl IntoResponse {
+    Form(form): Form<serde_json::Value>,
+) -> axum::response::Response {
+    if let Some(captcha_config) = &config.captcha {
+        let Some(captcha_response) = form.get("g-recaptcha-response").and_then(|v| v.as_str())
+        else {
+            return (
+                StatusCode::BAD_REQUEST,
+                [(header::CONTENT_TYPE, "text/plain")],
+                "No captcha response provided".to_string(),
+            )
+                .into_response();
+        };
+
+        match captcha::verify(captcha_response, &captcha_config.secret_key).await {
+            Ok(true) => (),
+            Ok(false) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    [(header::CONTENT_TYPE, "text/plain")],
+                    "Captcha verification failed".to_string(),
+                )
+                    .into_response();
+            }
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    [(header::CONTENT_TYPE, "text/plain")],
+                    format!("Captcha verification failed: {e}"),
+                )
+                    .into_response();
+            }
+        }
+    }
+
     let query = params
         .get("q")
         .cloned()
@@ -194,7 +248,8 @@ pub async fn route(
                 (header::CONTENT_TYPE, "text/html; charset=utf-8"),
             ],
             Body::from("<a href=\"/\">No query provided, click here to go back to index</a>"),
-        );
+        )
+            .into_response();
     }
 
     let query = SearchQuery {
@@ -294,4 +349,5 @@ pub async fn route(
         ],
         stream,
     )
+        .into_response()
 }
