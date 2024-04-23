@@ -24,6 +24,15 @@ pub async fn index(State(config): State<Arc<Config>>) -> impl IntoResponse {
                     link rel="stylesheet" href="/style.css";
                     script src="/script.js" defer {}
                     link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
+                    (PreEscaped(r#"<!-- Google tag (gtag.js) -->
+                    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NM1Q7B09WN"></script>
+                    <script>
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag(){dataLayer.push(arguments);}
+                    gtag('js', new Date());
+
+                    gtag('config', 'G-NM1Q7B09WN');
+                    </script>"#))
                 }
                 body {
                     div."main-container" {

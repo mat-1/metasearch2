@@ -7,6 +7,9 @@ show_engine_list_separator = false
 show_version_info = false
 
 [engines]
+# ads are more important for the user to see than potentially spammy web results
+ads = { weight = 3 }
+
 google = { weight = 1.05 }
 bing = { weight = 1.0 }
 brave = { weight = 1.25 }

@@ -1,11 +1,16 @@
 pub mod autocomplete;
+pub mod captcha;
 pub mod index;
 pub mod opensearch;
 pub mod search;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use axum::{http::header, routing::get, Router};
+use axum::{
+    http::header,
+    routing::{get, post},
+    Router,
+};
 use tracing::info;
 
 use crate::config::Config;
@@ -15,6 +20,7 @@ pub async fn run(config: Config) {
 
     let app = Router::new()
         .route("/", get(index::index))
+        .route("/captcha", get(captcha::get))
         .route(
             "/style.css",
             get(|| async {
@@ -43,7 +49,8 @@ pub async fn run(config: Config) {
             }),
         )
         .route("/opensearch.xml", get(opensearch::route))
-        .route("/search", get(search::route))
+        .route("/search", get(captcha::get))
+        .route("/search", post(search::post))
         .route("/autocomplete", get(autocomplete::route))
         .with_state(Arc::new(config));
 
