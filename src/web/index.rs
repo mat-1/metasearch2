@@ -36,7 +36,7 @@ pub async fn index(State(config): State<Arc<Config>>) -> impl IntoResponse {
                 }
                 body {
                     div."main-container" {
-                        h1 { "metasearch" }
+                        h1 { "METASEARCH 3.0" }
                         form."search-form" action="/search" method="get" {
                             input type="text" name="q" placeholder="Search" id="search-input" autofocus onfocus="this.select()" autocomplete="off";
                             input type="submit" value="Search";
