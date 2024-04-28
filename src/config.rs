@@ -9,11 +9,13 @@ use crate::engines::Engine;
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub bind: SocketAddr,
+    #[serde(default)]
     pub ui: UiConfig,
+    #[serde(default)]
     pub engines: EnginesConfig,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct UiConfig {
     #[serde(default)]
     pub show_engine_list_separator: Option<bool>,
@@ -21,7 +23,7 @@ pub struct UiConfig {
     pub show_version_info: Option<bool>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct EnginesConfig {
     #[serde(flatten)]
     pub map: HashMap<Engine, DefaultableEngineConfig>,
