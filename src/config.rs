@@ -12,6 +12,8 @@ pub struct Config {
     #[serde(default)]
     pub ui: UiConfig,
     #[serde(default)]
+    pub image_search: ImageSearchConfig,
+    #[serde(default)]
     pub engines: EnginesConfig,
 }
 
@@ -24,9 +26,36 @@ pub struct UiConfig {
 }
 
 #[derive(Deserialize, Debug, Default)]
+pub struct ImageSearchConfig {
+    pub enabled: Option<bool>,
+}
+
+#[derive(Deserialize, Debug, Default)]
 pub struct EnginesConfig {
     #[serde(flatten)]
     pub map: HashMap<Engine, DefaultableEngineConfig>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum DefaultableEngineConfig {
+    Boolean(bool),
+    Full(FullEngineConfig),
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct FullEngineConfig {
+    #[serde(default = "fn_true")]
+    pub enabled: bool,
+
+    /// The priority of this engine relative to the other engines. The default
+    /// is 1, and a value of 0 is treated as the default.
+    #[serde(default)]
+    pub weight: f64,
+    /// Per-engine configs. These are parsed at request time.
+    #[serde(flatten)]
+    #[serde(default)]
+    pub extra: toml::Table,
 }
 
 impl Config {
@@ -50,20 +79,27 @@ impl Config {
     // use the default for something.
     pub fn update(&mut self, new: Config) {
         self.bind = new.bind;
-        self.ui.show_engine_list_separator = new
-            .ui
+        self.ui.update(new.ui);
+        self.image_search.update(new.image_search);
+        self.engines.update(new.engines);
+    }
+}
+
+impl UiConfig {
+    pub fn update(&mut self, new: UiConfig) {
+        self.show_engine_list_separator = new
             .show_engine_list_separator
-            .or(self.ui.show_engine_list_separator);
-        assert_ne!(self.ui.show_engine_list_separator, None);
-        self.ui.show_version_info = new.ui.show_version_info.or(self.ui.show_version_info);
-        assert_ne!(self.ui.show_version_info, None);
-        for (key, new) in new.engines.map {
-            if let Some(existing) = self.engines.map.get_mut(&key) {
-                existing.update(new);
-            } else {
-                self.engines.map.insert(key, new);
-            }
-        }
+            .or(self.show_engine_list_separator);
+        assert_ne!(self.show_engine_list_separator, None);
+        self.show_version_info = new.show_version_info.or(self.show_version_info);
+        assert_ne!(self.show_version_info, None);
+    }
+}
+
+impl ImageSearchConfig {
+    pub fn update(&mut self, new: ImageSearchConfig) {
+        self.enabled = new.enabled.or(self.enabled);
+        assert_ne!(self.enabled, None);
     }
 }
 
@@ -91,13 +127,16 @@ impl EnginesConfig {
             None => &DEFAULT_ENABLED_FULL_ENGINE_CONFIG,
         }
     }
-}
 
-#[derive(Deserialize, Clone, Debug)]
-#[serde(untagged)]
-pub enum DefaultableEngineConfig {
-    Boolean(bool),
-    Full(FullEngineConfig),
+    pub fn update(&mut self, new: Self) {
+        for (key, new) in new.map {
+            if let Some(existing) = self.map.get_mut(&key) {
+                existing.update(new);
+            } else {
+                self.map.insert(key, new);
+            }
+        }
+    }
 }
 
 impl DefaultableEngineConfig {
@@ -115,24 +154,9 @@ impl Default for DefaultableEngineConfig {
     }
 }
 
-#[derive(Deserialize, Clone, Debug)]
-pub struct FullEngineConfig {
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-
-    /// The priority of this engine relative to the other engines. The default
-    /// is 1, and a value of 0 is treated as the default.
-    #[serde(default)]
-    pub weight: f64,
-    /// Per-engine configs. These are parsed at request time.
-    #[serde(flatten)]
-    #[serde(default)]
-    pub extra: toml::Table,
-}
-
 // serde expects a function as the default, this just exists so "enabled" is
 // always true by default
-fn default_true() -> bool {
+fn fn_true() -> bool {
     true
 }
 

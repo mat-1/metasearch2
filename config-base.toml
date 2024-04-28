@@ -6,6 +6,9 @@ bind = "0.0.0.0:28019"
 show_engine_list_separator = false
 show_version_info = false
 
+[image_search]
+enabled = false
+
 [engines]
 google = { weight = 1.05 }
 bing = { weight = 1.0 }

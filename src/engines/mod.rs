@@ -108,6 +108,7 @@ impl<'de> Deserialize<'de> for Engine {
 
 pub struct SearchQuery {
     pub query: String,
+    pub tab: SearchTab,
     pub request_headers: HashMap<String, String>,
     pub ip: String,
     /// The config is part of the query so it's possible to make a query with a
@@ -120,6 +121,23 @@ impl Deref for SearchQuery {
 
     fn deref(&self) -> &Self::Target {
         &self.query
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchTab {
+    #[default]
+    All,
+    Images,
+}
+impl FromStr for SearchTab {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "all" => Ok(Self::All),
+            "images" => Ok(Self::Images),
+            _ => Err(()),
+        }
     }
 }
 

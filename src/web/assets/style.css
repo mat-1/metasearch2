@@ -145,6 +145,21 @@ h1 {
   background: var(--bg-4);
 }
 
+/* search tabs (like images, if enabled) */
+.search-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  margin-top: -0.5rem;
+}
+.search-tab {
+  border: 1px solid var(--bg-4);
+  padding: 0.25rem;
+}
+a.search-tab {
+  color: var(--link);
+}
+
 /* search result */
 .search-result {
   padding-top: 1rem;
@@ -298,7 +313,7 @@ h3.answer-thesaurus-category-title {
   text-decoration: underline;
 }
 .answer-notepad {
-  width: calc( 100% - 4px );
+  width: calc(100% - 4px);
   height: fit-content;
   overflow-y: show;
   background-color: transparent;
@@ -373,7 +388,8 @@ h3.answer-thesaurus-category-title {
 .infobox-minecraft_wiki-article > .notaninfobox {
   display: none !important;
 }
-.noexcerpt, .navigation-not-searchable {
+.noexcerpt,
+.navigation-not-searchable {
   display: none !important;
 }
 .mcw-mainpage-icon {

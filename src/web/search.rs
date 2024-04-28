@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, str::FromStr, sync::Arc};
 
 use async_stream::stream;
 use axum::{
@@ -12,16 +12,18 @@ use maud::{html, PreEscaped};
 
 use crate::{
     config::Config,
-    engines::{self, Engine, EngineProgressUpdate, ProgressUpdateData, Response, SearchQuery},
+    engines::{
+        self, Engine, EngineProgressUpdate, ProgressUpdateData, Response, SearchQuery, SearchTab,
+    },
 };
 
-fn render_beginning_of_html(query: &str) -> String {
+fn render_beginning_of_html(search: &SearchQuery) -> String {
     let head_html = html! {
         head {
             meta charset="UTF-8";
             meta name="viewport" content="width=device-width, initial-scale=1.0";
             title {
-                (query)
+                (search.query)
                 " - metasearch"
             }
             link rel="stylesheet" href="/style.css";
@@ -31,8 +33,16 @@ fn render_beginning_of_html(query: &str) -> String {
     }.into_string();
     let form_html = html! {
         form."search-form" action="/search" method="get" {
-            input #"search-input"  type="text" name="q" placeholder="Search" value=(query) autofocus onfocus="this.select()" autocomplete="off";
+            input #"search-input"  type="text" name="q" placeholder="Search" value=(search.query) autofocus onfocus="this.select()" autocomplete="off";
             input type="submit" value="Search";
+        }
+        @if search.config.image_search.enabled.unwrap() {
+            div.search-tabs {
+                @if search.tab == SearchTab::All { span.search-tab.selected { "All" } }
+                @else { a.search-tab href={ "?q=" (search.query) } { "All" } }
+                @if search.tab == SearchTab::Images { span.search-tab.selected { "Images" } }
+                @else { a.search-tab href={ "?q=" (search.query) "&tab=images" } { "Images" } }
+            }
         }
     }.into_string();
 
@@ -197,8 +207,14 @@ pub async fn route(
         );
     }
 
+    let search_tab = params
+        .get("tab")
+        .and_then(|t| SearchTab::from_str(t).ok())
+        .unwrap_or_default();
+
     let query = SearchQuery {
         query,
+        tab: search_tab,
         request_headers: headers
             .clone()
             .into_iter()
