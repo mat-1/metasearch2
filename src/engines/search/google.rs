@@ -134,7 +134,7 @@ pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
 
     // iterate through every script until we find something that matches our regex
     let internal_json_regex =
-        regex::Regex::new(r#"(?:\(function\(\)\{google\.jl=\{.+?)var \w=(\{".+?);"#)?;
+        regex::Regex::new(r#"(?:\(function\(\)\{google\.jl=\{.+?)var \w=(\{".+?\});"#)?;
     let mut internal_json = None;
     let dom = scraper::Html::parse_document(body);
     for script in dom.select(&Selector::parse("script").unwrap()) {
