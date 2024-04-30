@@ -5,7 +5,7 @@ use std::{
     ops::Deref,
     str::FromStr,
     sync::Arc,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use futures::future::join_all;
@@ -345,12 +345,12 @@ async fn make_requests(
         }
 
         requests.push(async move {
-            let request_response = engine.request(&query);
+            let request_response = engine.request(query);
 
             let response = match request_response {
                 RequestResponse::Http(request) => {
                     let http_response =
-                        make_request(request, engine, &query, send_engine_progress_update).await?;
+                        make_request(request, engine, query, send_engine_progress_update).await?;
 
                     let response = match engine.parse_response(&http_response) {
                         Ok(response) => response,
@@ -466,12 +466,12 @@ async fn make_image_requests(
         }
 
         requests.push(async move {
-            let request_response = engine.request_images(&query);
+            let request_response = engine.request_images(query);
 
             let response = match request_response {
                 RequestResponse::Http(request) => {
                     let http_response =
-                        make_request(request, engine, &query, send_engine_progress_update).await?;
+                        make_request(request, engine, query, send_engine_progress_update).await?;
 
                     let response = match engine.parse_images_response(&http_response) {
                         Ok(response) => response,
@@ -485,7 +485,7 @@ async fn make_image_requests(
 
                     response
                 }
-                RequestResponse::Instant(response) => {
+                RequestResponse::Instant(_) => {
                     error!("unexpected instant response for image request");
                     EngineImagesResponse::new()
                 }
@@ -593,6 +593,7 @@ pub static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
             headers.insert("Accept-Language", "en-US,en;q=0.5".parse().unwrap());
             headers
         })
+        .timeout(Duration::from_secs(10))
         .build()
         .unwrap()
 });

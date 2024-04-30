@@ -28,6 +28,17 @@ pub struct UiConfig {
 #[derive(Deserialize, Debug, Default)]
 pub struct ImageSearchConfig {
     pub enabled: Option<bool>,
+    #[serde(default)]
+    pub proxy: ImageProxyConfig,
+}
+
+#[derive(Deserialize, Debug, Default)]
+pub struct ImageProxyConfig {
+    /// Whether we should proxy remote images through our server. This is mostly
+    /// a privacy feature.
+    pub enabled: Option<bool>,
+    /// The maximum size of an image that can be proxied. This is in bytes.
+    pub max_download_size: Option<u64>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -100,6 +111,16 @@ impl ImageSearchConfig {
     pub fn update(&mut self, new: ImageSearchConfig) {
         self.enabled = new.enabled.or(self.enabled);
         assert_ne!(self.enabled, None);
+        self.proxy.update(new.proxy);
+    }
+}
+
+impl ImageProxyConfig {
+    pub fn update(&mut self, new: ImageProxyConfig) {
+        self.enabled = new.enabled.or(self.enabled);
+        assert_ne!(self.enabled, None);
+        self.max_download_size = new.max_download_size.or(self.max_download_size);
+        assert_ne!(self.max_download_size, None);
     }
 }
 

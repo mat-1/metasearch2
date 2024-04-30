@@ -4,7 +4,7 @@ use maud::{html, PreEscaped};
 
 use crate::{
     config::Config,
-    engines::{self, EngineSearchResult, Infobox, Response, ResponseForTab},
+    engines::{self, EngineSearchResult, Infobox, Response},
 };
 
 pub fn render_results(response: Response) -> PreEscaped<String> {

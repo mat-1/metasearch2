@@ -151,8 +151,7 @@ pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
         serde_json::from_str(&internal_json)?;
 
     let mut image_results = Vec::new();
-    // iterate over the keys
-    for (k, element_json) in internal_json {
+    for element_json in internal_json.values() {
         // the internal json uses arrays instead of maps, which makes it kinda hard to
         // use and also probably pretty unstable
 
