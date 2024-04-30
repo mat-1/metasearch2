@@ -58,6 +58,9 @@ main {
   background-color: var(--bg-2);
   min-height: 100%;
 }
+main.search-images {
+  max-width: 100%;
+}
 @media screen and (max-width: 74rem) {
   /* small screens */
   .results-container {
@@ -394,4 +397,43 @@ h3.answer-thesaurus-category-title {
 }
 .mcw-mainpage-icon {
   display: inline-block;
+}
+
+/* image results */
+.image-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.image-result {
+  height: 12rem;
+  position: relative;
+}
+.image-result img {
+  object-fit: cover;
+  height: 10.3rem;
+  width: 100%;
+}
+.image-result-page-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  font-size: 0.8rem;
+
+  white-space: nowrap;
+  width: 100%;
+  position: absolute;
+  display: block;
+}
+.image-result-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  font-size: 0.85rem;
+
+  white-space: nowrap;
+  width: 100%;
+  position: absolute;
+  display: block;
+  margin-top: 1em;
 }

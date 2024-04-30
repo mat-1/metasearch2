@@ -13,10 +13,11 @@ pub struct MdnConfig {
 pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     for search_result in response.search_results.iter().take(8) {
         if search_result
+            .result
             .url
             .starts_with("https://developer.mozilla.org/en-US/docs/Web")
         {
-            return Some(CLIENT.get(search_result.url.as_str()));
+            return Some(CLIENT.get(search_result.result.url.as_str()));
         }
     }
 

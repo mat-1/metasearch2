@@ -36,7 +36,8 @@ reqwest = { version = "0.11.26", default-features = false, features = [
 ] }
 scraper = "0.19.0"
 serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
+# preserve_order is needed for google images. yippee!
+serde_json = { version = "1.0.114", features = ["preserve_order"] }
 tokio = { version = "1.36.0", features = ["rt", "macros"] }
 tokio-stream = "0.1.15"
 toml = { version = "0.8.12", default-features = false, features = ["parse"] }

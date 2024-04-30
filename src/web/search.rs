@@ -1,3 +1,6 @@
+mod all;
+mod images;
+
 use std::{collections::HashMap, net::SocketAddr, str::FromStr, sync::Arc};
 
 use async_stream::stream;
@@ -8,12 +11,13 @@ use axum::{
     response::IntoResponse,
 };
 use bytes::Bytes;
-use maud::{html, PreEscaped};
+use maud::{html, PreEscaped, DOCTYPE};
 
 use crate::{
     config::Config,
     engines::{
-        self, Engine, EngineProgressUpdate, ProgressUpdateData, Response, SearchQuery, SearchTab,
+        self, Engine, EngineProgressUpdate, ProgressUpdateData, ResponseForTab, SearchQuery,
+        SearchTab,
     },
 };
 
@@ -30,7 +34,7 @@ fn render_beginning_of_html(search: &SearchQuery) -> String {
             script src="/script.js" defer {}
             link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
         }
-    }.into_string();
+    };
     let form_html = html! {
         form."search-form" action="/search" method="get" {
             input #"search-input"  type="text" name="q" placeholder="Search" value=(search.query) autofocus onfocus="this.select()" autocomplete="off";
@@ -44,116 +48,31 @@ fn render_beginning_of_html(search: &SearchQuery) -> String {
                 @else { a.search-tab href={ "?q=" (search.query) "&tab=images" } { "Images" } }
             }
         }
-    }.into_string();
+    };
 
-    format!(
-        r#"<!DOCTYPE html>
-<html lang="en">
-{head_html}
-<body>
-    <div class="results-container">
-    <main>
-    {form_html}
-    <div class="progress-updates">
-"#
-    )
+    // we don't close the elements here because we do chunked responses
+    html! {
+        (DOCTYPE)
+        html lang="en";
+        (head_html)
+        body;
+        div.results-container;
+        main.{"search-" (search.tab.to_string())};
+        (form_html)
+        div.progress-updates;
+    }
+    .into_string()
 }
 
 fn render_end_of_html() -> String {
     r"</main></div></body></html>".to_string()
 }
 
-fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
-    let mut html = String::new();
-    for (i, engine) in engines.iter().enumerate() {
-        if config.ui.show_engine_list_separator.unwrap() && i > 0 {
-            html.push_str(" &middot; ");
-        }
-        let raw_engine_id = &engine.id();
-        let engine_id = if config.ui.show_engine_list_separator.unwrap() {
-            raw_engine_id.replace('_', " ")
-        } else {
-            raw_engine_id.to_string()
-        };
-        html.push_str(&html! { span."engine-list-item" { (engine_id) } }.into_string())
+fn render_results_for_tab(response: ResponseForTab) -> PreEscaped<String> {
+    match response {
+        ResponseForTab::All(r) => all::render_results(r),
+        ResponseForTab::Images(r) => images::render_results(r),
     }
-    html! {
-        div."engine-list" {
-            (PreEscaped(html))
-        }
-    }
-}
-
-fn render_search_result(result: &engines::SearchResult, config: &Config) -> PreEscaped<String> {
-    html! {
-        div."search-result" {
-            a."search-result-anchor" rel="noreferrer" href=(result.url) {
-                span."search-result-url" { (result.url) }
-                h3."search-result-title" { (result.title) }
-            }
-            p."search-result-description" { (result.description) }
-            (render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>(), config))
-        }
-    }
-}
-
-fn render_featured_snippet(
-    featured_snippet: &engines::FeaturedSnippet,
-    config: &Config,
-) -> PreEscaped<String> {
-    html! {
-        div."featured-snippet" {
-            p."search-result-description" { (featured_snippet.description) }
-            a."search-result-anchor" rel="noreferrer" href=(featured_snippet.url) {
-                span."search-result-url" { (featured_snippet.url) }
-                h3."search-result-title" { (featured_snippet.title) }
-            }
-            (render_engine_list(&[featured_snippet.engine], config))
-        }
-    }
-}
-
-fn render_results(response: Response) -> PreEscaped<String> {
-    let mut html = String::new();
-    if let Some(infobox) = &response.infobox {
-        html.push_str(
-            &html! {
-                div."infobox" {
-                    (infobox.html)
-                    (render_engine_list(&[infobox.engine], &response.config))
-                }
-            }
-            .into_string(),
-        );
-    }
-    if let Some(answer) = &response.answer {
-        html.push_str(
-            &html! {
-                div."answer" {
-                    (answer.html)
-                    (render_engine_list(&[answer.engine], &response.config))
-                }
-            }
-            .into_string(),
-        );
-    }
-    if let Some(featured_snippet) = &response.featured_snippet {
-        html.push_str(&render_featured_snippet(featured_snippet, &response.config).into_string());
-    }
-    for result in &response.search_results {
-        html.push_str(&render_search_result(result, &response.config).into_string());
-    }
-
-    if html.is_empty() {
-        html.push_str(
-            &html! {
-                p { "No results." }
-            }
-            .into_string(),
-        );
-    }
-
-    PreEscaped(html)
 }
 
 fn render_engine_progress_update(
@@ -269,16 +188,11 @@ pub async fn route(
 
                     second_part.push_str("</div>"); // close progress-updates
                     second_part.push_str("<style>.progress-updates{display:none}</style>");
-                    second_part.push_str(&render_results(results).into_string());
+                    second_part.push_str(&render_results_for_tab(results).into_string());
                     yield Ok(Bytes::from(second_part));
                 },
                 ProgressUpdateData::PostSearchInfobox(infobox) => {
-                    third_part.push_str(&html! {
-                        div."infobox"."postsearch-infobox" {
-                            (infobox.html)
-                            (render_engine_list(&[infobox.engine], &config))
-                        }
-                    }.into_string());
+                    third_part.push_str(&all::render_infobox(&infobox, &config).into_string());
                 }
             }
         }
