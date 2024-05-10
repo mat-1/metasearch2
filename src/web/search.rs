@@ -56,8 +56,8 @@ fn render_beginning_of_html(search: &SearchQuery) -> String {
         html lang="en";
         (head_html)
         body;
-        div.results-container;
-        main.{"search-" (search.tab.to_string())};
+        div.results-container.{"search-" (search.tab.to_string())};
+        main;
         (form_html)
         div.progress-updates;
     }

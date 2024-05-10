@@ -58,8 +58,12 @@ main {
   background-color: var(--bg-2);
   min-height: 100%;
 }
-main.search-images {
+.search-images > main {
+  /* image search uses 100% width */
   max-width: 100%;
+}
+.results-container.search-images {
+  max-width: none;
 }
 @media screen and (max-width: 74rem) {
   /* small screens */
@@ -407,12 +411,16 @@ h3.answer-thesaurus-category-title {
 }
 .image-result {
   height: 12rem;
+  min-width: 12rem;
   position: relative;
 }
+.image-result-img-container {
+  margin: 0 auto;
+  width: fit-content;
+}
 .image-result img {
-  object-fit: cover;
   height: 10.3rem;
-  width: 100%;
+  width: auto;
 }
 .image-result-page-url {
   overflow: hidden;

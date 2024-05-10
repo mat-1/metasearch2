@@ -31,7 +31,9 @@ fn render_image_result(
     html! {
         div.image-result {
             a.image-result-anchor rel="noreferrer" href=(original_image_src) target="_blank" {
-                img loading="lazy" src=(image_src);
+                div.image-result-img-container {
+                    img loading="lazy" src=(image_src) width=(result.result.width) height=(result.result.height);
+                }
             }
             a.image-result-page-anchor href=(result.result.page_url) {
                 span.image-result-page-url.search-result-url { (result.result.page_url) }
