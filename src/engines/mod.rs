@@ -93,6 +93,7 @@ engine_postsearch_requests! {
 
 engine_image_requests! {
     Google => search::google::request_images, parse_images_response,
+    Bing => search::bing::request_images, parse_images_response,
 }
 
 impl fmt::Display for Engine {

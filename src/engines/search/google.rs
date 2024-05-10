@@ -191,8 +191,6 @@ pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
             continue;
         };
 
-        // if the second item is an array
-
         image_results.push(EngineImageResult {
             image_url,
             page_url,
