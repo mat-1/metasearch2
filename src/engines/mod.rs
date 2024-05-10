@@ -356,7 +356,7 @@ async fn make_requests(
                     let response = match engine.parse_response(&http_response) {
                         Ok(response) => response,
                         Err(e) => {
-                            error!("parse error: {e}");
+                            error!("parse error for {engine}: {e}");
                             EngineResponse::new()
                         }
                     };
@@ -477,7 +477,7 @@ async fn make_image_requests(
                     let response = match engine.parse_images_response(&http_response) {
                         Ok(response) => response,
                         Err(e) => {
-                            error!("parse error: {e}");
+                            error!("parse error for {engine} (images): {e}");
                             EngineImagesResponse::new()
                         }
                     };

@@ -81,6 +81,7 @@ pub fn request_images(query: &str) -> reqwest::RequestBuilder {
     )
 }
 
+#[tracing::instrument]
 pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
     let dom = Html::parse_document(body);
 
@@ -95,7 +96,10 @@ pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
             .ok_or_else(|| eyre!("no image element found"))?;
 
         // parse the "m" attribute as json
-        let data = image_el.value().attr("m").unwrap_or_default();
+        let Some(data) = image_el.value().attr("m") else {
+            // this is normal, i think
+            continue;
+        };
         let data = serde_json::from_str::<serde_json::Value>(data)?;
         let page_url = data
             .get("purl")
@@ -106,7 +110,12 @@ pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
             .get("murl")
             .and_then(|v| v.as_str())
             .unwrap_or_default();
-        let page_title = data.get("t").and_then(|v| v.as_str()).unwrap_or_default();
+        let page_title = data
+            .get("t")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            // bing adds this unicode character around matches
+            .replace("", "");
 
         // the text looks like "1200 x 1600 · jpegWikipedia"
         // (the last part is incorrectly parsed since the actual text is inside another
