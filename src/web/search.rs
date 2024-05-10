@@ -102,6 +102,27 @@ fn render_engine_progress_update(
     .into_string()
 }
 
+pub fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
+    let mut html = String::new();
+    for (i, engine) in engines.iter().enumerate() {
+        if config.ui.show_engine_list_separator.unwrap() && i > 0 {
+            html.push_str(" &middot; ");
+        }
+        let raw_engine_id = &engine.id();
+        let engine_id = if config.ui.show_engine_list_separator.unwrap() {
+            raw_engine_id.replace('_', " ")
+        } else {
+            raw_engine_id.to_string()
+        };
+        html.push_str(&html! { span.engine-list-item { (engine_id) } }.into_string())
+    }
+    html! {
+        div.engine-list {
+            (PreEscaped(html))
+        }
+    }
+}
+
 pub async fn route(
     Query(params): Query<HashMap<String, String>>,
     State(config): State<Arc<Config>>,

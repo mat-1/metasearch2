@@ -3,6 +3,7 @@ use maud::{html, PreEscaped};
 use crate::{
     config::Config,
     engines::{self, EngineImageResult, ImagesResponse},
+    web::search::render_engine_list,
 };
 
 pub fn render_results(response: ImagesResponse) -> PreEscaped<String> {
@@ -38,6 +39,9 @@ fn render_image_result(
             a.image-result-page-anchor href=(result.result.page_url) {
                 span.image-result-page-url.search-result-url { (result.result.page_url) }
                 span.image-result-title { (result.result.title) }
+            }
+            @if config.image_search.show_engines.unwrap() {
+                {(render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>(), &config))}
             }
         }
     }

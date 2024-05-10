@@ -410,7 +410,6 @@ h3.answer-thesaurus-category-title {
   gap: 0.5rem;
 }
 .image-result {
-  height: 12rem;
   min-width: 12rem;
   position: relative;
 }
@@ -421,6 +420,10 @@ h3.answer-thesaurus-category-title {
 .image-result img {
   height: 10.3rem;
   width: auto;
+}
+.image-result-page-anchor {
+  display: block;
+  height: 2em;
 }
 .image-result-page-url {
   overflow: hidden;

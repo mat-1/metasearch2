@@ -8,6 +8,7 @@ show_version_info = false
 
 [image_search]
 enabled = false
+show_engines = true
 proxy = { enabled = true, max_download_size = 10_000_000 }
 
 [engines]

@@ -28,6 +28,7 @@ pub struct UiConfig {
 #[derive(Deserialize, Debug, Default)]
 pub struct ImageSearchConfig {
     pub enabled: Option<bool>,
+    pub show_engines: Option<bool>,
     #[serde(default)]
     pub proxy: ImageProxyConfig,
 }
@@ -111,6 +112,8 @@ impl ImageSearchConfig {
     pub fn update(&mut self, new: ImageSearchConfig) {
         self.enabled = new.enabled.or(self.enabled);
         assert_ne!(self.enabled, None);
+        self.show_engines = new.show_engines.or(self.show_engines);
+        assert_ne!(self.show_engines, None);
         self.proxy.update(new.proxy);
     }
 }
