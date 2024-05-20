@@ -58,6 +58,13 @@ main {
   background-color: var(--bg-2);
   min-height: 100%;
 }
+.search-images > main {
+  /* image search uses 100% width */
+  max-width: 100%;
+}
+.results-container.search-images {
+  max-width: none;
+}
 @media screen and (max-width: 74rem) {
   /* small screens */
   .results-container {
@@ -143,6 +150,21 @@ h1 {
 .search-input-suggestion.focused,
 .search-input-suggestion:hover {
   background: var(--bg-4);
+}
+
+/* search tabs (like images, if enabled) */
+.search-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  margin-top: -0.5rem;
+}
+.search-tab {
+  border: 1px solid var(--bg-4);
+  padding: 0.25rem;
+}
+a.search-tab {
+  color: var(--link);
 }
 
 /* search result */
@@ -298,7 +320,7 @@ h3.answer-thesaurus-category-title {
   text-decoration: underline;
 }
 .answer-notepad {
-  width: calc( 100% - 4px );
+  width: calc(100% - 4px);
   height: fit-content;
   overflow-y: show;
   background-color: transparent;
@@ -373,9 +395,56 @@ h3.answer-thesaurus-category-title {
 .infobox-minecraft_wiki-article > .notaninfobox {
   display: none !important;
 }
-.noexcerpt, .navigation-not-searchable {
+.noexcerpt,
+.navigation-not-searchable {
   display: none !important;
 }
 .mcw-mainpage-icon {
   display: inline-block;
+}
+
+/* image results */
+.image-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.image-result {
+  min-width: 12rem;
+  position: relative;
+}
+.image-result-img-container {
+  margin: 0 auto;
+  width: fit-content;
+}
+.image-result img {
+  height: 10.3rem;
+  width: auto;
+}
+.image-result-page-anchor {
+  display: block;
+  height: 2em;
+}
+.image-result-page-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  font-size: 0.8rem;
+
+  white-space: nowrap;
+  width: 100%;
+  position: absolute;
+  display: block;
+}
+.image-result-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  font-size: 0.85rem;
+
+  white-space: nowrap;
+  width: 100%;
+  position: absolute;
+  display: block;
+  margin-top: 1em;
 }

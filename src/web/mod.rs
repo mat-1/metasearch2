@@ -1,4 +1,5 @@
 pub mod autocomplete;
+mod image_proxy;
 pub mod index;
 pub mod opensearch;
 pub mod search;
@@ -45,6 +46,7 @@ pub async fn run(config: Config) {
         .route("/opensearch.xml", get(opensearch::route))
         .route("/search", get(search::route))
         .route("/autocomplete", get(autocomplete::route))
+        .route("/image-proxy", get(image_proxy::route))
         .with_state(Arc::new(config));
 
     info!("Listening on http://{bind_addr}");
