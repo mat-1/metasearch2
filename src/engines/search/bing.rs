@@ -114,8 +114,9 @@ pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
             .get("t")
             .and_then(|v| v.as_str())
             .unwrap_or_default()
-            // bing adds this unicode character around matches
-            .replace("", "");
+            // bing adds these unicode characters around matches
+            .replace('', "")
+            .replace('', "");
 
         // the text looks like "1200 x 1600 · jpegWikipedia"
         // (the last part is incorrectly parsed since the actual text is inside another
