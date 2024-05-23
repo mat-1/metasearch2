@@ -1,4 +1,4 @@
-FROM lukemathwalker/cargo-chef:latest-rust-alpine as chef
+FROM lukemathwalker/cargo-chef:latest-rust-slim as chef
 WORKDIR /app
 
 FROM chef AS planner
@@ -16,5 +16,6 @@ RUN mv ./target/release/metasearch2 ./app
 FROM scratch AS runtime
 WORKDIR /app
 COPY --from=builder /app/app /usr/local/bin/
+COPY ./config.toml /usr/local/bin/
 EXPOSE 28019
 ENTRYPOINT ["/usr/local/bin/app"]
