@@ -13,8 +13,9 @@ pub async fn route(
     Query(params): Query<HashMap<String, String>>,
     State(config): State<Arc<Config>>,
 ) -> Response {
-    let proxy_config = &config.image_search.proxy;
-    if !proxy_config.enabled.unwrap() {
+    let image_search_config = &config.image_search;
+    let proxy_config = &image_search_config.proxy;
+    if !image_search_config.enabled.unwrap() || !proxy_config.enabled.unwrap() {
         return (StatusCode::FORBIDDEN, "Image proxy is disabled").into_response();
     };
     let url = params.get("url").cloned().unwrap_or_default();

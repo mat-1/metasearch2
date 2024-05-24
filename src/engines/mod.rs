@@ -8,6 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use eyre::bail;
 use futures::future::join_all;
 use maud::PreEscaped;
 use once_cell::sync::Lazy;
@@ -536,9 +537,12 @@ pub async fn search(
         SearchTab::All => {
             make_requests(query, progress_tx, start_time, &send_engine_progress_update).await?
         }
-        SearchTab::Images => {
+        SearchTab::Images if query.config.image_search.enabled.unwrap() => {
             make_image_requests(query, progress_tx, start_time, &send_engine_progress_update)
                 .await?
+        }
+        _ => {
+            bail!("unknown tab");
         }
     }
 
