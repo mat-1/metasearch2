@@ -81,11 +81,11 @@ fn render_engine_progress_update(
     time_ms: u64,
 ) -> String {
     let message = match progress_update {
-        EngineProgressUpdate::Requesting => "requesting",
-        EngineProgressUpdate::Downloading => "downloading",
-        EngineProgressUpdate::Parsing => "parsing",
+        EngineProgressUpdate::Requesting => "requesting".to_string(),
+        EngineProgressUpdate::Downloading => "downloading".to_string(),
+        EngineProgressUpdate::Parsing => "parsing".to_string(),
         EngineProgressUpdate::Done => {
-            &{ html! { span."progress-update-done" { "done" } }.into_string() }
+            html! { span."progress-update-done" { "done" } }.into_string()
         }
     };
 
