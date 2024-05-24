@@ -3,6 +3,8 @@ version: '3.7'
 services:
   metasearch2:
     build:
+      args:
+        CONFIG: "/usr/local/bin/config.toml"
       context: .
       dockerfile: Containerfile
     network_mode: "host"
