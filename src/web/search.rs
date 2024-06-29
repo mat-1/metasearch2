@@ -32,6 +32,12 @@ fn render_beginning_of_html(search: &SearchQuery) -> String {
                 " - metasearch"
             }
             link rel="stylesheet" href="/style.css";
+            @if let Some(stylesheet_url) = &search.config.ui.stylesheet_url {
+                link rel="stylesheet" href=(stylesheet_url);
+            }
+            @if let Some(stylesheet_str) = &search.config.ui.stylesheet_str {
+                link rel="stylesheet" href=(stylesheet_str);
+            }
             script src="/script.js" defer {}
             link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
         }

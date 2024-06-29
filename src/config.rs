@@ -39,6 +39,8 @@ impl Config {
 pub struct UiConfig {
     pub show_engine_list_separator: bool,
     pub show_version_info: bool,
+    pub stylesheet_url: Option<String>,
+    pub stylesheet_str: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -47,6 +49,10 @@ pub struct PartialUiConfig {
     pub show_engine_list_separator: Option<bool>,
     #[serde(default)]
     pub show_version_info: Option<bool>,
+    #[serde(default)]
+    pub stylesheet_url: Option<String>,
+    #[serde(default)]
+    pub stylesheet_str: Option<String>,
 }
 
 impl UiConfig {
@@ -55,6 +61,7 @@ impl UiConfig {
             .show_engine_list_separator
             .unwrap_or(self.show_engine_list_separator);
         self.show_version_info = partial.show_version_info.unwrap_or(self.show_version_info);
+        self.stylesheet_url = partial.stylesheet_url.or(self.stylesheet_url.clone());
     }
 }
 
@@ -202,6 +209,8 @@ impl Default for Config {
             ui: UiConfig {
                 show_engine_list_separator: false,
                 show_version_info: false,
+                stylesheet_url: None,
+                stylesheet_str: None,
             },
             image_search: ImageSearchConfig {
                 enabled: false,

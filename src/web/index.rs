@@ -22,6 +22,12 @@ pub async fn index(State(config): State<Arc<Config>>) -> impl IntoResponse {
                     meta name="viewport" content="width=device-width, initial-scale=1.0";
                     title { "metasearch" }
                     link rel="stylesheet" href="/style.css";
+                    @if let Some(stylesheet_url) = &config.ui.stylesheet_url {
+                        link rel="stylesheet" href=(stylesheet_url);
+                    }
+                    @if let Some(stylesheet_str) = &config.ui.stylesheet_str {
+                        link rel="stylesheet" href=(stylesheet_str);
+                    }
                     script src="/script.js" defer {}
                     link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
                 }

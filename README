@@ -17,3 +17,9 @@ run of metasearch2. alternatively, you can copy the config-default.toml in the
 repo and rename it to config.toml.
 
 the default port is 28019.
+
+API
+
+metasearch has a JSON API that can be enabled by setting `api = true` in your config. to use it,
+just set the `Accept: application/json` header. as the api works by serializing internal structs,
+it's not guaranteed to be stable across metasearch versions.

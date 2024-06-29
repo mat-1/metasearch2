@@ -6,6 +6,7 @@ api = false
 [ui]
 # engine_list_separator = true
 # version_info = true
+# stylesheet_url = "/themes/catppuccin-mocha.css"
 
 [engines]
 # numbat = false

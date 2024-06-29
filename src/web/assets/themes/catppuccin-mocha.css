@@ -1,0 +1,29 @@
+:root {
+  /* body background */
+  --bg-1: #11111b;
+  /* background of the content */
+  --bg-2: #181825;
+  /* input suggestions background */
+  --bg-3: #1e1e2e;
+  /* mostly borders */
+  --bg-4: #313244;
+
+  /* main text color */
+  --fg-1: #cdd6f4;
+  /* search result description */
+  --fg-2: #bac2de;
+  --fg-3: #a6adc8;
+
+  /* focus outline */
+  --accent: #b4befe;
+
+  --link: #89b4fa;
+  --link-visited: #bc78f8;
+
+  --positive: #7fd962;
+
+  --syntax-string: #aad94c;
+  --syntax-special: #e6b673;
+  --syntax-constant: #d2a6ff;
+  --syntax-comment: #acb6bf8c;
+}
