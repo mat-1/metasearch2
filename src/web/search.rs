@@ -9,6 +9,7 @@ use axum::{
     extract::{ConnectInfo, Query, State},
     http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
+    Json,
 };
 use bytes::Bytes;
 use maud::{html, PreEscaped, DOCTYPE};
@@ -128,7 +129,7 @@ pub async fn route(
     State(config): State<Arc<Config>>,
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-) -> impl IntoResponse {
+) -> axum::response::Response {
     let query = params
         .get("q")
         .cloned()
@@ -144,7 +145,8 @@ pub async fn route(
                 (header::CONTENT_TYPE, "text/html; charset=utf-8"),
             ],
             Body::from("<a href=\"/\">No query provided, click here to go back to index</a>"),
-        );
+        )
+            .into_response();
     }
 
     let search_tab = params
@@ -175,6 +177,29 @@ pub async fn route(
             ),
         config: config.clone(),
     };
+
+    let trying_to_use_api =
+        query.request_headers.get("accept") == Some(&"application/json".to_string());
+    if trying_to_use_api {
+        if !config.api {
+            return (StatusCode::FORBIDDEN, "API access is disabled").into_response();
+        }
+
+        let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel();
+        let search_future = tokio::spawn(async move { engines::search(&query, progress_tx).await });
+        if let Err(e) = search_future.await {
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+
+        let mut results = Vec::new();
+        while let Some(progress_update) = progress_rx.recv().await {
+            if let ProgressUpdateData::Response(r) = progress_update.data {
+                results.push(r);
+            }
+        }
+
+        return Json(results).into_response();
+    }
 
     let s = stream! {
         type R = Result<Bytes, eyre::Error>;
@@ -238,11 +263,11 @@ pub async fn route(
     let stream = Body::from_stream(s);
 
     (
-        StatusCode::OK,
         [
             (header::CONTENT_TYPE, "text/html; charset=utf-8"),
             (header::TRANSFER_ENCODING, "chunked"),
         ],
         stream,
     )
+        .into_response()
 }

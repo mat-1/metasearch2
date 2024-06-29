@@ -8,6 +8,8 @@ use crate::engines::Engine;
 #[derive(Debug)]
 pub struct Config {
     pub bind: SocketAddr,
+    /// Whether the JSON API should be accessible.
+    pub api: bool,
     pub ui: UiConfig,
     pub image_search: ImageSearchConfig,
     pub engines: EnginesConfig,
@@ -16,6 +18,7 @@ pub struct Config {
 #[derive(Deserialize, Debug)]
 pub struct PartialConfig {
     pub bind: Option<SocketAddr>,
+    pub api: Option<bool>,
     pub ui: Option<PartialUiConfig>,
     pub image_search: Option<PartialImageSearchConfig>,
     pub engines: Option<PartialEnginesConfig>,
@@ -24,6 +27,7 @@ pub struct PartialConfig {
 impl Config {
     pub fn overlay(&mut self, partial: PartialConfig) {
         self.bind = partial.bind.unwrap_or(self.bind);
+        self.api = partial.api.unwrap_or(self.api);
         self.ui.overlay(partial.ui.unwrap_or_default());
         self.image_search
             .overlay(partial.image_search.unwrap_or_default());
@@ -79,16 +83,16 @@ impl ImageSearchConfig {
 
 #[derive(Debug)]
 pub struct ImageProxyConfig {
+    /// Whether we should proxy remote images through our server. This is mostly
+    /// a privacy feature.
     pub enabled: bool,
+    /// The maximum size of an image that can be proxied. This is in bytes.
     pub max_download_size: u64,
 }
 
 #[derive(Deserialize, Debug, Default)]
 pub struct PartialImageProxyConfig {
-    /// Whether we should proxy remote images through our server. This is mostly
-    /// a privacy feature.
     pub enabled: Option<bool>,
-    /// The maximum size of an image that can be proxied. This is in bytes.
     pub max_download_size: Option<u64>,
 }
 
@@ -145,7 +149,9 @@ impl EnginesConfig {
 #[derive(Debug)]
 pub struct EngineConfig {
     pub enabled: bool,
+    /// The priority of this engine relative to the other engines.
     pub weight: f64,
+    /// Per-engine configs. These are parsed at request time.
     pub extra: toml::Table,
 }
 
@@ -154,10 +160,8 @@ pub struct PartialEngineConfig {
     #[serde(default)]
     pub enabled: Option<bool>,
 
-    /// The priority of this engine relative to the other engines.
     #[serde(default)]
     pub weight: Option<f64>,
-    /// Per-engine configs. These are parsed at request time.
     #[serde(flatten)]
     pub extra: toml::Table,
 }
@@ -194,6 +198,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             bind: "0.0.0.0:28019".parse().unwrap(),
+            api: false,
             ui: UiConfig {
                 show_engine_list_separator: false,
                 show_version_info: false,

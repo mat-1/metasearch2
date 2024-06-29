@@ -12,7 +12,7 @@ use eyre::bail;
 use futures::future::join_all;
 use maud::PreEscaped;
 use reqwest::{header::HeaderMap, RequestBuilder};
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
@@ -204,7 +204,7 @@ impl From<HttpResponse> for reqwest::Response {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EngineSearchResult {
     pub url: String,
     pub title: String,
@@ -261,7 +261,7 @@ impl EngineImagesResponse {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EngineImageResult {
     pub image_url: String,
     pub page_url: String,
@@ -602,35 +602,38 @@ pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
         .unwrap()
 });
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Response {
     pub search_results: Vec<SearchResult<EngineSearchResult>>,
     pub featured_snippet: Option<FeaturedSnippet>,
     pub answer: Option<Answer>,
     pub infobox: Option<Infobox>,
+    #[serde(skip)]
     pub config: Arc<Config>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ImagesResponse {
     pub image_results: Vec<SearchResult<EngineImageResult>>,
+    #[serde(skip)]
     pub config: Arc<Config>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
 pub enum ResponseForTab {
     All(Response),
     Images(ImagesResponse),
 }
 
-#[derive(Debug, Clone)]
-pub struct SearchResult<R> {
+#[derive(Debug, Clone, Serialize)]
+pub struct SearchResult<R: Serialize> {
     pub result: R,
     pub engines: BTreeSet<Engine>,
     pub score: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct FeaturedSnippet {
     pub url: String,
     pub title: String,
@@ -638,14 +641,16 @@ pub struct FeaturedSnippet {
     pub engine: Engine,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Answer {
+    #[serde(serialize_with = "serialize_markup")]
     pub html: PreEscaped<String>,
     pub engine: Engine,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Infobox {
+    #[serde(serialize_with = "serialize_markup")]
     pub html: PreEscaped<String>,
     pub engine: Engine,
 }
@@ -653,4 +658,11 @@ pub struct Infobox {
 pub struct AutocompleteResult {
     pub query: String,
     pub score: f64,
+}
+
+fn serialize_markup<S>(markup: &PreEscaped<String>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&markup.0)
 }
