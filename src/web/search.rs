@@ -29,7 +29,8 @@ fn render_beginning_of_html(search: &SearchQuery) -> String {
             meta name="viewport" content="width=device-width, initial-scale=1.0";
             title {
                 (search.query)
-                " - metasearch"
+                " - "
+                (search.config.ui.site_name)
             }
             link rel="stylesheet" href="/style.css";
             @if let Some(stylesheet_url) = &search.config.ui.stylesheet_url {

@@ -39,19 +39,17 @@ impl Config {
 pub struct UiConfig {
     pub show_engine_list_separator: bool,
     pub show_version_info: bool,
+    pub site_name: String,
     pub stylesheet_url: Option<String>,
     pub stylesheet_str: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
 pub struct PartialUiConfig {
-    #[serde(default)]
     pub show_engine_list_separator: Option<bool>,
-    #[serde(default)]
     pub show_version_info: Option<bool>,
-    #[serde(default)]
+    pub site_name: Option<String>,
     pub stylesheet_url: Option<String>,
-    #[serde(default)]
     pub stylesheet_str: Option<String>,
 }
 
@@ -61,7 +59,9 @@ impl UiConfig {
             .show_engine_list_separator
             .unwrap_or(self.show_engine_list_separator);
         self.show_version_info = partial.show_version_info.unwrap_or(self.show_version_info);
+        self.site_name = partial.site_name.unwrap_or(self.site_name.clone());
         self.stylesheet_url = partial.stylesheet_url.or(self.stylesheet_url.clone());
+        self.stylesheet_str = partial.stylesheet_str.or(self.stylesheet_str.clone());
     }
 }
 
@@ -76,15 +76,14 @@ pub struct ImageSearchConfig {
 pub struct PartialImageSearchConfig {
     pub enabled: Option<bool>,
     pub show_engines: Option<bool>,
-    #[serde(default)]
-    pub proxy: PartialImageProxyConfig,
+    pub proxy: Option<PartialImageProxyConfig>,
 }
 
 impl ImageSearchConfig {
     pub fn overlay(&mut self, partial: PartialImageSearchConfig) {
         self.enabled = partial.enabled.unwrap_or(self.enabled);
         self.show_engines = partial.show_engines.unwrap_or(self.show_engines);
-        self.proxy.overlay(partial.proxy);
+        self.proxy.overlay(partial.proxy.unwrap_or_default());
     }
 }
 
@@ -164,10 +163,7 @@ pub struct EngineConfig {
 
 #[derive(Deserialize, Clone, Debug, Default)]
 pub struct PartialEngineConfig {
-    #[serde(default)]
     pub enabled: Option<bool>,
-
-    #[serde(default)]
     pub weight: Option<f64>,
     #[serde(flatten)]
     pub extra: toml::Table,
@@ -209,6 +205,7 @@ impl Default for Config {
             ui: UiConfig {
                 show_engine_list_separator: false,
                 show_version_info: false,
+                site_name: "metasearch".to_string(),
                 stylesheet_url: None,
                 stylesheet_str: None,
             },

@@ -20,7 +20,7 @@ pub async fn index(State(config): State<Arc<Config>>) -> impl IntoResponse {
                 head {
                     meta charset="UTF-8";
                     meta name="viewport" content="width=device-width, initial-scale=1.0";
-                    title { "metasearch" }
+                    title { {(config.ui.site_name)} }
                     link rel="stylesheet" href="/style.css";
                     @if let Some(stylesheet_url) = &config.ui.stylesheet_url {
                         link rel="stylesheet" href=(stylesheet_url);
@@ -33,7 +33,7 @@ pub async fn index(State(config): State<Arc<Config>>) -> impl IntoResponse {
                 }
                 body {
                     div."main-container" {
-                        h1 { "metasearch" }
+                        h1 { {(config.ui.site_name)} }
                         form."search-form" action="/search" method="get" {
                             input type="text" name="q" placeholder="Search" id="search-input" autofocus onfocus="this.select()" autocomplete="off";
                             input type="submit" value="Search";
