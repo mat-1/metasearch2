@@ -39,7 +39,7 @@ pub async fn get(
                             // custom css textarea
                             details #custom-css-details {
                                 summary { "Custom CSS" }
-                                textarea name="stylesheet-str" id="custom-css" rows="10" cols="50" {
+                                textarea #custom-css name="stylesheet-str"  {
                                     { (config.ui.stylesheet_str) }
                                 }
                             }

@@ -145,6 +145,10 @@ h1 {
 }
 #custom-css {
   tab-size: 2;
+  width: calc(100% - 0.5rem);
+  height: 20rem;
+  border: 0;
+  outline: 1px solid var(--bg-4);
 }
 
 /* header */
