@@ -15,7 +15,7 @@ pub async fn route(
 ) -> Response {
     let image_search_config = &config.image_search;
     let proxy_config = &image_search_config.proxy;
-    if !image_search_config.enabled.unwrap() || !proxy_config.enabled.unwrap() {
+    if !image_search_config.enabled || !proxy_config.enabled {
         return (StatusCode::FORBIDDEN, "Image proxy is disabled").into_response();
     };
     let url = params.get("url").cloned().unwrap_or_default();
@@ -36,7 +36,7 @@ pub async fn route(
         }
     };
 
-    let max_size = proxy_config.max_download_size.unwrap();
+    let max_size = proxy_config.max_download_size;
 
     if res.content_length().unwrap_or_default() > max_size {
         return (StatusCode::PAYLOAD_TOO_LARGE, "Image too large").into_response();

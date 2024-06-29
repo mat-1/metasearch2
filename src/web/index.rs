@@ -33,7 +33,7 @@ pub async fn index(State(config): State<Arc<Config>>) -> impl IntoResponse {
                             input type="submit" value="Search";
                         }
                     }
-                    @if config.ui.show_version_info.unwrap() {
+                    @if config.ui.show_version_info {
                         span."version-info" {
                             @if COMMIT_HASH == "unknown" || COMMIT_HASH_SHORT == "unknown" {
                                 "Version "

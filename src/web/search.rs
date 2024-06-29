@@ -40,7 +40,7 @@ fn render_beginning_of_html(search: &SearchQuery) -> String {
             input #"search-input"  type="text" name="q" placeholder="Search" value=(search.query) autofocus onfocus="this.select()" autocomplete="off";
             input type="submit" value="Search";
         }
-        @if search.config.image_search.enabled.unwrap() {
+        @if search.config.image_search.enabled {
             div.search-tabs {
                 @if search.tab == SearchTab::All { span.search-tab.selected { "All" } }
                 @else { a.search-tab href={ "?q=" (search.query) } { "All" } }
@@ -105,11 +105,11 @@ fn render_engine_progress_update(
 pub fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
     let mut html = String::new();
     for (i, engine) in engines.iter().enumerate() {
-        if config.ui.show_engine_list_separator.unwrap() && i > 0 {
+        if config.ui.show_engine_list_separator && i > 0 {
             html.push_str(" &middot; ");
         }
         let raw_engine_id = &engine.id();
-        let engine_id = if config.ui.show_engine_list_separator.unwrap() {
+        let engine_id = if config.ui.show_engine_list_separator {
             raw_engine_id.replace('_', " ")
         } else {
             raw_engine_id.to_string()

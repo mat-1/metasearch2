@@ -6,35 +6,86 @@ use tracing::info;
 
 use crate::engines::Engine;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct Config {
     pub bind: SocketAddr,
-    #[serde(default)]
     pub ui: UiConfig,
-    #[serde(default)]
     pub image_search: ImageSearchConfig,
-    #[serde(default)]
     pub engines: EnginesConfig,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug)]
+pub struct PartialConfig {
+    pub bind: Option<SocketAddr>,
+    pub ui: Option<PartialUiConfig>,
+    pub image_search: Option<PartialImageSearchConfig>,
+    pub engines: Option<PartialEnginesConfig>,
+}
+
+impl Config {
+    pub fn overlay(&mut self, partial: PartialConfig) {
+        self.bind = partial.bind.unwrap_or(self.bind);
+        self.ui.overlay(partial.ui.unwrap_or_default());
+        self.image_search
+            .overlay(partial.image_search.unwrap_or_default());
+        self.engines.overlay(partial.engines.unwrap_or_default());
+    }
+}
+
+#[derive(Debug)]
 pub struct UiConfig {
+    pub show_engine_list_separator: bool,
+    pub show_version_info: bool,
+}
+
+#[derive(Deserialize, Debug, Default)]
+pub struct PartialUiConfig {
     #[serde(default)]
     pub show_engine_list_separator: Option<bool>,
     #[serde(default)]
     pub show_version_info: Option<bool>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+impl UiConfig {
+    pub fn overlay(&mut self, partial: PartialUiConfig) {
+        self.show_engine_list_separator = partial
+            .show_engine_list_separator
+            .unwrap_or(self.show_engine_list_separator);
+        self.show_version_info = partial.show_version_info.unwrap_or(self.show_version_info);
+    }
+}
+
+#[derive(Debug)]
 pub struct ImageSearchConfig {
-    pub enabled: Option<bool>,
-    pub show_engines: Option<bool>,
-    #[serde(default)]
+    pub enabled: bool,
+    pub show_engines: bool,
     pub proxy: ImageProxyConfig,
 }
 
 #[derive(Deserialize, Debug, Default)]
+pub struct PartialImageSearchConfig {
+    pub enabled: Option<bool>,
+    pub show_engines: Option<bool>,
+    #[serde(default)]
+    pub proxy: PartialImageProxyConfig,
+}
+
+impl ImageSearchConfig {
+    pub fn overlay(&mut self, partial: PartialImageSearchConfig) {
+        self.enabled = partial.enabled.unwrap_or(self.enabled);
+        self.show_engines = partial.show_engines.unwrap_or(self.show_engines);
+        self.proxy.overlay(partial.proxy);
+    }
+}
+
+#[derive(Debug)]
 pub struct ImageProxyConfig {
+    pub enabled: bool,
+    pub max_download_size: u64,
+}
+
+#[derive(Deserialize, Debug, Default)]
+pub struct PartialImageProxyConfig {
     /// Whether we should proxy remote images through our server. This is mostly
     /// a privacy feature.
     pub enabled: Option<bool>,
@@ -42,38 +93,87 @@ pub struct ImageProxyConfig {
     pub max_download_size: Option<u64>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+impl ImageProxyConfig {
+    pub fn overlay(&mut self, partial: PartialImageProxyConfig) {
+        self.enabled = partial.enabled.unwrap_or(self.enabled);
+        self.max_download_size = partial.max_download_size.unwrap_or(self.max_download_size);
+    }
+}
+
+#[derive(Debug)]
 pub struct EnginesConfig {
+    pub map: HashMap<Engine, EngineConfig>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+pub struct PartialEnginesConfig {
     #[serde(flatten)]
-    pub map: HashMap<Engine, DefaultableEngineConfig>,
+    pub map: HashMap<Engine, PartialDefaultableEngineConfig>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(untagged)]
-pub enum DefaultableEngineConfig {
+pub enum PartialDefaultableEngineConfig {
     Boolean(bool),
-    Full(FullEngineConfig),
+    Full(PartialEngineConfig),
 }
 
-#[derive(Deserialize, Clone, Debug)]
-pub struct FullEngineConfig {
-    #[serde(default = "fn_true")]
-    pub enabled: bool,
+impl EnginesConfig {
+    pub fn overlay(&mut self, partial: PartialEnginesConfig) {
+        for (key, value) in partial.map {
+            let full = match value {
+                PartialDefaultableEngineConfig::Boolean(enabled) => PartialEngineConfig {
+                    enabled: Some(enabled),
+                    ..Default::default()
+                },
+                PartialDefaultableEngineConfig::Full(full) => full,
+            };
+            if let Some(existing) = self.map.get_mut(&key) {
+                existing.overlay(full);
+            } else {
+                let mut new = EngineConfig::default();
+                new.overlay(full);
+                self.map.insert(key, new);
+            }
+        }
+    }
 
-    /// The priority of this engine relative to the other engines. The default
-    /// is 1, and a value of 0 is treated as the default.
-    #[serde(default)]
+    pub fn get(&self, engine: Engine) -> &EngineConfig {
+        self.map.get(&engine).unwrap_or(&DEFAULT_ENGINE_CONFIG_REF)
+    }
+}
+
+#[derive(Debug)]
+pub struct EngineConfig {
+    pub enabled: bool,
     pub weight: f64,
+    pub extra: toml::Table,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct PartialEngineConfig {
+    #[serde(default)]
+    pub enabled: Option<bool>,
+
+    /// The priority of this engine relative to the other engines.
+    #[serde(default)]
+    pub weight: Option<f64>,
     /// Per-engine configs. These are parsed at request time.
     #[serde(flatten)]
-    #[serde(default)]
     pub extra: toml::Table,
+}
+
+impl EngineConfig {
+    pub fn overlay(&mut self, partial: PartialEngineConfig) {
+        self.enabled = partial.enabled.unwrap_or(self.enabled);
+        self.weight = partial.weight.unwrap_or(self.weight);
+        self.extra.extend(partial.extra);
+    }
 }
 
 impl Config {
     pub fn read_or_create(config_path: &Path) -> eyre::Result<Self> {
-        let base_config_str = include_str!("../config-base.toml");
-        let mut config: Config = toml::from_str(base_config_str)?;
+        let mut config = Config::default();
 
         if !config_path.exists() {
             info!("No config found, creating one at {config_path:?}");
@@ -81,122 +181,38 @@ impl Config {
             fs::write(config_path, default_config_str)?;
         }
 
-        let given_config = toml::from_str::<Config>(&fs::read_to_string(config_path)?)?;
-        config.update(given_config);
+        let given_config = toml::from_str::<PartialConfig>(&fs::read_to_string(config_path)?)?;
+        config.overlay(given_config);
         Ok(config)
     }
-
-    // Update the current config with the given config. This is used to make it so
-    // the config-base.toml is always used as a fallback if the user decides to
-    // use the default for something.
-    pub fn update(&mut self, new: Config) {
-        self.bind = new.bind;
-        self.ui.update(new.ui);
-        self.image_search.update(new.image_search);
-        self.engines.update(new.engines);
-    }
 }
 
-impl UiConfig {
-    pub fn update(&mut self, new: UiConfig) {
-        self.show_engine_list_separator = new
-            .show_engine_list_separator
-            .or(self.show_engine_list_separator);
-        assert_ne!(self.show_engine_list_separator, None);
-        self.show_version_info = new.show_version_info.or(self.show_version_info);
-        assert_ne!(self.show_version_info, None);
-    }
-}
+//
+// DEFAULTS
+//
 
-impl ImageSearchConfig {
-    pub fn update(&mut self, new: ImageSearchConfig) {
-        self.enabled = new.enabled.or(self.enabled);
-        assert_ne!(self.enabled, None);
-        self.show_engines = new.show_engines.or(self.show_engines);
-        assert_ne!(self.show_engines, None);
-        self.proxy.update(new.proxy);
-    }
-}
-
-impl ImageProxyConfig {
-    pub fn update(&mut self, new: ImageProxyConfig) {
-        self.enabled = new.enabled.or(self.enabled);
-        assert_ne!(self.enabled, None);
-        self.max_download_size = new.max_download_size.or(self.max_download_size);
-        assert_ne!(self.max_download_size, None);
-    }
-}
-
-static DEFAULT_ENABLED_FULL_ENGINE_CONFIG: Lazy<FullEngineConfig> =
-    Lazy::new(FullEngineConfig::default);
-static DEFAULT_DISABLED_FULL_ENGINE_CONFIG: Lazy<FullEngineConfig> =
-    Lazy::new(|| FullEngineConfig {
-        enabled: false,
-        ..Default::default()
-    });
-
-impl EnginesConfig {
-    pub fn get(&self, engine: Engine) -> &FullEngineConfig {
-        match self.map.get(&engine) {
-            Some(engine_config) => match engine_config {
-                DefaultableEngineConfig::Boolean(enabled) => {
-                    if *enabled {
-                        &DEFAULT_ENABLED_FULL_ENGINE_CONFIG
-                    } else {
-                        &DEFAULT_DISABLED_FULL_ENGINE_CONFIG
-                    }
-                }
-                DefaultableEngineConfig::Full(full) => full,
-            },
-            None => &DEFAULT_ENABLED_FULL_ENGINE_CONFIG,
-        }
-    }
-
-    pub fn update(&mut self, new: Self) {
-        for (key, new) in new.map {
-            if let Some(existing) = self.map.get_mut(&key) {
-                existing.update(new);
-            } else {
-                self.map.insert(key, new);
-            }
-        }
-    }
-}
-
-impl DefaultableEngineConfig {
-    pub fn update(&mut self, new: Self) {
-        let mut self_full = FullEngineConfig::from(self.clone());
-        let other_full = FullEngineConfig::from(new);
-        self_full.update(other_full);
-        *self = DefaultableEngineConfig::Full(self_full);
-    }
-}
-
-impl Default for DefaultableEngineConfig {
+impl Default for Config {
     fn default() -> Self {
-        Self::Boolean(true)
-    }
-}
-
-// serde expects a function as the default, this just exists so "enabled" is
-// always true by default
-fn fn_true() -> bool {
-    true
-}
-
-impl From<DefaultableEngineConfig> for FullEngineConfig {
-    fn from(config: DefaultableEngineConfig) -> Self {
-        match config {
-            DefaultableEngineConfig::Boolean(enabled) => Self {
-                enabled,
-                ..Default::default()
+        Config {
+            bind: "0.0.0.0:28019".parse().unwrap(),
+            ui: UiConfig {
+                show_engine_list_separator: false,
+                show_version_info: false,
             },
-            DefaultableEngineConfig::Full(full) => full,
+            image_search: ImageSearchConfig {
+                enabled: false,
+                show_engines: true,
+                proxy: ImageProxyConfig {
+                    enabled: true,
+                    max_download_size: 10_000_000,
+                },
+            },
+            engines: EnginesConfig::default(),
         }
     }
 }
 
-impl Default for FullEngineConfig {
+impl Default for EngineConfig {
     fn default() -> Self {
         Self {
             enabled: true,
@@ -205,13 +221,93 @@ impl Default for FullEngineConfig {
         }
     }
 }
-
-impl FullEngineConfig {
-    pub fn update(&mut self, new: Self) {
-        self.enabled = new.enabled;
-        if new.weight != 0. {
-            self.weight = new.weight;
+static DEFAULT_ENGINE_CONFIG_REF: Lazy<EngineConfig> = Lazy::new(EngineConfig::default);
+impl EngineConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn with_weight(self, weight: f64) -> Self {
+        Self { weight, ..self }
+    }
+    pub fn disabled(self) -> Self {
+        Self {
+            enabled: false,
+            ..self
         }
-        self.extra = new.extra;
+    }
+    pub fn with_extra(self, extra: toml::Table) -> Self {
+        Self { extra, ..self }
+    }
+}
+
+impl Default for EnginesConfig {
+    fn default() -> Self {
+        use toml::value::Value;
+
+        let mut map = HashMap::new();
+        // engines are enabled by default, so engines that aren't listed here are
+        // enabled
+
+        // main search engines
+        map.insert(Engine::Google, EngineConfig::new().with_weight(1.05));
+        map.insert(Engine::Bing, EngineConfig::new().with_weight(1.0));
+        map.insert(Engine::Brave, EngineConfig::new().with_weight(1.25));
+        map.insert(
+            Engine::Marginalia,
+            EngineConfig::new().with_weight(0.15).with_extra(
+                vec![(
+                    "args".to_string(),
+                    Value::Table(
+                        vec![
+                            ("profile".to_string(), Value::String("corpo".to_string())),
+                            ("js".to_string(), Value::String("default".to_string())),
+                            ("adtech".to_string(), Value::String("default".to_string())),
+                        ]
+                        .into_iter()
+                        .collect(),
+                    ),
+                )]
+                .into_iter()
+                .collect(),
+            ),
+        );
+
+        // additional search engines
+        map.insert(
+            Engine::GoogleScholar,
+            EngineConfig::new().with_weight(0.50).disabled(),
+        );
+        map.insert(
+            Engine::RightDao,
+            EngineConfig::new().with_weight(0.10).disabled(),
+        );
+        map.insert(
+            Engine::Stract,
+            EngineConfig::new().with_weight(0.15).disabled(),
+        );
+        map.insert(
+            Engine::Yep,
+            EngineConfig::new().with_weight(0.10).disabled(),
+        );
+
+        // calculators (give them a high weight so they're always the first thing in
+        // autocomplete)
+        map.insert(Engine::Numbat, EngineConfig::new().with_weight(10.0));
+        map.insert(
+            Engine::Fend,
+            EngineConfig::new().with_weight(10.0).disabled(),
+        );
+
+        // other engines
+        map.insert(
+            Engine::Mdn,
+            EngineConfig::new().with_extra(
+                vec![("max_sections".to_string(), Value::Integer(1))]
+                    .into_iter()
+                    .collect(),
+            ),
+        );
+
+        Self { map }
     }
 }

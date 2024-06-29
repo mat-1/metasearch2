@@ -21,7 +21,7 @@ fn render_image_result(
     config: &Config,
 ) -> PreEscaped<String> {
     let original_image_src = &result.result.image_url;
-    let image_src = if config.image_search.proxy.enabled.unwrap() {
+    let image_src = if config.image_search.proxy.enabled {
         // serialize url params
         let escaped_param =
             url::form_urlencoded::byte_serialize(original_image_src.as_bytes()).collect::<String>();
@@ -40,7 +40,7 @@ fn render_image_result(
                 span.image-result-page-url.search-result-url { (result.result.page_url) }
                 span.image-result-title { (result.result.title) }
             }
-            @if config.image_search.show_engines.unwrap() {
+            @if config.image_search.show_engines {
                 {(render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>(), &config))}
             }
         }
