@@ -1,15 +1,15 @@
 mod all;
 mod images;
 
-use std::{collections::HashMap, net::SocketAddr, str::FromStr, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, str::FromStr};
 
 use async_stream::stream;
 use axum::{
     body::Body,
-    extract::{ConnectInfo, Query, State},
+    extract::{ConnectInfo, Query},
     http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use bytes::Bytes;
 use maud::{html, PreEscaped, DOCTYPE};
@@ -20,29 +20,10 @@ use crate::{
         self, Engine, EngineProgressUpdate, ProgressUpdateData, ResponseForTab, SearchQuery,
         SearchTab,
     },
+    web::head_html,
 };
 
 fn render_beginning_of_html(search: &SearchQuery) -> String {
-    let head_html = html! {
-        head {
-            meta charset="UTF-8";
-            meta name="viewport" content="width=device-width, initial-scale=1.0";
-            title {
-                (search.query)
-                " - "
-                (search.config.ui.site_name)
-            }
-            link rel="stylesheet" href="/style.css";
-            @if let Some(stylesheet_url) = &search.config.ui.stylesheet_url {
-                link rel="stylesheet" href=(stylesheet_url);
-            }
-            @if let Some(stylesheet_str) = &search.config.ui.stylesheet_str {
-                link rel="stylesheet" href=(stylesheet_str);
-            }
-            script src="/script.js" defer {}
-            link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
-        }
-    };
     let form_html = html! {
         form."search-form" action="/search" method="get" {
             input #"search-input"  type="text" name="q" placeholder="Search" value=(search.query) autofocus onfocus="this.select()" autocomplete="off";
@@ -62,9 +43,9 @@ fn render_beginning_of_html(search: &SearchQuery) -> String {
     html! {
         (DOCTYPE)
         html lang="en";
-        (head_html)
+        {(head_html(Some(&search.query), &search.config))}
         body;
-        div.results-container.{"search-" (search.tab.to_string())};
+        div.main-container.{"search-" (search.tab.to_string())};
         main;
         (form_html)
         div.progress-updates;
@@ -131,9 +112,9 @@ pub fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEs
     }
 }
 
-pub async fn route(
+pub async fn get(
     Query(params): Query<HashMap<String, String>>,
-    State(config): State<Arc<Config>>,
+    Extension(config): Extension<Config>,
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> axum::response::Response {
@@ -182,7 +163,7 @@ pub async fn route(
                 || addr.ip().to_string(),
                 |ip| ip.to_str().unwrap_or_default().to_string(),
             ),
-        config: config.clone(),
+        config: config.clone().into(),
     };
 
     let trying_to_use_api =

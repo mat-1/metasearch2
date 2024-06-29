@@ -1,22 +1,30 @@
-pub mod autocomplete;
+mod autocomplete;
 mod image_proxy;
-pub mod index;
-pub mod opensearch;
-pub mod search;
+mod index;
+mod opensearch;
+mod search;
+mod settings;
 
 use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
 use axum::{
-    http::header,
-    routing::{get, MethodRouter},
+    extract::{Request, State},
+    http::{header, StatusCode},
+    middleware::{self, Next},
+    response::Response,
+    routing::{get, post, MethodRouter},
     Router,
 };
+use axum_extra::extract::CookieJar;
+use maud::{html, Markup, PreEscaped};
 use tracing::info;
 
 use crate::config::Config;
 
 pub async fn run(config: Config) {
     let bind_addr = config.bind;
+
+    let config = Arc::new(config);
 
     fn static_route<S>(
         content: &'static str,
@@ -30,7 +38,10 @@ pub async fn run(config: Config) {
     }
 
     let app = Router::new()
-        .route("/", get(index::index))
+        .route("/", get(index::get))
+        .route("/search", get(search::get))
+        .route("/settings", get(settings::get))
+        .route("/settings", post(settings::post))
         .route(
             "/style.css",
             static_route(include_str!("assets/style.css"), "text/css; charset=utf-8"),
@@ -57,10 +68,13 @@ pub async fn run(config: Config) {
             ),
         )
         .route("/opensearch.xml", get(opensearch::route))
-        .route("/search", get(search::route))
         .route("/autocomplete", get(autocomplete::route))
         .route("/image-proxy", get(image_proxy::route))
-        .with_state(Arc::new(config));
+        .layer(middleware::from_fn_with_state(
+            config.clone(),
+            config_middleware,
+        ))
+        .with_state(config);
 
     info!("Listening on http://{bind_addr}");
 
@@ -71,4 +85,53 @@ pub async fn run(config: Config) {
     )
     .await
     .unwrap();
+}
+
+async fn config_middleware(
+    State(config): State<Arc<Config>>,
+    cookies: CookieJar,
+    mut req: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    let mut config = config.clone().as_ref().clone();
+
+    fn set_from_cookie(config: &mut String, cookies: &CookieJar, name: &str) {
+        if let Some(cookie) = cookies.get(name) {
+            let value = cookie.value();
+            *config = value.to_string();
+        }
+    }
+
+    set_from_cookie(&mut config.ui.stylesheet_url, &cookies, "stylesheet-url");
+    set_from_cookie(&mut config.ui.stylesheet_str, &cookies, "stylesheet-str");
+
+    // modify the state
+    req.extensions_mut().insert(config);
+
+    Ok(next.run(req).await)
+}
+
+pub fn head_html(title: Option<&str>, config: &Config) -> Markup {
+    html! {
+        head {
+            meta charset="UTF-8";
+            meta name="viewport" content="width=device-width, initial-scale=1.0";
+            title {
+                @if let Some(title) = title {
+                    { (title) }
+                    { " - " }
+                }
+                {(config.ui.site_name)}
+            }
+            link rel="stylesheet" href="/style.css";
+            @if !config.ui.stylesheet_url.is_empty() {
+                link rel="stylesheet" href=(config.ui.stylesheet_url);
+            }
+            @if !config.ui.stylesheet_str.is_empty() {
+                style { (PreEscaped(html_escape::encode_style(&config.ui.stylesheet_str))) }
+            }
+            script src="/script.js" defer {}
+            link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
+        }
+    }
 }

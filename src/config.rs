@@ -1,18 +1,25 @@
-use std::{collections::HashMap, fs, net::SocketAddr, path::Path, sync::LazyLock};
+use std::{
+    collections::HashMap,
+    fs,
+    net::SocketAddr,
+    path::Path,
+    sync::{Arc, LazyLock},
+};
 
 use serde::Deserialize;
 use tracing::info;
 
 use crate::engines::Engine;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub bind: SocketAddr,
     /// Whether the JSON API should be accessible.
     pub api: bool,
     pub ui: UiConfig,
     pub image_search: ImageSearchConfig,
-    pub engines: EnginesConfig,
+    // wrapped in an arc to make Config cheaper to clone
+    pub engines: Arc<EnginesConfig>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -31,23 +38,31 @@ impl Config {
         self.ui.overlay(partial.ui.unwrap_or_default());
         self.image_search
             .overlay(partial.image_search.unwrap_or_default());
-        self.engines.overlay(partial.engines.unwrap_or_default());
+        if let Some(partial_engines) = partial.engines {
+            let mut engines = self.engines.as_ref().clone();
+            engines.overlay(partial_engines);
+            self.engines = Arc::new(engines);
+        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UiConfig {
     pub show_engine_list_separator: bool,
     pub show_version_info: bool,
+    /// Settings are always accessible anyways, this just controls whether the
+    /// link to them in the index page is visible.
+    pub show_settings_link: bool,
     pub site_name: String,
-    pub stylesheet_url: Option<String>,
-    pub stylesheet_str: Option<String>,
+    pub stylesheet_url: String,
+    pub stylesheet_str: String,
 }
 
 #[derive(Deserialize, Debug, Default)]
 pub struct PartialUiConfig {
     pub show_engine_list_separator: Option<bool>,
     pub show_version_info: Option<bool>,
+    pub show_settings_link: Option<bool>,
     pub site_name: Option<String>,
     pub stylesheet_url: Option<String>,
     pub stylesheet_str: Option<String>,
@@ -59,13 +74,20 @@ impl UiConfig {
             .show_engine_list_separator
             .unwrap_or(self.show_engine_list_separator);
         self.show_version_info = partial.show_version_info.unwrap_or(self.show_version_info);
+        self.show_settings_link = partial
+            .show_settings_link
+            .unwrap_or(self.show_settings_link);
         self.site_name = partial.site_name.unwrap_or(self.site_name.clone());
-        self.stylesheet_url = partial.stylesheet_url.or(self.stylesheet_url.clone());
-        self.stylesheet_str = partial.stylesheet_str.or(self.stylesheet_str.clone());
+        self.stylesheet_url = partial
+            .stylesheet_url
+            .unwrap_or(self.stylesheet_url.clone());
+        self.stylesheet_str = partial
+            .stylesheet_str
+            .unwrap_or(self.stylesheet_str.clone());
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageSearchConfig {
     pub enabled: bool,
     pub show_engines: bool,
@@ -87,7 +109,7 @@ impl ImageSearchConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageProxyConfig {
     /// Whether we should proxy remote images through our server. This is mostly
     /// a privacy feature.
@@ -109,7 +131,7 @@ impl ImageProxyConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EnginesConfig {
     pub map: HashMap<Engine, EngineConfig>,
 }
@@ -152,7 +174,7 @@ impl EnginesConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EngineConfig {
     pub enabled: bool,
     /// The priority of this engine relative to the other engines.
@@ -206,8 +228,9 @@ impl Default for Config {
                 show_engine_list_separator: false,
                 show_version_info: false,
                 site_name: "metasearch".to_string(),
-                stylesheet_url: None,
-                stylesheet_str: None,
+                show_settings_link: true,
+                stylesheet_url: "".to_string(),
+                stylesheet_str: "".to_string(),
             },
             image_search: ImageSearchConfig {
                 enabled: false,
@@ -217,7 +240,7 @@ impl Default for Config {
                     max_download_size: 10_000_000,
                 },
             },
-            engines: EnginesConfig::default(),
+            engines: Arc::new(EnginesConfig::default()),
         }
     }
 }

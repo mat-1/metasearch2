@@ -1,18 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
-use axum::{
-    extract::{Query, State},
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{extract::Query, http::StatusCode, response::IntoResponse, Extension, Json};
 use tracing::error;
 
 use crate::{config::Config, engines};
 
 pub async fn route(
     Query(params): Query<HashMap<String, String>>,
-    State(config): State<Arc<Config>>,
+    Extension(config): Extension<Config>,
 ) -> impl IntoResponse {
     let query = params
         .get("q")

@@ -1,9 +1,10 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use axum::{
-    extract::{Query, State},
+    extract::Query,
     http::StatusCode,
     response::{IntoResponse, Response},
+    Extension,
 };
 use tracing::error;
 
@@ -11,7 +12,7 @@ use crate::{config::Config, engines};
 
 pub async fn route(
     Query(params): Query<HashMap<String, String>>,
-    State(config): State<Arc<Config>>,
+    Extension(config): Extension<Config>,
 ) -> Response {
     let image_search_config = &config.image_search;
     let proxy_config = &image_search_config.proxy;
