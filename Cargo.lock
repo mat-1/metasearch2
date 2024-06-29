@@ -1092,7 +1092,6 @@ dependencies = [
  "futures",
  "maud",
  "numbat",
- "once_cell",
  "rand",
  "regex",
  "reqwest",

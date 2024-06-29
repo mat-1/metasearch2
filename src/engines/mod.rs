@@ -4,14 +4,13 @@ use std::{
     net::IpAddr,
     ops::Deref,
     str::FromStr,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
 
 use eyre::bail;
 use futures::future::join_all;
 use maud::PreEscaped;
-use once_cell::sync::Lazy;
 use reqwest::{header::HeaderMap, RequestBuilder};
 use serde::{Deserialize, Deserializer};
 use tokio::sync::mpsc;
@@ -587,7 +586,7 @@ pub async fn autocomplete(config: &Config, query: &str) -> eyre::Result<Vec<Stri
     ))
 }
 
-pub static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
+pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::ClientBuilder::new()
         .local_address(IpAddr::from_str("0.0.0.0").unwrap())
         // we pretend to be a normal browser so websites don't block us

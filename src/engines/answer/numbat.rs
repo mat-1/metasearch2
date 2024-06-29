@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
 
 use fend_core::SpanKind;
 use maud::{html, PreEscaped};
@@ -8,7 +8,6 @@ use numbat::{
     resolver::CodeSource,
     InterpreterResult, InterpreterSettings, Statement,
 };
-use once_cell::sync::Lazy;
 use tracing::debug;
 
 use crate::engines::EngineResponse;
@@ -179,7 +178,7 @@ fn markup_to_html(markup: Markup) -> PreEscaped<String> {
     PreEscaped(html)
 }
 
-pub static NUMBAT_CTX: Lazy<numbat::Context> = Lazy::new(|| {
+pub static NUMBAT_CTX: LazyLock<numbat::Context> = LazyLock::new(|| {
     let mut ctx = numbat::Context::new(numbat::module_importer::BuiltinModuleImporter {});
     let _ = ctx.interpret("use prelude", CodeSource::Internal);
     let _ = ctx.interpret("use units::currencies", CodeSource::Internal);

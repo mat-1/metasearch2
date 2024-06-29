@@ -1,6 +1,5 @@
-use std::{collections::HashMap, fs, net::SocketAddr, path::Path};
+use std::{collections::HashMap, fs, net::SocketAddr, path::Path, sync::LazyLock};
 
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tracing::info;
 
@@ -221,7 +220,7 @@ impl Default for EngineConfig {
         }
     }
 }
-static DEFAULT_ENGINE_CONFIG_REF: Lazy<EngineConfig> = Lazy::new(EngineConfig::default);
+static DEFAULT_ENGINE_CONFIG_REF: LazyLock<EngineConfig> = LazyLock::new(EngineConfig::default);
 impl EngineConfig {
     pub fn new() -> Self {
         Self::default()
