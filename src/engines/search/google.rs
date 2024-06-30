@@ -54,7 +54,7 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
             .featured_snippet_title("h3")
             .featured_snippet_href(QueryMethod::Manual(Box::new(|el: &ElementRef| {
                 let url = el
-                    .select(&Selector::parse("a").unwrap())
+                    .select(&Selector::parse("div[lang] a").unwrap())
                     .next()
                     .and_then(|n| n.value().attr("href"))
                     .unwrap_or_default();
