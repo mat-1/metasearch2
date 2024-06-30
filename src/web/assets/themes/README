@@ -1,0 +1,5 @@
+How to add new themes:
+
+- Copy a similar theme in this directory and rename it to your theme's name and modify it as necessary
+- Add the route at `src/web/mod.rs`
+- Add it as an option in settings at `src/web/settings.rs`
