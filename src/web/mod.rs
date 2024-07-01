@@ -74,6 +74,13 @@ pub async fn run(config: Config) {
                 "text/css; charset=utf-8",
             ),
         )
+        .route(
+            "/themes/discord.css",
+            static_route(
+                include_str!("assets/themes/discord.css"),
+                "text/css; charset=utf-8",
+            ),
+        )
         .route("/opensearch.xml", get(opensearch::route))
         .route("/autocomplete", get(autocomplete::route))
         .route("/image-proxy", get(image_proxy::route))

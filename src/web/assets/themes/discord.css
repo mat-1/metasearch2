@@ -1,0 +1,33 @@
+:root {
+  /* body background */
+  --bg-1: hsl(223 calc(1 * 6.7%) 20.6% / 1);
+  /* background of the content */
+  --bg-2: hsl(220 calc(1 * 6.5%) 18% / 1);
+  /* input suggestions background */
+  --bg-3: hsl(225 calc(1 * 6.3%) 12.5% / 1);
+  /* mostly borders */
+  --bg-4: transparent;
+
+  /* main text color */
+  --fg-1: hsl(210 calc(1 * 9.1%) 87.1% / 1);
+  /* search result description */
+  --fg-2: hsl(215 calc(1 * 8.8%) 73.3% / 1);
+  --fg-3: hsl(214 calc(1 * 8.1%) 61.2% / 1);
+
+  /* focus outline */
+  --accent: hsl(227 calc(1 * 6.5%) 27.3% / 1);
+
+  --link: hsl(200 calc(1 * 100%) 49.4% / 1);
+  --link-visited: hsl(201 calc(1 * 100%) 59% / 1);
+
+  /* green, success */
+  --positive: hsl(145 calc(1 * 65%) 39.2% / 1);
+  /* red, errors */
+  --negative: hsl(358 calc(1 * 92.9%) 72.4% / 1);
+  
+  --syntax-string: #aad94c;
+  --syntax-special: #e6b673;
+  --syntax-constant: #d2a6ff;
+  --syntax-comment: #acb6bf8c;
+  --syntax-func: #ffb454;
+}

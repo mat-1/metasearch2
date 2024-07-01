@@ -32,7 +32,8 @@ pub async fn get(
                             select name="stylesheet-url" selected=(config.ui.stylesheet_url) {
                                 { (theme_option("", "Ayu Dark")) }
                                 { (theme_option("/themes/catppuccin-mocha.css", "Catppuccin Mocha")) }
-                                { (theme_option("/themes/nord-bluish.css", "Nord Bluish"))}
+                                { (theme_option("/themes/nord-bluish.css", "Nord Bluish")) }
+                                { (theme_option("/themes/discord.css", "Discord")) }
                             }
 
                             br;
