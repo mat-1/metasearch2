@@ -448,6 +448,7 @@ h3.answer-thesaurus-category-title {
 .image-result {
   min-width: 12rem;
   position: relative;
+  flex-grow: 1;
 }
 .image-result-img-container {
   margin: 0 auto;
@@ -459,7 +460,7 @@ h3.answer-thesaurus-category-title {
 }
 .image-result-page-anchor {
   display: block;
-  height: 2em;
+  height: 2.25em;
 }
 .image-result-page-url {
   overflow: hidden;

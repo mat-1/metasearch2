@@ -11,6 +11,134 @@ use tracing::info;
 
 use crate::engines::Engine;
 
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            bind: "0.0.0.0:28019".parse().unwrap(),
+            api: false,
+            ui: UiConfig {
+                show_engine_list_separator: false,
+                show_version_info: false,
+                site_name: "metasearch".to_string(),
+                show_settings_link: true,
+                stylesheet_url: "".to_string(),
+                stylesheet_str: "".to_string(),
+            },
+            image_search: ImageSearchConfig {
+                enabled: false,
+                show_engines: true,
+                proxy: ImageProxyConfig {
+                    enabled: true,
+                    max_download_size: 10_000_000,
+                },
+            },
+            engines: Arc::new(EnginesConfig::default()),
+        }
+    }
+}
+
+impl Default for EnginesConfig {
+    fn default() -> Self {
+        use toml::value::Value;
+
+        let mut map = HashMap::new();
+        // engines are enabled by default, so engines that aren't listed here are
+        // enabled
+
+        // main search engines
+        map.insert(Engine::Google, EngineConfig::new().with_weight(1.05));
+        map.insert(Engine::Bing, EngineConfig::new().with_weight(1.0));
+        map.insert(Engine::Brave, EngineConfig::new().with_weight(1.25));
+        map.insert(
+            Engine::Marginalia,
+            EngineConfig::new().with_weight(0.15).with_extra(
+                vec![(
+                    "args".to_string(),
+                    Value::Table(
+                        vec![
+                            ("profile".to_string(), Value::String("corpo".to_string())),
+                            ("js".to_string(), Value::String("default".to_string())),
+                            ("adtech".to_string(), Value::String("default".to_string())),
+                        ]
+                        .into_iter()
+                        .collect(),
+                    ),
+                )]
+                .into_iter()
+                .collect(),
+            ),
+        );
+
+        // additional search engines
+        map.insert(
+            Engine::GoogleScholar,
+            EngineConfig::new().with_weight(0.50).disabled(),
+        );
+        map.insert(
+            Engine::RightDao,
+            EngineConfig::new().with_weight(0.10).disabled(),
+        );
+        map.insert(
+            Engine::Stract,
+            EngineConfig::new().with_weight(0.15).disabled(),
+        );
+        map.insert(
+            Engine::Yep,
+            EngineConfig::new().with_weight(0.10).disabled(),
+        );
+
+        // calculators (give them a high weight so they're always the first thing in
+        // autocomplete)
+        map.insert(Engine::Numbat, EngineConfig::new().with_weight(10.0));
+        map.insert(
+            Engine::Fend,
+            EngineConfig::new().with_weight(10.0).disabled(),
+        );
+
+        // other engines
+        map.insert(
+            Engine::Mdn,
+            EngineConfig::new().with_extra(
+                vec![("max_sections".to_string(), Value::Integer(1))]
+                    .into_iter()
+                    .collect(),
+            ),
+        );
+
+        Self { map }
+    }
+}
+
+impl Default for EngineConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            weight: 1.0,
+            extra: Default::default(),
+        }
+    }
+}
+static DEFAULT_ENGINE_CONFIG_REF: LazyLock<EngineConfig> = LazyLock::new(EngineConfig::default);
+impl EngineConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn with_weight(self, weight: f64) -> Self {
+        Self { weight, ..self }
+    }
+    pub fn disabled(self) -> Self {
+        Self {
+            enabled: false,
+            ..self
+        }
+    }
+    pub fn with_extra(self, extra: toml::Table) -> Self {
+        Self { extra, ..self }
+    }
+}
+
+//
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub bind: SocketAddr,
@@ -212,135 +340,5 @@ impl Config {
         let given_config = toml::from_str::<PartialConfig>(&fs::read_to_string(config_path)?)?;
         config.overlay(given_config);
         Ok(config)
-    }
-}
-
-//
-// DEFAULTS
-//
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            bind: "0.0.0.0:28019".parse().unwrap(),
-            api: false,
-            ui: UiConfig {
-                show_engine_list_separator: false,
-                show_version_info: false,
-                site_name: "metasearch".to_string(),
-                show_settings_link: true,
-                stylesheet_url: "".to_string(),
-                stylesheet_str: "".to_string(),
-            },
-            image_search: ImageSearchConfig {
-                enabled: false,
-                show_engines: true,
-                proxy: ImageProxyConfig {
-                    enabled: true,
-                    max_download_size: 10_000_000,
-                },
-            },
-            engines: Arc::new(EnginesConfig::default()),
-        }
-    }
-}
-
-impl Default for EngineConfig {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            weight: 1.0,
-            extra: Default::default(),
-        }
-    }
-}
-static DEFAULT_ENGINE_CONFIG_REF: LazyLock<EngineConfig> = LazyLock::new(EngineConfig::default);
-impl EngineConfig {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    pub fn with_weight(self, weight: f64) -> Self {
-        Self { weight, ..self }
-    }
-    pub fn disabled(self) -> Self {
-        Self {
-            enabled: false,
-            ..self
-        }
-    }
-    pub fn with_extra(self, extra: toml::Table) -> Self {
-        Self { extra, ..self }
-    }
-}
-
-impl Default for EnginesConfig {
-    fn default() -> Self {
-        use toml::value::Value;
-
-        let mut map = HashMap::new();
-        // engines are enabled by default, so engines that aren't listed here are
-        // enabled
-
-        // main search engines
-        map.insert(Engine::Google, EngineConfig::new().with_weight(1.05));
-        map.insert(Engine::Bing, EngineConfig::new().with_weight(1.0));
-        map.insert(Engine::Brave, EngineConfig::new().with_weight(1.25));
-        map.insert(
-            Engine::Marginalia,
-            EngineConfig::new().with_weight(0.15).with_extra(
-                vec![(
-                    "args".to_string(),
-                    Value::Table(
-                        vec![
-                            ("profile".to_string(), Value::String("corpo".to_string())),
-                            ("js".to_string(), Value::String("default".to_string())),
-                            ("adtech".to_string(), Value::String("default".to_string())),
-                        ]
-                        .into_iter()
-                        .collect(),
-                    ),
-                )]
-                .into_iter()
-                .collect(),
-            ),
-        );
-
-        // additional search engines
-        map.insert(
-            Engine::GoogleScholar,
-            EngineConfig::new().with_weight(0.50).disabled(),
-        );
-        map.insert(
-            Engine::RightDao,
-            EngineConfig::new().with_weight(0.10).disabled(),
-        );
-        map.insert(
-            Engine::Stract,
-            EngineConfig::new().with_weight(0.15).disabled(),
-        );
-        map.insert(
-            Engine::Yep,
-            EngineConfig::new().with_weight(0.10).disabled(),
-        );
-
-        // calculators (give them a high weight so they're always the first thing in
-        // autocomplete)
-        map.insert(Engine::Numbat, EngineConfig::new().with_weight(10.0));
-        map.insert(
-            Engine::Fend,
-            EngineConfig::new().with_weight(10.0).disabled(),
-        );
-
-        // other engines
-        map.insert(
-            Engine::Mdn,
-            EngineConfig::new().with_extra(
-                vec![("max_sections".to_string(), Value::Integer(1))]
-                    .into_iter()
-                    .collect(),
-            ),
-        );
-
-        Self { map }
     }
 }
