@@ -334,6 +334,9 @@ impl Config {
         if !config_path.exists() {
             info!("No config found, creating one at {config_path:?}");
             let default_config_str = include_str!("../config-default.toml");
+            if let Some(parent_path) = config_path.parent() {
+                let _ = fs::create_dir_all(parent_path);
+            }
             fs::write(config_path, default_config_str)?;
         }
 
