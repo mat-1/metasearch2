@@ -22,9 +22,12 @@
 
   /* green, success */
   --positive: #7fd962;
+  /* red, error */
+  --negative: #f38ba8;
 
-  --syntax-string: #aad94c;
-  --syntax-special: #e6b673;
-  --syntax-constant: #d2a6ff;
-  --syntax-comment: #acb6bf8c;
+  --syntax-string: #a6e3a1;
+  --syntax-special: #fab387;
+  --syntax-constant: #cba6f7;
+  --syntax-comment: #6c7086;
+  --syntax-func: #89b4fa;
 }
