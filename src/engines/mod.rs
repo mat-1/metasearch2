@@ -276,6 +276,7 @@ pub enum EngineProgressUpdate {
     Downloading,
     Parsing,
     Done,
+    Error(String),
 }
 
 #[derive(Debug)]
@@ -351,13 +352,28 @@ async fn make_requests(
             let response = match request_response {
                 RequestResponse::Http(request) => {
                     let http_response =
-                        make_request(request, engine, query, send_engine_progress_update).await?;
+                        match make_request(request, engine, query, send_engine_progress_update)
+                            .await
+                        {
+                            Ok(http_response) => http_response,
+                            Err(e) => {
+                                send_engine_progress_update(
+                                    engine,
+                                    EngineProgressUpdate::Error(e.to_string()),
+                                );
+                                return Err(e);
+                            }
+                        };
 
                     let response = match engine.parse_response(&http_response) {
                         Ok(response) => response,
                         Err(e) => {
                             error!("parse error for {engine}: {e}");
-                            EngineResponse::new()
+                            send_engine_progress_update(
+                                engine,
+                                EngineProgressUpdate::Error(e.to_string()),
+                            );
+                            return Err(e);
                         }
                     };
 
@@ -378,9 +394,13 @@ async fn make_requests(
         response_futures.push(request);
     }
 
-    let responses_result: eyre::Result<HashMap<_, _>> =
-        join_all(response_futures).await.into_iter().collect();
-    let responses = responses_result?;
+    let mut responses = HashMap::new();
+    for response_result in join_all(response_futures).await {
+        let response_result: eyre::Result<_> = response_result; // this line is necessary to make type inference work
+        if let Ok((engine, response)) = response_result {
+            responses.insert(engine, response);
+        }
+    }
 
     let response = ranking::merge_engine_responses(query.config.clone(), responses);
     let has_infobox = response.infobox.is_some();

@@ -20,8 +20,10 @@
   --link: #29e;
   --link-visited: #92e;
 
-  /* green */
+  /* green, success */
   --positive: #7fd962;
+  /* red, errors */
+  --negative: #d95757;
 
   --syntax-string: #aad94c;
   --syntax-special: #e6b673;
@@ -258,6 +260,10 @@ a.search-tab {
 }
 .progress-update-done {
   color: var(--positive);
+  font-weight: bold;
+}
+.progress-update-error {
+  color: var(--negative);
   font-weight: bold;
 }
 

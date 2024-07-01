@@ -76,6 +76,9 @@ fn render_engine_progress_update(
         EngineProgressUpdate::Done => {
             html! { span."progress-update-done" { "done" } }.into_string()
         }
+        EngineProgressUpdate::Error(msg) => {
+            html! { span."progress-update-error" { (msg) } }.into_string()
+        }
     };
 
     html! {
