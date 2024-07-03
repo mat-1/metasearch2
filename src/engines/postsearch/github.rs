@@ -73,7 +73,7 @@ pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
         a href=(url) {
             h1 { (title) }
         }
-        div."infobox-github-readme" {
+        div.infobox-github-readme {
             (PreEscaped(readme_html))
         }
     })

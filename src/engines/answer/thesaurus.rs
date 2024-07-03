@@ -154,14 +154,14 @@ fn render_thesaurus_html(
     ThesaurusResponse { word, items }: ThesaurusResponse,
 ) -> PreEscaped<String> {
     html! {
-        h2."answer-thesaurus-word" {
+        h2.answer-thesaurus-word {
             a href={ "https://www.thesaurus.com/browse/" (word) } {
                 (word)
             }
         }
-        div."answer-thesaurus-items" {
+        div.answer-thesaurus-items {
             @for item in items {
-                div."answer-thesaurus-item" {
+                div.answer-thesaurus-item {
                     (render_thesaurus_item_html(item))
                 }
             }
@@ -183,10 +183,10 @@ fn render_thesaurus_item_html(
 
     html.push_str(
         &html! {
-            span."answer-thesaurus-word-description" {
-                span."answer-thesaurus-part-of-speech" { (part_of_speech.to_lowercase()) }
+            span.answer-thesaurus-word-description {
+                span.answer-thesaurus-part-of-speech { (part_of_speech.to_lowercase()) }
                 ", as in "
-                span."answer-thesaurus-as-in" { (as_in) }
+                span.answer-thesaurus-as-in { (as_in) }
             }
         }
         .into_string(),
@@ -199,12 +199,12 @@ fn render_thesaurus_item_html(
 
         html! {
             div.{ "answer-thesaurus-" (strength.to_lowercase().replace(' ', "-")) } {
-                h3."answer-thesaurus-category-title" {
+                h3.answer-thesaurus-category-title {
                     (strength)
                     " "
                     (if matches.len() == 1 { "match" } else { "matches" })
                 }
-                ul."answer-thesaurus-list" {
+                ul.answer-thesaurus-list {
                     @for synonym in matches {
                         li {
                             a href={ "https://www.thesaurus.com/browse/" (synonym) } { (synonym) }

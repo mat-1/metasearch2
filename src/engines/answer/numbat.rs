@@ -24,7 +24,7 @@ pub fn request(query: &str) -> EngineResponse {
     };
 
     EngineResponse::answer_html(html! {
-        p."answer-query" { (query_html) " =" }
+        p.answer-query { (query_html) " =" }
         h3 { b { (result_html) } }
     })
 }

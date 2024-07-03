@@ -8,6 +8,9 @@ api = false
 # show_version_info = true
 # stylesheet_url = "/themes/catppuccin-mocha.css"
 
+[image_search]
+# enabled = true
+
 [engines]
 # numbat = false
 # fend = true

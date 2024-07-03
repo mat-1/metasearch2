@@ -15,7 +15,7 @@ pub fn request(query: &str) -> EngineResponse {
     };
 
     EngineResponse::answer_html(html! {
-        p."answer-query" { (query) " =" }
+        p.answer-query { (query) " =" }
         h3 { b { (result_html) } }
     })
 }
@@ -95,7 +95,7 @@ fn evaluate_to_html(query: &str, html: bool) -> Option<PreEscaped<String>> {
         if let Ok(num) = u64::from_str_radix(hex, 16) {
             result_html.push_str(
                 &html! {
-                    span."answer-comment" { " = " (num) }
+                    span.answer-comment { " = " (num) }
                 }
                 .into_string(),
             );
