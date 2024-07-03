@@ -46,15 +46,11 @@ pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<P
         .clean(&doc_html)
         .to_string();
 
-    let title_html = html! {
+    Some(html! {
         h2 {
             a href=(url) { (page_title) }
         }
-    };
-
-    Some(html! {
-        (title_html)
-        div."infobox-minecraft_wiki-article" {
+        div.infobox-minecraft_wiki-article {
             (PreEscaped(doc_html))
         }
     })

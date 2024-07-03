@@ -21,6 +21,24 @@ use tracing::info;
 
 use crate::config::Config;
 
+macro_rules! register_static_routes {
+    ( $app:ident, $( $x:expr ),* ) => {
+        {
+            $(
+                let $app = $app.route(
+                    concat!("/", $x),
+                    static_route(
+                        include_str!(concat!("assets/", $x)),
+                        guess_mime_type($x)
+                    ),
+                );
+            )*
+
+            $app
+        }
+    };
+}
+
 pub async fn run(config: Config) {
     let bind_addr = config.bind;
     let subdirectory = config.subdirectory.clone();
@@ -46,54 +64,6 @@ pub async fn run(config: Config) {
         .route("/search", get(search::get))
         .route("/settings", get(settings::get))
         .route("/settings", post(settings::post))
-        .route(
-            "/style.css",
-            static_route(
-                include_str!("assets/style.css"),
-                "text/css; charset=utf-8",
-                &subdirectory
-            ),
-        )
-        .route(
-            "/script.js",
-            static_route(
-                include_str!("assets/script.js"),
-                "text/javascript; charset=utf-8",
-                &subdirectory,
-            ),
-        )
-        .route(
-            "/robots.txt",
-            static_route(
-                include_str!("assets/robots.txt"),
-                "text/plain; charset=utf-8",
-                &subdirectory,
-            ),
-        )
-        .route(
-            "/themes/catppuccin-mocha.css",
-            static_route(
-                include_str!("assets/themes/catppuccin-mocha.css"),
-                "text/css; charset=utf-8",
-                &subdirectory,
-            ),
-        )
-        .route(
-            "/themes/nord-bluish.css",
-            static_route(
-                include_str!("assets/themes/nord-bluish.css"),
-                "text/css; charset=utf-8",
-                &subdirectory,
-            ),
-        )
-        .route(
-            "/themes/discord.css",
-            static_route(
-                include_str!("assets/themes/discord.css"),
-                "text/css; charset=utf-8",
-                &subdirectory,
-            ),
-        )
         .route("/opensearch.xml", get(opensearch::route))
         .route("/autocomplete", get(autocomplete::route))
         .route("/image-proxy", get(image_proxy::route))
@@ -102,6 +72,16 @@ pub async fn run(config: Config) {
             config_middleware,
         ))
         .with_state(config);
+
+    let app = register_static_routes![
+        app,
+        "style.css",
+        "script.js",
+        "robots.txt",
+        "themes/catppuccin-mocha.css",
+        "themes/nord-bluish.css",
+        "themes/discord.css"
+    ];
 
     // Nest the app in a subdirectory chosen by the user
     let subdirectory_router = Router::new()
@@ -116,6 +96,15 @@ pub async fn run(config: Config) {
     )
     .await
     .unwrap();
+}
+
+fn guess_mime_type(path: &str) -> &'static str {
+    match path.rsplit('.').next() {
+        Some("css") => "text/css; charset=utf-8",
+        Some("js") => "text/javascript; charset=utf-8",
+        Some("txt") => "text/plain; charset=utf-8",
+        _ => "text/plain; charset=utf-8",
+    }
 }
 
 async fn config_middleware(

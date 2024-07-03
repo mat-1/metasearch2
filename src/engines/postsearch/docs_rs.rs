@@ -60,14 +60,14 @@ pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<P
             " "
             a href=(url) { (title) }
             @if category == "Crate" {
-                span."infobox-docs_rs-version" { (version) }
+                span.infobox-docs_rs-version { (version) }
             }
         }
     };
 
     Some(html! {
         (title_html)
-        div."infobox-docs_rs-doc" {
+        div.infobox-docs_rs-doc {
             (PreEscaped(doc_html))
         }
     })

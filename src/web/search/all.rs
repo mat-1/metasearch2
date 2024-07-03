@@ -13,7 +13,7 @@ pub fn render_results(response: Response) -> PreEscaped<String> {
     if let Some(infobox) = &response.infobox {
         html.push_str(
             &html! {
-                div."infobox" {
+                div.infobox {
                     (infobox.html)
                     (render_engine_list(&[infobox.engine], &response.config))
                 }
@@ -24,7 +24,7 @@ pub fn render_results(response: Response) -> PreEscaped<String> {
     if let Some(answer) = &response.answer {
         html.push_str(
             &html! {
-                div."answer" {
+                div.answer {
                     (answer.html)
                     (render_engine_list(&[answer.engine], &response.config))
                 }
@@ -56,12 +56,12 @@ fn render_search_result(
     config: &Config,
 ) -> PreEscaped<String> {
     html! {
-        div."search-result" {
-            a."search-result-anchor" rel="noreferrer" href=(result.result.url) {
-                span."search-result-url" { (result.result.url) }
-                h3."search-result-title" { (result.result.title) }
+        div.search-result {
+            a.search-result-anchor rel="noreferrer" href=(result.result.url) {
+                span.search-result-url { (result.result.url) }
+                h3.search-result-title { (result.result.title) }
             }
-            p."search-result-description" { (result.result.description) }
+            p.search-result-description { (result.result.description) }
             (render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>(), config))
         }
     }
@@ -72,11 +72,11 @@ fn render_featured_snippet(
     config: &Config,
 ) -> PreEscaped<String> {
     html! {
-        div."featured-snippet" {
-            p."search-result-description" { (featured_snippet.description) }
-            a."search-result-anchor" rel="noreferrer" href=(featured_snippet.url) {
-                span."search-result-url" { (featured_snippet.url) }
-                h3."search-result-title" { (featured_snippet.title) }
+        div.featured-snippet {
+            p.search-result-description { (featured_snippet.description) }
+            a.search-result-anchor rel="noreferrer" href=(featured_snippet.url) {
+                span.search-result-url { (featured_snippet.url) }
+                h3.search-result-title { (featured_snippet.title) }
             }
             (render_engine_list(&[featured_snippet.engine], config))
         }
@@ -85,7 +85,7 @@ fn render_featured_snippet(
 
 pub fn render_infobox(infobox: &Infobox, config: &Config) -> PreEscaped<String> {
     html! {
-        div."infobox"."postsearch-infobox" {
+        div.infobox.postsearch-infobox {
             (infobox.html)
             (render_engine_list(&[infobox.engine], &config))
         }
