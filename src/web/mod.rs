@@ -74,6 +74,7 @@ pub async fn run(config: Config) {
         "script.js",
         "robots.txt",
         "themes/catppuccin-mocha.css",
+        "themes/catppuccin-latte.css",
         "themes/nord-bluish.css",
         "themes/discord.css"
     ];
