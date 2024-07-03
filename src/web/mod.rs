@@ -22,14 +22,15 @@ use tracing::info;
 use crate::config::Config;
 
 macro_rules! register_static_routes {
-    ( $app:ident, $( $x:expr ),* ) => {
+    ( $app:ident, $subdir:expr, $( $x:expr ),* ) => {
         {
             $(
                 let $app = $app.route(
                     concat!("/", $x),
                     static_route(
                         include_str!(concat!("assets/", $x)),
-                        guess_mime_type($x)
+                        guess_mime_type($x),
+                        $subdir
                     ),
                 );
             )*
@@ -75,10 +76,12 @@ pub async fn run(config: Config) {
 
     let app = register_static_routes![
         app,
+        &subdirectory,
         "style.css",
         "script.js",
         "robots.txt",
         "themes/catppuccin-mocha.css",
+        "themes/catppuccin-latte.css",
         "themes/nord-bluish.css",
         "themes/discord.css"
     ];
