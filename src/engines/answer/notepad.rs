@@ -14,6 +14,6 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
     // `contenteditable="plaintext-only"` attribute currently only works on Chrome.
     // This should be updated when the attribute becomes available in more browsers
     EngineResponse::answer_html(html! {
-        div."answer-notepad" contenteditable {}
+        div.answer-notepad contenteditable {}
     })
 }

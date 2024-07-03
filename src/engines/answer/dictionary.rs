@@ -83,7 +83,7 @@ pub fn parse_response(
 
     html.push_str(
         &html! {
-            h2."answer-dictionary-word" {
+            h2.answer-dictionary-word {
                 a href={ "https://en.wiktionary.org/wiki/" (mediawiki_key) } {
                     (word)
                 }
@@ -95,7 +95,7 @@ pub fn parse_response(
     for entry in entries {
         html.push_str(
             &html! {
-                span."answer-dictionary-part-of-speech" {
+                span.answer-dictionary-part-of-speech {
                     (entry.part_of_speech.to_lowercase())
                 }
             }
@@ -130,7 +130,7 @@ pub fn parse_response(
                     let example_html = cleaner.clean(example).to_string();
                     html.push_str(
                         &html! {
-                            blockquote."answer-dictionary-example" {
+                            blockquote.answer-dictionary-example {
                                 (PreEscaped(example_html))
                             }
                         }

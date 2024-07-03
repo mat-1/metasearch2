@@ -69,15 +69,11 @@ pub fn parse_response(
         .clean(&doc_html)
         .to_string();
 
-    let title_html = html! {
+    Some(html! {
         h2 {
             a href=(url) { (page_title) }
         }
-    };
-
-    Some(html! {
-        (title_html)
-        div."infobox-mdn-article" {
+        div.infobox-mdn-article {
             (PreEscaped(doc_html))
         }
     })

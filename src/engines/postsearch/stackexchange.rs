@@ -60,7 +60,7 @@ pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
         a href=(url) {
             h2 { (title) }
         }
-        div."infobox-stackexchange-answer" {
+        div.infobox-stackexchange-answer {
             (PreEscaped(answer_html))
         }
     })

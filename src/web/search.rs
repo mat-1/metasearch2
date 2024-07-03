@@ -25,8 +25,8 @@ use crate::{
 
 fn render_beginning_of_html(search: &SearchQuery) -> String {
     let form_html = html! {
-        form."search-form" action="/search" method="get" {
-            input #"search-input"  type="text" name="q" placeholder="Search" value=(search.query) autofocus onfocus="this.select()" autocomplete="off";
+        form.search-form action="/search" method="get" {
+            input #search-input  type="text" name="q" placeholder="Search" value=(search.query) autofocus onfocus="this.select()" autocomplete="off";
             @if search.tab != SearchTab::default() {
                 input type="hidden" name="tab" value=(search.tab.to_string());
             }
@@ -76,16 +76,14 @@ fn render_engine_progress_update(
         EngineProgressUpdate::Requesting => "requesting".to_string(),
         EngineProgressUpdate::Downloading => "downloading".to_string(),
         EngineProgressUpdate::Parsing => "parsing".to_string(),
-        EngineProgressUpdate::Done => {
-            html! { span."progress-update-done" { "done" } }.into_string()
-        }
+        EngineProgressUpdate::Done => html! { span.progress-update-done { "done" } }.into_string(),
         EngineProgressUpdate::Error(msg) => {
-            html! { span."progress-update-error" { (msg) } }.into_string()
+            html! { span.progress-update-error { (msg) } }.into_string()
         }
     };
 
     html! {
-        span."progress-update-time" {
+        span.progress-update-time {
             (format!("{time_ms:>4}"))
             "ms"
         }
