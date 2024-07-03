@@ -17,6 +17,13 @@ pub async fn get(
         }
     };
 
+    let subdirectory = config.subdirectory.clone();
+    let back_location = if subdirectory.is_empty() {
+        "/".to_string()
+    } else {
+        subdirectory.clone()
+    };
+
     let html = html! {
         (PreEscaped("<!-- source code: https://github.com/mat-1/metasearch2 -->\n"))
         (DOCTYPE)
@@ -25,15 +32,15 @@ pub async fn get(
             body {
                 div.main-container.settings-page {
                     main {
-                        a.back-to-index-button href="/" { "Back" }
+                        a.back-to-index-button href=(&back_location) { "Back" }
                         h1 { "Settings" }
                         form.settings-form method="post" {
                             label for="theme" { "Theme" }
                             select name="stylesheet-url" selected=(config.ui.stylesheet_url) {
                                 { (theme_option("", "Ayu Dark")) }
-                                { (theme_option("/themes/catppuccin-mocha.css", "Catppuccin Mocha")) }
-                                { (theme_option("/themes/nord-bluish.css", "Nord Bluish")) }
-                                { (theme_option("/themes/discord.css", "Discord")) }
+                                { (theme_option(&(subdirectory.clone() + "/themes/catppuccin-mocha.css"), "Catppuccin Mocha")) }
+                                { (theme_option(&(subdirectory.clone() + "/themes/nord-bluish.css"), "Nord Bluish")) }
+                                { (theme_option(&(subdirectory.clone() + "/themes/discord.css"), "Discord")) }
                             }
 
                             br;
@@ -51,7 +58,6 @@ pub async fn get(
                     }
                 }
             }
-        
         }
     }
     .into_string();
@@ -68,6 +74,7 @@ pub struct Settings {
 
 pub async fn post(
     mut jar: CookieJar,
+    Extension(config): Extension<Config>,
     Form(settings): Form<Settings>,
 ) -> impl IntoResponse {
     jar = jar.add(Cookie::new("stylesheet-url", settings.stylesheet_url));
@@ -75,7 +82,7 @@ pub async fn post(
 
     (
         StatusCode::FOUND,
-        [(header::LOCATION, "/settings")],
+        [(header::LOCATION, (config.subdirectory.clone() + "/settings"))],
         jar
     )
 }

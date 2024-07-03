@@ -15,6 +15,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             bind: "0.0.0.0:28019".parse().unwrap(),
+            subdirectory: "".to_string(),
             api: false,
             ui: UiConfig {
                 show_engine_list_separator: false,
@@ -142,6 +143,7 @@ impl EngineConfig {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub bind: SocketAddr,
+    pub subdirectory: String,
     /// Whether the JSON API should be accessible.
     pub api: bool,
     pub ui: UiConfig,
@@ -153,6 +155,7 @@ pub struct Config {
 #[derive(Deserialize, Debug)]
 pub struct PartialConfig {
     pub bind: Option<SocketAddr>,
+    pub subdirectory: Option<String>,
     pub api: Option<bool>,
     pub ui: Option<PartialUiConfig>,
     pub image_search: Option<PartialImageSearchConfig>,
@@ -162,6 +165,7 @@ pub struct PartialConfig {
 impl Config {
     pub fn overlay(&mut self, partial: PartialConfig) {
         self.bind = partial.bind.unwrap_or(self.bind);
+        self.subdirectory = partial.subdirectory.unwrap_or("".to_string());
         self.api = partial.api.unwrap_or(self.api);
         self.ui.overlay(partial.ui.unwrap_or_default());
         self.image_search

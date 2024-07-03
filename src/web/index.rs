@@ -9,6 +9,7 @@ const COMMIT_HASH: &str = std::env!("GIT_HASH");
 const COMMIT_HASH_SHORT: &str = std::env!("GIT_HASH_SHORT");
 
 pub async fn get(Extension(config): Extension<Config>) -> impl IntoResponse {
+    let subdirectory = config.subdirectory.clone();
     let html = html! {
         (PreEscaped("<!-- source code: https://github.com/mat-1/metasearch2 -->\n"))
         (DOCTYPE)
@@ -16,11 +17,11 @@ pub async fn get(Extension(config): Extension<Config>) -> impl IntoResponse {
             {(head_html(None, &config))}
             body {
                 @if config.ui.show_settings_link {
-                    a.settings-link href="/settings" { "Settings" }
+                    a.settings-link href=(subdirectory.clone() + "/settings") { "Settings" }
                 }
                 div.main-container.index-page {
                     h1 { {(config.ui.site_name)} }
-                    form.search-form action="/search" method="get" {
+                    form.search-form action=(subdirectory.clone() + "/search") method="get" {
                         input type="text" name="q" placeholder="Search" id="search-input" autofocus onfocus="this.select()" autocomplete="off";
                         input type="submit" value="Search";
                     }

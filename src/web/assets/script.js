@@ -30,7 +30,7 @@ if (searchInputEl) {
     nextQueryId++;
 
     const res = await fetch(
-      `/autocomplete?q=${encodeURIComponent(value)}`
+      `<[SUBDIRECTORY>]/autocomplete?q=${encodeURIComponent(value)}`
     ).then((res) => res.json());
     const options = res[1];
 

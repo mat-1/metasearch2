@@ -23,16 +23,20 @@ use crate::config::Config;
 
 pub async fn run(config: Config) {
     let bind_addr = config.bind;
+    let subdirectory = config.subdirectory.clone();
 
     let config = Arc::new(config);
 
     fn static_route<S>(
         content: &'static str,
         content_type: &'static str,
+        subdirectory: &String,
     ) -> MethodRouter<S, Infallible>
     where
         S: Clone + Send + Sync + 'static,
     {
+        // FIXME: This is so bad
+        let content = content.replace("<[SUBDIRECTORY>]", subdirectory);
         let response = ([(header::CONTENT_TYPE, content_type)], content);
         get(|| async { response })
     }
@@ -44,13 +48,18 @@ pub async fn run(config: Config) {
         .route("/settings", post(settings::post))
         .route(
             "/style.css",
-            static_route(include_str!("assets/style.css"), "text/css; charset=utf-8"),
+            static_route(
+                include_str!("assets/style.css"),
+                "text/css; charset=utf-8",
+                &subdirectory
+            ),
         )
         .route(
             "/script.js",
             static_route(
                 include_str!("assets/script.js"),
                 "text/javascript; charset=utf-8",
+                &subdirectory,
             ),
         )
         .route(
@@ -58,6 +67,7 @@ pub async fn run(config: Config) {
             static_route(
                 include_str!("assets/robots.txt"),
                 "text/plain; charset=utf-8",
+                &subdirectory,
             ),
         )
         .route(
@@ -65,6 +75,7 @@ pub async fn run(config: Config) {
             static_route(
                 include_str!("assets/themes/catppuccin-mocha.css"),
                 "text/css; charset=utf-8",
+                &subdirectory,
             ),
         )
         .route(
@@ -72,6 +83,7 @@ pub async fn run(config: Config) {
             static_route(
                 include_str!("assets/themes/nord-bluish.css"),
                 "text/css; charset=utf-8",
+                &subdirectory,
             ),
         )
         .route(
@@ -79,6 +91,7 @@ pub async fn run(config: Config) {
             static_route(
                 include_str!("assets/themes/discord.css"),
                 "text/css; charset=utf-8",
+                &subdirectory,
             ),
         )
         .route("/opensearch.xml", get(opensearch::route))
@@ -90,12 +103,16 @@ pub async fn run(config: Config) {
         ))
         .with_state(config);
 
-    info!("Listening on http://{bind_addr}");
+    // Nest the app in a subdirectory chosen by the user
+    let subdirectory_router = Router::new()
+        .nest(&subdirectory, app);
+
+    info!("Listening on http://{bind_addr}{subdirectory}");
 
     let listener = tokio::net::TcpListener::bind(bind_addr).await.unwrap();
     axum::serve(
         listener,
-        app.into_make_service_with_connect_info::<SocketAddr>(),
+        subdirectory_router.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .await
     .unwrap();
@@ -137,15 +154,15 @@ pub fn head_html(title: Option<&str>, config: &Config) -> Markup {
                 }
                 {(config.ui.site_name)}
             }
-            link rel="stylesheet" href="/style.css";
+            link rel="stylesheet" href=(config.subdirectory.clone() + "/style.css");
             @if !config.ui.stylesheet_url.is_empty() {
                 link rel="stylesheet" href=(config.ui.stylesheet_url);
             }
             @if !config.ui.stylesheet_str.is_empty() {
                 style { (PreEscaped(html_escape::encode_style(&config.ui.stylesheet_str))) }
             }
-            script src="/script.js" defer {}
-            link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
+            script src=(config.subdirectory.clone() + "/script.js") defer {}
+            link rel="search" type="application/opensearchdescription+xml" title="metasearch" href=(config.subdirectory.clone() + "/opensearch.xml");
         }
     }
 }
