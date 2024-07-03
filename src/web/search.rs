@@ -23,9 +23,12 @@ use crate::{
     web::head_html,
 };
 
-fn render_beginning_of_html(search: &SearchQuery) -> String {
+fn render_beginning_of_html(
+    search: &SearchQuery,
+    config: &Config,
+) -> String {
     let form_html = html! {
-        form."search-form" action="/search" method="get" {
+        form."search-form" action=(config.subdirectory.clone() + "/search") method="get" {
             input #"search-input"  type="text" name="q" placeholder="Search" value=(search.query) autofocus onfocus="this.select()" autocomplete="off";
             input type="submit" value="Search";
         }
@@ -127,12 +130,19 @@ pub async fn get(
         .unwrap_or_default()
         .trim()
         .replace('\n', " ");
+
+    let back_location = if config.subdirectory.is_empty() {
+        "/".to_string()
+    } else {
+        config.subdirectory.clone()
+    };
+
     if query.is_empty() {
         // redirect to index
         return (
             StatusCode::FOUND,
             [
-                (header::LOCATION, "/"),
+                (header::LOCATION, back_location.as_str()),
                 (header::CONTENT_TYPE, "text/html; charset=utf-8"),
             ],
             Body::from("<a href=\"/\">No query provided, click here to go back to index</a>"),
@@ -201,7 +211,7 @@ pub async fn get(
         // 2) the results
         // 3) the post-search infobox (usually not sent) + the end of the html
 
-        let first_part = render_beginning_of_html(&query);
+        let first_part = render_beginning_of_html(&query, &config);
         // second part is in the loop
         let mut third_part = String::new();
 
