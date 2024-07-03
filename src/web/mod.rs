@@ -30,7 +30,7 @@ pub async fn run(config: Config) {
     fn static_route<S>(
         content: &'static str,
         content_type: &'static str,
-        subdirectory: &String,
+        subdirectory: &str,
     ) -> MethodRouter<S, Infallible>
     where
         S: Clone + Send + Sync + 'static,
