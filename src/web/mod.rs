@@ -107,15 +107,13 @@ async fn config_middleware(
 ) -> Result<Response, StatusCode> {
     let mut config = config.clone().as_ref().clone();
 
-    fn set_from_cookie(config: &mut String, cookies: &CookieJar, name: &str) {
-        if let Some(cookie) = cookies.get(name) {
-            let value = cookie.value();
-            *config = value.to_string();
+    let settings_cookie = cookies.get("settings");
+    if let Some(settings_cookie) = settings_cookie {
+        if let Ok(settings) = serde_json::from_str::<settings::Settings>(settings_cookie.value()) {
+            config.ui.stylesheet_url = settings.stylesheet_url;
+            config.ui.stylesheet_str = settings.stylesheet_str;
         }
     }
-
-    set_from_cookie(&mut config.ui.stylesheet_url, &cookies, "stylesheet-url");
-    set_from_cookie(&mut config.ui.stylesheet_str, &cookies, "stylesheet-str");
 
     // modify the state
     req.extensions_mut().insert(config);

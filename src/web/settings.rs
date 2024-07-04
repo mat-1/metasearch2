@@ -1,7 +1,7 @@
 use axum::{ http::{header, StatusCode}, response::IntoResponse, Extension, Form};
 use axum_extra::extract::{cookie::Cookie, CookieJar};
 use maud::{html, Markup, PreEscaped, DOCTYPE};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{config::Config, web::head_html};
 
@@ -60,19 +60,20 @@ pub async fn get(
     ( [(header::CONTENT_TYPE, "text/html; charset=utf-8")], html)
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Settings {
-    stylesheet_url: String,
-    stylesheet_str: String,
+    pub stylesheet_url: String,
+    pub stylesheet_str: String,
 }
 
 pub async fn post(
     mut jar: CookieJar,
     Form(settings): Form<Settings>,
 ) -> impl IntoResponse {
-    jar = jar.add(Cookie::new("stylesheet-url", settings.stylesheet_url));
-    jar = jar.add(Cookie::new("stylesheet-str", settings.stylesheet_str));
+    let mut settings_cookie = Cookie::new("settings", serde_json::to_string(&settings).unwrap());
+    settings_cookie.make_permanent();
+    jar = jar.add(settings_cookie);
 
     (
         StatusCode::FOUND,
