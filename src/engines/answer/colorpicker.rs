@@ -5,167 +5,41 @@ use crate::engines::{EngineResponse, SearchQuery};
 use super::regex;
 
 pub fn request(query: &SearchQuery) -> EngineResponse {
-    // at least one of these has to be set, otherwise we'll panic
-    let mut rgb: Option<(f64, f64, f64)> = None;
-    let mut cmyk: Option<(f64, f64, f64, f64)> = None;
-    let mut hsv: Option<(f64, f64, f64)> = None;
-    let mut hsl: Option<(f64, f64, f64)> = None;
+    let matched_colors = MatchedColorModel::new(&query.query);
 
-    if regex!("^color ?picker$").is_match(&query.query.to_lowercase()) {
-        // default to red
-        rgb = Some((1., 0., 0.));
-    } else if let Some(caps) = regex!("^#?([0-9a-f]{6})$").captures(&query.query) {
-        let hex_str = caps.get(1).unwrap().as_str();
-        let hex_num = u32::from_str_radix(hex_str, 16).unwrap();
-        let r = ((hex_num >> 16) & 0xff) as f64 / 255.;
-        let g = ((hex_num >> 8) & 0xff) as f64 / 255.;
-        let b = (hex_num & 0xff) as f64 / 255.;
+    let rgb;
+    let cmyk;
+    let hsv;
+    let hsl;
 
-        let r = r.clamp(0., 1.);
-        let g = g.clamp(0., 1.);
-        let b = b.clamp(0., 1.);
-
-        rgb = Some((r, g, b));
-    } else if let Some(caps) =
-        regex!("^rgb\\((\\d{1,3}), ?(\\d{1,3}), ?(\\d{1,3})\\)$").captures(&query.query)
-    {
-        let r = caps
-            .get(1)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 255.;
-        let g = caps
-            .get(2)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 255.;
-        let b = caps
-            .get(3)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 255.;
-
-        let r = r.clamp(0., 1.);
-        let g = g.clamp(0., 1.);
-        let b = b.clamp(0., 1.);
-
-        rgb = Some((r, g, b));
-    } else if let Some(caps) =
-        regex!("^cmyk\\((\\d{1,3})%, ?(\\d{1,3})%, ?(\\d{1,3})%, ?(\\d{1,3})%\\)$")
-            .captures(&query.query)
-    {
-        let c = caps
-            .get(1)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 100.;
-        let m = caps
-            .get(2)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 100.;
-        let y = caps
-            .get(3)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 100.;
-        let k = caps
-            .get(4)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 100.;
-
-        let c = c.clamp(0., 1.);
-        let m = m.clamp(0., 1.);
-        let y = y.clamp(0., 1.);
-        let k = k.clamp(0., 1.);
-
-        cmyk = Some((c, m, y, k));
-    } else if let Some(caps) =
-        regex!("^hsv\\((\\d{1,3})(?:°|deg|), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(&query.query)
-    {
-        let h = caps
-            .get(1)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 360.;
-        let s = caps
-            .get(2)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 100.;
-        let v = caps
-            .get(3)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 100.;
-
-        let h = h.clamp(0., 1.);
-        let s = s.clamp(0., 1.);
-        let v = v.clamp(0., 1.);
-
-        hsv = Some((h, s, v));
-    } else if let Some(caps) =
-        regex!("^hsl\\((\\d{1,3})(?:°|deg|), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(&query.query)
-    {
-        let h = caps
-            .get(1)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 360.;
-        let s = caps
-            .get(2)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 100.;
-        let l = caps
-            .get(3)
-            .and_then(|m| m.as_str().parse::<f64>().ok())
-            .unwrap_or_default()
-            / 100.;
-
-        let h = h.clamp(0., 1.);
-        let s = s.clamp(0., 1.);
-        let l = l.clamp(0., 1.);
-
-        hsl = Some((h, s, l));
+    if let Some(rgb_) = matched_colors.rgb {
+        rgb = rgb_;
+        cmyk = rgb_to_cmyk(rgb);
+        hsv = rgb_to_hsv(rgb);
+        hsl = rgb_to_hsl(rgb);
+    } else if let Some(cmyk_) = matched_colors.cmyk {
+        cmyk = cmyk_;
+        rgb = cmyk_to_rgb(cmyk);
+        hsv = rgb_to_hsv(rgb);
+        hsl = rgb_to_hsl(rgb);
+    } else if let Some(hsv_) = matched_colors.hsv {
+        hsv = hsv_;
+        rgb = hsv_to_rgb(hsv);
+        cmyk = rgb_to_cmyk(rgb);
+        hsl = hsv_to_hsl(hsv);
+    } else if let Some(hsl_) = matched_colors.hsl {
+        hsl = hsl_;
+        rgb = hsv_to_rgb(hsl_to_hsv(hsl));
+        cmyk = rgb_to_cmyk(rgb);
+        hsv = rgb_to_hsv(rgb);
     } else {
         return EngineResponse::new();
     }
 
-    let rgb_set;
-    let cmyk_set;
-    let hsv_set;
-    let hsl_set;
-
-    if let Some(rgb) = rgb {
-        rgb_set = rgb;
-        cmyk_set = rgb_to_cmyk(rgb);
-        hsv_set = rgb_to_hsv(rgb);
-        hsl_set = rgb_to_hsl(rgb);
-    } else if let Some(cmyk) = cmyk {
-        cmyk_set = cmyk;
-        rgb_set = cmyk_to_rgb(cmyk);
-        hsv_set = rgb_to_hsv(rgb_set);
-        hsl_set = rgb_to_hsl(rgb_set);
-    } else if let Some(hsv) = hsv {
-        hsv_set = hsv;
-        rgb_set = hsv_to_rgb(hsv);
-        cmyk_set = rgb_to_cmyk(rgb_set);
-        hsl_set = hsv_to_hsl(hsv);
-    } else if let Some(hsl) = hsl {
-        hsl_set = hsl;
-        rgb_set = hsv_to_rgb(hsl_to_hsv(hsl));
-        cmyk_set = rgb_to_cmyk(rgb_set);
-        hsv_set = rgb_to_hsv(rgb_set);
-    } else {
-        unreachable!("a color should've been set");
-    }
-
-    let (r, g, b) = rgb_set;
-    let (c, m, y, k) = cmyk_set;
-    let (hsv_h, hsv_s, hsv_v) = hsv_set;
-    let (hsl_h, hsl_s, hsl_l) = hsl_set;
+    let (r, g, b) = rgb;
+    let (c, m, y, k) = cmyk;
+    let (hsv_h, hsv_s, hsv_v) = hsv;
+    let (hsl_h, hsl_s, hsl_l) = hsl;
 
     let hex_str = format!(
         "#{:02x}{:02x}{:02x}",
@@ -284,6 +158,152 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
         }
         script src="/scripts/colorpicker.js" {}
     })
+}
+
+pub struct MatchedColorModel {
+    pub rgb: Option<(f64, f64, f64)>,
+    pub cmyk: Option<(f64, f64, f64, f64)>,
+    pub hsv: Option<(f64, f64, f64)>,
+    pub hsl: Option<(f64, f64, f64)>,
+}
+impl MatchedColorModel {
+    pub fn new(query: &str) -> Self {
+        let mut rgb = None;
+        let mut cmyk = None;
+        let mut hsv = None;
+        let mut hsl = None;
+
+        if regex!("^color ?picker$").is_match(&query.to_lowercase()) {
+            // default to red
+            rgb = Some((1., 0., 0.));
+        } else if let Some(caps) = regex!("^#?([0-9a-f]{6})$").captures(query) {
+            let hex_str = caps.get(1).unwrap().as_str();
+            let hex_num = u32::from_str_radix(hex_str, 16).unwrap();
+            let r = ((hex_num >> 16) & 0xff) as f64 / 255.;
+            let g = ((hex_num >> 8) & 0xff) as f64 / 255.;
+            let b = (hex_num & 0xff) as f64 / 255.;
+
+            let r = r.clamp(0., 1.);
+            let g = g.clamp(0., 1.);
+            let b = b.clamp(0., 1.);
+
+            rgb = Some((r, g, b));
+        } else if let Some(caps) =
+            regex!("^rgb\\((\\d{1,3}), ?(\\d{1,3}), ?(\\d{1,3})\\)$").captures(query)
+        {
+            let r = caps
+                .get(1)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 255.;
+            let g = caps
+                .get(2)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 255.;
+            let b = caps
+                .get(3)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 255.;
+
+            let r = r.clamp(0., 1.);
+            let g = g.clamp(0., 1.);
+            let b = b.clamp(0., 1.);
+
+            rgb = Some((r, g, b));
+        } else if let Some(caps) =
+            regex!("^cmyk\\((\\d{1,3})%, ?(\\d{1,3})%, ?(\\d{1,3})%, ?(\\d{1,3})%\\)$")
+                .captures(query)
+        {
+            let c = caps
+                .get(1)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 100.;
+            let m = caps
+                .get(2)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 100.;
+            let y = caps
+                .get(3)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 100.;
+            let k = caps
+                .get(4)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 100.;
+
+            let c = c.clamp(0., 1.);
+            let m = m.clamp(0., 1.);
+            let y = y.clamp(0., 1.);
+            let k = k.clamp(0., 1.);
+
+            cmyk = Some((c, m, y, k));
+        } else if let Some(caps) =
+            regex!("^hsv\\((\\d{1,3})(?:°|deg|), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(query)
+        {
+            let h = caps
+                .get(1)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 360.;
+            let s = caps
+                .get(2)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 100.;
+            let v = caps
+                .get(3)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 100.;
+
+            let h = h.clamp(0., 1.);
+            let s = s.clamp(0., 1.);
+            let v = v.clamp(0., 1.);
+
+            hsv = Some((h, s, v));
+        } else if let Some(caps) =
+            regex!("^hsl\\((\\d{1,3})(?:°|deg|), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(query)
+        {
+            let h = caps
+                .get(1)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 360.;
+            let s = caps
+                .get(2)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 100.;
+            let l = caps
+                .get(3)
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or_default()
+                / 100.;
+
+            let h = h.clamp(0., 1.);
+            let s = s.clamp(0., 1.);
+            let l = l.clamp(0., 1.);
+
+            hsl = Some((h, s, l));
+        }
+
+        Self {
+            rgb,
+            cmyk,
+            hsv,
+            hsl,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.rgb.is_none() && self.cmyk.is_none() && self.hsv.is_none() && self.hsl.is_none()
+    }
 }
 
 // this is the code from colorpicker.js ported to rust

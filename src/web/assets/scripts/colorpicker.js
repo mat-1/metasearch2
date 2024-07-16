@@ -92,7 +92,6 @@ const cmykInputEl = document.getElementById("answer-colorpicker-cmyk-input");
 const hsvInputEl = document.getElementById("answer-colorpicker-hsv-input");
 const hslInputEl = document.getElementById("answer-colorpicker-hsl-input");
 
-// let hsv = [initialHue, 1, 1];
 let hsv = parseHsv(hsvInputEl.value);
 let hsl = parseHsl(hslInputEl.value);
 let rgb = parseRgb(rgbInputEl.value);
@@ -238,7 +237,6 @@ function updateHuePicker(clientX) {
   if (x < 0) x = 0;
   if (x > rect.width) x = rect.width;
 
-  // percentage
   huepickerEl.style.left = `${(x / rect.width) * 100}%`;
 
   const hue = (x / rect.width) * 360;

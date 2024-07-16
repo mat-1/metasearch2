@@ -4,25 +4,43 @@ use maud::html;
 use serde::Deserialize;
 use url::Url;
 
-use crate::engines::{EngineResponse, CLIENT};
+use crate::engines::{EngineResponse, RequestResponse, CLIENT};
 
-pub fn request(query: &str) -> reqwest::RequestBuilder {
-    CLIENT.get(
-        Url::parse_with_params(
-            "https://en.wikipedia.org/w/api.php",
-            &[
-                ("format", "json"),
-                ("action", "query"),
-                ("prop", "extracts|pageimages"),
-                ("exintro", ""),
-                ("explaintext", ""),
-                ("redirects", "1"),
-                ("exsentences", "2"),
-                ("titles", query),
-            ],
+use super::colorpicker;
+
+pub fn request(mut query: &str) -> RequestResponse {
+    if !colorpicker::MatchedColorModel::new(query).is_empty() {
+        // "color picker" is a wikipedia article but we only want to show the
+        // actual color picker answer
+        return RequestResponse::None;
+    }
+
+    // adding "wikipedia" to the start or end of your query is common when you
+    // want to get a wikipedia article
+    if let Some(stripped_query) = query.strip_suffix(" wikipedia") {
+        query = stripped_query
+    } else if let Some(stripped_query) = query.strip_prefix("wikipedia ") {
+        query = stripped_query
+    }
+
+    CLIENT
+        .get(
+            Url::parse_with_params(
+                "https://en.wikipedia.org/w/api.php",
+                &[
+                    ("format", "json"),
+                    ("action", "query"),
+                    ("prop", "extracts|pageimages"),
+                    ("exintro", ""),
+                    ("explaintext", ""),
+                    ("redirects", "1"),
+                    ("exsentences", "2"),
+                    ("titles", query),
+                ],
+            )
+            .unwrap(),
         )
-        .unwrap(),
-    )
+        .into()
 }
 
 #[derive(Debug, Deserialize)]
