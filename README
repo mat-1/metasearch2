@@ -36,8 +36,8 @@ checked at the following locations:
 
 If no config file exists, it'll be created at the first valid path in the list.
 
-By default, metasearch runs on the port 28019. You are recommended to use a
-reverse proxy.
+By default, metasearch runs on port 28019. You are encouraged to use a reverse
+proxy.
 
 -------------
 CONFIGURATION
@@ -46,7 +46,7 @@ CONFIGURATION
 You can see all the default config options at `src/config.rs`. Some interesting
 options you may want to change are:
 
-  - bind - the host and port that the web server runs on, for example
+  - bind - the host and port that the web server runs on, defaults to
     `0.0.0.0:28019`.
   - api - whether your instance is accessible through a JSON API. See below for
     more details.
@@ -69,4 +69,4 @@ For example:
 curl 'http://localhost:28019/search?q=sandcats' -H 'Accept: application/json'
 
 The structure of the API is not guaranteed to be stable, as it relies on
-serializing internal structs. It may break across versions!
+serializing internal structs. It may change without warning in the future.
