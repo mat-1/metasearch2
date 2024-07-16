@@ -73,6 +73,7 @@ pub async fn run(config: Config) {
         "style.css",
         "script.js",
         "robots.txt",
+        "scripts/colorpicker.js",
         "themes/catppuccin-mocha.css",
         "themes/catppuccin-latte.css",
         "themes/nord-bluish.css",
