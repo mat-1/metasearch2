@@ -252,32 +252,32 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
             div.answer-colorpicker-hex-input-container {
                 label for="answer-colorpicker-hex-input" { "HEX" }
                 div.answer-colorpicker-input-container {
-                    input #answer-colorpicker-hex-input type="text" value=(hex_str) {}
+                    input #answer-colorpicker-hex-input type="text" autocomplete="off" value=(hex_str) {}
                 }
             }
             div.answer-colorpicker-other-inputs {
                 div {
                     label for="answer-colorpicker-rgb-input" { "RGB" }
                     div.answer-colorpicker-input-container {
-                        input #answer-colorpicker-rgb-input type="text" value=(rgb_str) {}
+                        input #answer-colorpicker-rgb-input type="text" autocomplete="off" value=(rgb_str) {}
                     }
                 }
                 div {
                     label for="answer-colorpicker-cmyk-input" { "CMYK" }
                     div.answer-colorpicker-input-container {
-                        input #answer-colorpicker-cmyk-input type="text" value=(cmyk_str) {}
+                        input #answer-colorpicker-cmyk-input type="text" autocomplete="off" value=(cmyk_str) {}
                     }
                 }
                 div {
                     label for="answer-colorpicker-hsv-input" { "HSV" }
                     div.answer-colorpicker-input-container {
-                        input #answer-colorpicker-hsv-input type="text" value=(hsv_str) {}
+                        input #answer-colorpicker-hsv-input type="text" autocomplete="off" value=(hsv_str) {}
                     }
                 }
                 div {
                     label for="answer-colorpicker-hsl-input" { "HSL" }
                     div.answer-colorpicker-input-container {
-                        input #answer-colorpicker-hsl-input type="text" value=(hsl_str) {}
+                        input #answer-colorpicker-hsl-input type="text" autocomplete="off" value=(hsl_str) {}
                     }
                 }
             }
