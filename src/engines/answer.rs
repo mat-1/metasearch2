@@ -1,3 +1,4 @@
+pub mod colorpicker;
 pub mod dictionary;
 pub mod fend;
 pub mod ip;
