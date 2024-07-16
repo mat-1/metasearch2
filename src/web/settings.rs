@@ -1,13 +1,15 @@
-use axum::{ http::{header, StatusCode}, response::IntoResponse, Extension, Form};
+use axum::{
+    http::{header, StatusCode},
+    response::IntoResponse,
+    Extension, Form,
+};
 use axum_extra::extract::{cookie::Cookie, CookieJar};
 use maud::{html, Markup, PreEscaped, DOCTYPE};
 use serde::{Deserialize, Serialize};
 
 use crate::{config::Config, web::head_html};
 
-pub async fn get(
-    Extension(config): Extension<Config>,
-) -> impl IntoResponse {
+pub async fn get(Extension(config): Extension<Config>) -> impl IntoResponse {
     let theme_option = |value: &str, name: &str| -> Markup {
         let selected = config.ui.stylesheet_url == value;
         html! {
@@ -57,7 +59,7 @@ pub async fn get(
     }
     .into_string();
 
-    ( [(header::CONTENT_TYPE, "text/html; charset=utf-8")], html)
+    ([(header::CONTENT_TYPE, "text/html; charset=utf-8")], html)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -67,17 +69,10 @@ pub struct Settings {
     pub stylesheet_str: String,
 }
 
-pub async fn post(
-    mut jar: CookieJar,
-    Form(settings): Form<Settings>,
-) -> impl IntoResponse {
+pub async fn post(mut jar: CookieJar, Form(settings): Form<Settings>) -> impl IntoResponse {
     let mut settings_cookie = Cookie::new("settings", serde_json::to_string(&settings).unwrap());
     settings_cookie.make_permanent();
     jar = jar.add(settings_cookie);
 
-    (
-        StatusCode::FOUND,
-        [(header::LOCATION, "/settings")],
-        jar
-    )
+    (StatusCode::FOUND, [(header::LOCATION, "/settings")], jar)
 }
