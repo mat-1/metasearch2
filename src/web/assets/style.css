@@ -32,6 +32,11 @@
   --syntax-func: #ffb454;
 }
 
+::selection {
+  background-color: var(--accent);
+  color: var(--bg-3);
+}
+
 html {
   height: 100%;
 }

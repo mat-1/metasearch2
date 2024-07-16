@@ -34,6 +34,7 @@ pub async fn get(Extension(config): Extension<Config>) -> impl IntoResponse {
                             select name="stylesheet-url" selected=(config.ui.stylesheet_url) {
                                 { (theme_option("", "Ayu Dark")) }
                                 { (theme_option("/themes/catppuccin-mocha.css", "Catppuccin Mocha")) }
+                                { (theme_option("/themes/catppuccin-macchiato.css", "Catppuccin Macchiato")) }
                                 { (theme_option("/themes/catppuccin-latte.css", "Catppuccin Latte")) }
                                 { (theme_option("/themes/nord-bluish.css", "Nord Bluish")) }
                                 { (theme_option("/themes/discord.css", "Discord")) }
