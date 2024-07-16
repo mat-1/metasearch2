@@ -8,8 +8,8 @@ use tracing::error;
 
 pub mod config;
 pub mod engines;
-pub mod normalize;
 pub mod parse;
+pub mod urls;
 pub mod web;
 
 #[tokio::main(flavor = "current_thread")]

@@ -1,4 +1,5 @@
-# See src/config.rs for all of the possible options
+# See src/config.rs for all of the possible options.
+# the commented-out lines are examples of values you could set, not the defaults.
 
 bind = "0.0.0.0:28019"
 api = false
@@ -14,3 +15,14 @@ api = false
 [engines]
 # numbat = false
 # fend = true
+
+[urls.replace]
+# "www.reddit.com" = "old.reddit.com"
+# "medium.com" = "scribe.rip"
+# ".medium.com" = "scribe.rip"
+
+[urls.weight]
+# (these are checked after replacing)
+# setting the weight to 0 completely hides the result
+# "quora.com" = 0.1
+# ".quora.com" = 0.1

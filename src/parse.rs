@@ -2,7 +2,7 @@
 
 use crate::{
     engines::{EngineFeaturedSnippet, EngineResponse, EngineSearchResult},
-    normalize::normalize_url,
+    urls::normalize_url,
 };
 
 use scraper::{Html, Selector};
@@ -169,7 +169,7 @@ pub(super) fn parse_html_response_with_opts(
             continue;
         }
 
-        let url = normalize_url(&url)?;
+        let url = normalize_url(&url);
 
         search_results.push(EngineSearchResult {
             url,
@@ -186,7 +186,7 @@ pub(super) fn parse_html_response_with_opts(
     {
         let title = featured_snippet_title_query_method.call(&featured_snippet)?;
         let url = featured_snippet_href_query_method.call(&featured_snippet)?;
-        let url = normalize_url(&url)?;
+        let url = normalize_url(&url);
         let description = featured_snippet_description_query_method.call(&featured_snippet)?;
 
         // this can happen on google if you search "what's my user agent"

@@ -1,6 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::config::Config;
+use crate::{
+    config::Config,
+    urls::{apply_url_replacements, get_url_weight},
+};
 
 use super::{
     Answer, AutocompleteResult, Engine, EngineImageResult, EngineImagesResponse, EngineResponse,
@@ -19,11 +22,19 @@ pub fn merge_engine_responses(
     for (engine, response) in responses {
         let engine_config = config.engines.get(engine);
 
-        for (result_index, search_result) in response.search_results.into_iter().enumerate() {
+        for (result_index, mut search_result) in response.search_results.into_iter().enumerate() {
             // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a
             // score of 0.33, etc.
             let base_result_score = 1. / (result_index + 1) as f64;
             let result_score = base_result_score * engine_config.weight;
+
+            // apply url config here
+            search_result.url = apply_url_replacements(&search_result.url, &config.urls);
+            let url_weight = get_url_weight(&search_result.url, &config.urls);
+            if url_weight <= 0. {
+                continue;
+            }
+            let result_score = result_score * url_weight;
 
             if let Some(existing_result) = search_results
                 .iter_mut()
@@ -57,12 +68,22 @@ pub fn merge_engine_responses(
             }
         }
 
-        if let Some(engine_featured_snippet) = response.featured_snippet {
+        if let Some(mut engine_featured_snippet) = response.featured_snippet {
             // if it has a higher weight than the current featured snippet
             let featured_snippet_weight = featured_snippet.as_ref().map_or(0., |s| {
                 let other_engine_config = config.engines.get(s.engine);
                 other_engine_config.weight
             });
+
+            // url config applies to featured snippets too
+            engine_featured_snippet.url =
+                apply_url_replacements(&engine_featured_snippet.url, &config.urls);
+            let url_weight = get_url_weight(&engine_featured_snippet.url, &config.urls);
+            if url_weight <= 0. {
+                continue;
+            }
+            let featured_snippet_weight = featured_snippet_weight * url_weight;
+
             if engine_config.weight > featured_snippet_weight {
                 featured_snippet = Some(FeaturedSnippet {
                     url: engine_featured_snippet.url,
