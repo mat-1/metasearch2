@@ -49,10 +49,12 @@ body {
   height: 100%;
 }
 
-.settings-link {
+.settings-link,
+.settings-link:visited {
   position: absolute;
   top: 1em;
   right: 1em;
+  color: var(--link);
 }
 .version-info {
   position: absolute;
@@ -143,6 +145,7 @@ h1 {
 .settings-page .back-to-index-button {
   bottom: 0.5em;
   position: relative;
+  color: var(--link);
 }
 .settings-form select {
   display: block;
@@ -530,6 +533,7 @@ h3.answer-thesaurus-category-title {
   min-width: 12rem;
   position: relative;
   flex-grow: 1;
+  overflow: hidden;
 }
 .image-result-img-container {
   margin: 0 auto;
@@ -538,6 +542,8 @@ h3.answer-thesaurus-category-title {
 .image-result img {
   height: 10.3rem;
   width: auto;
+  object-fit: scale-down;
+  object-position: left;
 }
 .image-result-page-anchor {
   display: block;

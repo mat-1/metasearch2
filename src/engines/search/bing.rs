@@ -81,7 +81,7 @@ pub fn request_images(query: &str) -> reqwest::RequestBuilder {
     )
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip(body))]
 pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
     let dom = Html::parse_document(body);
 
