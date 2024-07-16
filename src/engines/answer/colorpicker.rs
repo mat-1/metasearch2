@@ -51,7 +51,7 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
 
         rgb = Some((r, g, b));
     } else if let Some(caps) =
-        regex!("^cmyk\\((\\d{1,3}), ?(\\d{1,3}), ?(\\d{1,3}), ?(\\d{1,3})\\)$")
+        regex!("^cmyk\\((\\d{1,3})%, ?(\\d{1,3})%, ?(\\d{1,3})%, ?(\\d{1,3})%\\)$")
             .captures(&query.query)
     {
         let c = caps
@@ -82,7 +82,7 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
 
         cmyk = Some((c, m, y, k));
     } else if let Some(caps) =
-        regex!("^hsv\\((\\d{1,3}), ?(\\d{1,3}), ?(\\d{1,3})\\)$").captures(&query.query)
+        regex!("^hsv\\((\\d{1,3})(?:°|deg), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(&query.query)
     {
         let h = caps
             .get(1)
@@ -106,7 +106,7 @@ pub fn request(query: &SearchQuery) -> EngineResponse {
 
         hsv = Some((h, s, v));
     } else if let Some(caps) =
-        regex!("^hsl\\((\\d{1,3}), ?(\\d{1,3}), ?(\\d{1,3})\\)$").captures(&query.query)
+        regex!("^hsl\\((\\d{1,3})(?:°|deg), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(&query.query)
     {
         let h = caps
             .get(1)
