@@ -35,8 +35,8 @@ impl Default for Config {
             engines: Arc::new(EnginesConfig::default()),
             urls: UrlsConfig {
                 replace: vec![(
-                    DomainAndPath::from_str("minecraft.fandom.com/wiki/"),
-                    DomainAndPath::from_str("minecraft.wiki/w/"),
+                    HostAndPath::new("minecraft.fandom.com/wiki/"),
+                    HostAndPath::new("minecraft.wiki/w/"),
                 )],
                 weight: vec![],
             },
@@ -357,15 +357,15 @@ impl Config {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct DomainAndPath {
-    pub domain: String,
+pub struct HostAndPath {
+    pub host: String,
     pub path: String,
 }
-impl DomainAndPath {
-    pub fn from_str(s: &str) -> Self {
-        let (domain, path) = s.split_once('/').unwrap_or((s, ""));
+impl HostAndPath {
+    pub fn new(s: &str) -> Self {
+        let (host, path) = s.split_once('/').unwrap_or((s, ""));
         Self {
-            domain: domain.to_owned(),
+            host: host.to_owned(),
             path: path.to_owned(),
         }
     }
@@ -373,8 +373,8 @@ impl DomainAndPath {
 
 #[derive(Debug, Clone)]
 pub struct UrlsConfig {
-    pub replace: Vec<(DomainAndPath, DomainAndPath)>,
-    pub weight: Vec<(DomainAndPath, f64)>,
+    pub replace: Vec<(HostAndPath, HostAndPath)>,
+    pub weight: Vec<(HostAndPath, f64)>,
 }
 #[derive(Deserialize, Debug, Default)]
 pub struct PartialUrlsConfig {
@@ -386,27 +386,27 @@ pub struct PartialUrlsConfig {
 impl UrlsConfig {
     pub fn overlay(&mut self, partial: PartialUrlsConfig) {
         for (from, to) in partial.replace {
-            let from = DomainAndPath::from_str(&from);
+            let from = HostAndPath::new(&from);
             if to.is_empty() {
                 // setting the value to an empty string removes it
                 let index = self.replace.iter().position(|(u, _)| u == &from);
                 // swap_remove is fine because the order of this vec doesn't matter
                 self.replace.swap_remove(index.unwrap());
             } else {
-                let to = DomainAndPath::from_str(&to);
+                let to = HostAndPath::new(&to);
                 self.replace.push((from, to));
             }
         }
 
         for (url, weight) in partial.weight {
-            let url = DomainAndPath::from_str(&url);
+            let url = HostAndPath::new(&url);
             self.weight.push((url, weight));
         }
 
         // sort by length so that more specific checls are done first
         self.weight.sort_by(|(a, _), (b, _)| {
-            let a_len = a.path.len() + a.domain.len();
-            let b_len = b.path.len() + b.domain.len();
+            let a_len = a.path.len() + a.host.len();
+            let b_len = b.path.len() + b.host.len();
             b_len.cmp(&a_len)
         });
     }

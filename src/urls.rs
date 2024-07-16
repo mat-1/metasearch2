@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use tracing::{error, warn};
 use url::Url;
 
-use crate::config::UrlsConfig;
+use crate::config::{HostAndPath, UrlsConfig};
 
 #[tracing::instrument]
 pub fn normalize_url(url: &str) -> String {
@@ -73,6 +73,68 @@ pub fn normalize_url(url: &str) -> String {
     url
 }
 
+impl HostAndPath {
+    pub fn contains(&self, host: &str, path: &str) -> bool {
+        if self.host.starts_with('.') {
+            if !host.ends_with(&self.host) {
+                return false;
+            }
+        } else if host != self.host {
+            return false;
+        }
+
+        if self.path.ends_with('/') || self.path.is_empty() {
+            path.starts_with(&self.path)
+        } else {
+            path == self.path
+        }
+    }
+
+    pub fn replace(
+        replace_from: &HostAndPath,
+        replace_with: &HostAndPath,
+        real_url: &HostAndPath,
+    ) -> Option<(String, String)> {
+        let new_host = if replace_from.host.starts_with(".") {
+            if replace_with.host.starts_with(".") {
+                if let Some(host_without_suffix) = real_url.host.strip_suffix(&replace_from.host) {
+                    format!("{host_without_suffix}{}", replace_with.host)
+                } else {
+                    return None;
+                }
+            } else {
+                replace_with.host.clone()
+            }
+        } else if real_url.host == replace_from.host {
+            replace_with.host.clone()
+        } else {
+            return None;
+        };
+
+        // host matches, now check path
+
+        let new_path = if replace_from.path.ends_with('/') || replace_with.path.is_empty() {
+            if replace_with.path.ends_with('/') {
+                if let Some(path_without_prefix) = real_url.path.strip_prefix(&replace_from.path) {
+                    format!("{}{path_without_prefix}", replace_with.path)
+                } else {
+                    return None;
+                }
+            } else if replace_with.path.is_empty() {
+                real_url.path.clone()
+            } else {
+                replace_with.path.clone()
+            }
+        } else if real_url.path == replace_from.path {
+            replace_with.path.clone()
+        } else {
+            return None;
+        };
+
+        Some((new_host, new_path))
+    }
+}
+
 pub fn apply_url_replacements(url: &str, urls_config: &UrlsConfig) -> String {
     let Ok(mut url) = Url::parse(url) else {
         error!("failed to parse url");
@@ -81,41 +143,23 @@ pub fn apply_url_replacements(url: &str, urls_config: &UrlsConfig) -> String {
 
     let host = url.host_str().unwrap_or_default().to_owned();
 
-    let path = url.path();
-    let path = path.strip_prefix("/").unwrap_or(path).to_owned();
+    let path = url
+        .path()
+        .strip_prefix("/")
+        .unwrap_or(url.path())
+        .to_owned();
+    let real_url = HostAndPath { host, path };
     for (replace_from, replace_to) in &urls_config.replace {
-        let new_host = if replace_from.domain.starts_with(".") {
-            if host.ends_with(&replace_from.domain) {
-                if replace_to.domain.starts_with(".") {
-                    let host_without_suffix = host
-                        .strip_suffix(&replace_from.domain)
-                        .expect("host was already verified to end in replace_from.domain");
-                    format!("{}{}", host_without_suffix, replace_to.domain)
-                } else {
-                    replace_to.domain.clone()
-                }
-            } else {
-                continue;
-            }
-        } else if host == replace_from.domain {
-            replace_to.domain.clone()
-        } else {
-            continue;
-        };
-
-        // host matches, now check path
-
-        let new_path = if let Some(path) = path.strip_prefix(&replace_from.path) {
-            format!("{}{path}", replace_to.path)
-        } else {
-            continue;
-        };
-
-        let _ = url.set_host(Some(&new_host));
-        url.set_path(&new_path);
+        if let Some((new_host, new_path)) =
+            HostAndPath::replace(replace_from, replace_to, &real_url)
+        {
+            let _ = url.set_host(Some(&new_host));
+            url.set_path(&new_path);
+            break;
+        }
     }
 
-    normalize_url(&url.to_string())
+    normalize_url(url.as_ref())
 }
 pub fn get_url_weight(url: &str, urls_config: &UrlsConfig) -> f64 {
     let Ok(url) = Url::parse(url) else {
@@ -126,11 +170,7 @@ pub fn get_url_weight(url: &str, urls_config: &UrlsConfig) -> f64 {
     let host = url.host_str().unwrap_or_default().to_owned();
     let path = url.path().strip_prefix("/").unwrap_or_default().to_owned();
     for (check, weight) in &urls_config.weight {
-        if check.domain.starts_with(".") {
-            if host.ends_with(&check.domain) && path.starts_with(&check.path) {
-                return *weight;
-            }
-        } else if host == check.domain && path.starts_with(&check.path) {
+        if check.contains(&host, &path) {
             return *weight;
         }
     }
@@ -140,13 +180,13 @@ pub fn get_url_weight(url: &str, urls_config: &UrlsConfig) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::DomainAndPath;
+    use crate::config::HostAndPath;
 
     use super::*;
 
     fn test_replacement(from: &str, to: &str, url: &str, expected: &str) {
         let urls_config = UrlsConfig {
-            replace: vec![(DomainAndPath::from_str(from), DomainAndPath::from_str(to))],
+            replace: vec![(HostAndPath::new(from), HostAndPath::new(to))],
             weight: vec![],
         };
         let normalized_url = apply_url_replacements(url, &urls_config);
@@ -163,7 +203,7 @@ mod tests {
         );
     }
     #[test]
-    fn test_replace_wildcard_domain_with_absolute() {
+    fn test_replace_wildcard_host_with_absolute() {
         test_replacement(
             ".medium.com",
             "scribe.rip",
@@ -172,7 +212,7 @@ mod tests {
         );
     }
     #[test]
-    fn test_replace_wildcard_domain_with_wildcard() {
+    fn test_replace_wildcard_host_with_wildcard() {
         test_replacement(
             ".medium.com",
             ".scribe.rip",
