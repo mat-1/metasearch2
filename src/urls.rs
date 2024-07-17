@@ -102,8 +102,10 @@ impl HostAndPath {
                 } else {
                     return None;
                 }
+            } else if real_url.host.ends_with(&replace_from.host) {
+                replace_with.host.to_owned()
             } else {
-                replace_with.host.clone()
+                return None;
             }
         } else if real_url.host == replace_from.host {
             replace_with.host.clone()
@@ -113,17 +115,17 @@ impl HostAndPath {
 
         // host matches, now check path
 
-        let new_path = if replace_from.path.ends_with('/') || replace_with.path.is_empty() {
-            if replace_with.path.ends_with('/') {
+        let new_path = if replace_from.path.ends_with('/') || replace_from.path.is_empty() {
+            if replace_with.path.ends_with('/') || replace_with.path.is_empty() {
                 if let Some(path_without_prefix) = real_url.path.strip_prefix(&replace_from.path) {
                     format!("{}{path_without_prefix}", replace_with.path)
                 } else {
                     return None;
                 }
-            } else if replace_with.path.is_empty() {
-                real_url.path.clone()
-            } else {
+            } else if real_url.path.starts_with(&replace_from.path) {
                 replace_with.path.clone()
+            } else {
+                return None;
             }
         } else if real_url.path == replace_from.path {
             replace_with.path.clone()
@@ -227,6 +229,15 @@ mod tests {
             ".scribe.rip",
             "https://medium.com/asdf",
             "https://medium.com/asdf",
+        );
+    }
+    #[test]
+    fn test_non_matching_wildcard_to_absolute() {
+        test_replacement(
+            ".medium.com",
+            "scribe.rip",
+            "https://example.com/asdf",
+            "https://example.com/asdf",
         );
     }
 }
