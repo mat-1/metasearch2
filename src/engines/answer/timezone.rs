@@ -14,7 +14,7 @@ pub fn request(query: &str) -> EngineResponse {
             h3 {
                 b { (time.format("%-I:%M %P")) }
                 span.answer-comment {
-                    "(" (time.format("%B %-d")) ")"
+                    " (" (time.format("%B %-d")) ")"
                 }
             }
         }),
