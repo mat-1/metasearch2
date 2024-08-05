@@ -168,12 +168,11 @@ h1 {
   display: flex;
   gap: 0.5rem;
 }
-.index-page .search-form {
-  justify-content: center;
-}
 #search-input {
-  max-width: 30em;
   flex: 1;
+}
+.main-container:not(.index-page) #search-input {
+  max-width: 30em;
 }
 #search-input-suggestions {
   position: absolute;
