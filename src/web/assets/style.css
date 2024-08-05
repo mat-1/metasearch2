@@ -168,6 +168,9 @@ h1 {
   display: flex;
   gap: 0.5rem;
 }
+.index-page .search-form {
+  justify-content: center;
+}
 #search-input {
   max-width: 30em;
   flex: 1;
