@@ -53,8 +53,22 @@ pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
         .to_string();
 
     let readme_dom = Html::parse_fragment(&readme_html);
-    let title = if let Some(title_el) = readme_dom.select(&Selector::parse("h1").unwrap()).next() {
+    // if the readme is wrapped in <article>, remove that
+    if let Some(article) = readme_dom
+        .select(&Selector::parse("article").unwrap())
+        .next()
+    {
+        readme_html = article.inner_html().to_string();
+    }
+
+    let title = if let Some(title_el) = readme_dom
+        // github wraps their h1s in a <div class="">
+        .select(&Selector::parse("div:has(h1)").unwrap())
+        .next()
+    {
+        // if the readme starts with an h1, remove it
         let title_html = title_el.html().trim().to_string();
+
         if readme_html.starts_with(&title_html) {
             readme_html = readme_html[title_html.len()..].to_string();
         }
