@@ -1,15 +1,15 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, };
 
-use axum::{extract::{ConnectInfo, Query, State}, http::{header, HeaderMap}, response::IntoResponse, Form};
+use axum::{extract::{ConnectInfo, Query, }, http::{header, HeaderMap}, response::IntoResponse, Extension, Form};
 use maud::{html, PreEscaped, DOCTYPE};
 
-use crate::config::Config;
+use crate::{config::Config, web::head_html};
 
 use super::search;
 
 pub async fn get(
     Query(params): Query<HashMap<String, String>>,
-    State(config): State<Arc<Config>>,
+    Extension(config): Extension<Config>,
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Form(form): Form<serde_json::Value>,
@@ -17,29 +17,16 @@ pub async fn get(
     let mut html = String::new();
 
     let Some(captcha_config) = &config.captcha else {
-        return search::post(Query(params), State(config), headers, ConnectInfo(addr), Form(form)).await;
+        return search::post(Query(params), Extension(config), headers, ConnectInfo(addr), Form(form)).await;
     };
 
     html.push_str(
         &html! {
             (DOCTYPE)
             html lang="en" {
-                head {
-                    meta charset="UTF-8";
-                    meta name="viewport" content="width=device-width, initial-scale=1.0";
-                    title { "metasearch - verify your humanity" }
-                    link rel="stylesheet" href="/style.css";
-                    script src="/script.js" defer {}
+                {(head_html(Some("Verify your humanity"), &config))}
+                body {
                     script src="https://www.google.com/recaptcha/api.js" async defer {}
-                    (PreEscaped(r#"<!-- Google tag (gtag.js) -->
-                    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NM1Q7B09WN"></script>
-                    <script>
-                    window.dataLayer = window.dataLayer || [];
-                    function gtag(){dataLayer.push(arguments);}
-                    gtag('js', new Date());
-
-                    gtag('config', 'G-NM1Q7B09WN');
-                    </script>"#))
                     script {
                         (PreEscaped(r#"
                         function submitCaptcha(token) {
@@ -62,12 +49,10 @@ pub async fn get(
                         }
                         "#))
                     }
-                }
-                body {
                     noscript {
                         "You must enable JavaScript to use this site."
                     }
-                    div."main-container" {
+                    div.main-container.index-page {
                         h1 { "Verify your humanity" }
                         form #captcha-form action="/search" method="post" {
                             div."g-recaptcha" data-sitekey=(captcha_config.site_key) data-theme="dark" data-callback="submitCaptcha" {}

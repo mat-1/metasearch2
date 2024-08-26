@@ -1,170 +1,72 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+mod all;
+mod images;
+
+use std::{collections::HashMap, net::SocketAddr, str::FromStr};
 
 use async_stream::stream;
 use axum::{
     body::Body,
-    extract::{ConnectInfo, Query, State},
+    extract::{ConnectInfo, Query},
     http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
-    Form, Json,
+    Extension, Form, Json,
 };
 use bytes::Bytes;
-use maud::{html, PreEscaped};
+use maud::{html, PreEscaped, DOCTYPE};
 
 use crate::{
     config::Config,
-    engines::{self, Engine, EngineProgressUpdate, ProgressUpdateData, Response, SearchQuery},
-    web::captcha,
+    engines::{
+        self, Engine, EngineProgressUpdate, ProgressUpdateData, ResponseForTab, SearchQuery,
+        SearchTab,
+    },
+    web::head_html,
 };
 
-fn render_beginning_of_html(query: &str) -> String {
-    let head_html = html! {
-        head {
-            meta charset="UTF-8";
-            meta name="viewport" content="width=device-width, initial-scale=1.0";
-            title {
-                (query)
-                " - metasearch"
-            }
-            link rel="stylesheet" href="/style.css";
-            script src="/script.js" defer {}
-            link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
-            (PreEscaped(r#"<!-- Google tag (gtag.js) -->
-            <script async src="https://www.googletagmanager.com/gtag/js?id=G-NM1Q7B09WN"></script>
-            <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+use super::captcha;
 
-            gtag('config', 'G-NM1Q7B09WN');
-            </script>"#))
-        }
-    }.into_string();
+fn render_beginning_of_html(search: &SearchQuery) -> String {
     let form_html = html! {
-        form."search-form" action="/search" method="get" {
-            input #"search-input"  type="text" name="q" placeholder="Search" value=(query) autofocus onfocus="this.select()" autocomplete="off";
+        form.search-form action="/search" method="get" {
+            input #search-input  type="text" name="q" placeholder="Search" value=(search.query) autofocus onfocus="this.select()" autocomplete="off";
+            @if search.tab != SearchTab::default() {
+                input type="hidden" name="tab" value=(search.tab.to_string());
+            }
             input type="submit" value="Search";
         }
-    }.into_string();
+        @if search.config.image_search.enabled {
+            div.search-tabs {
+                @if search.tab == SearchTab::All { span.search-tab.selected { "All" } }
+                @else { a.search-tab href={ "?q=" (search.query) } { "All" } }
+                @if search.tab == SearchTab::Images { span.search-tab.selected { "Images" } }
+                @else { a.search-tab href={ "?q=" (search.query) "&tab=images" } { "Images" } }
+            }
+        }
+    };
 
-    format!(
-        r#"<!DOCTYPE html>
-<html lang="en">
-{head_html}
-<body>
-    <div class="results-container">
-    <main>
-    {form_html}
-    <div class="progress-updates">
-"#
-    )
+    // we don't close the elements here because we do chunked responses
+    html! {
+        (DOCTYPE)
+        html lang="en";
+        {(head_html(Some(&search.query), &search.config))}
+        body;
+        div.main-container.{"search-" (search.tab.to_string())};
+        main;
+        (form_html)
+        div.progress-updates;
+    }
+    .into_string()
 }
 
 fn render_end_of_html() -> String {
     r"</main></div></body></html>".to_string()
 }
 
-fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
-    let mut html = String::new();
-    for (i, engine) in engines.iter().enumerate() {
-        let raw_engine_id = engine.id();
-        if raw_engine_id == "ads" {
-            // ad indicator is already shown next to url
-            continue;
-        }
-        if config.ui.show_engine_list_separator.unwrap() && i > 0 {
-            html.push_str(" &middot; ");
-        }
-        let engine_id = if config.ui.show_engine_list_separator.unwrap() {
-            raw_engine_id.replace('_', " ")
-        } else {
-            raw_engine_id.to_string()
-        };
-        html.push_str(&html! { span."engine-list-item" { (engine_id) } }.into_string())
+fn render_results_for_tab(response: ResponseForTab) -> PreEscaped<String> {
+    match response {
+        ResponseForTab::All(r) => all::render_results(r),
+        ResponseForTab::Images(r) => images::render_results(r),
     }
-    html! {
-        div."engine-list" {
-            (PreEscaped(html))
-        }
-    }
-}
-
-fn render_search_result(result: &engines::SearchResult, config: &Config) -> PreEscaped<String> {
-    let is_ad = result.engines.iter().any(|e| e.id() == "ads");
-    html! {
-        div."search-result" {
-            a."search-result-anchor" rel="noreferrer" href=(result.url) {
-                span."search-result-url" {
-                    @if is_ad {
-                        "Ad · "
-                    }
-                    (result.url)
-                }
-                h3."search-result-title" { (result.title) }
-            }
-            p."search-result-description" { (result.description) }
-            (render_engine_list(&result.engines.iter().copied().collect::<Vec<_>>(), config))
-        }
-    }
-}
-
-fn render_featured_snippet(
-    featured_snippet: &engines::FeaturedSnippet,
-    config: &Config,
-) -> PreEscaped<String> {
-    html! {
-        div."featured-snippet" {
-            p."search-result-description" { (featured_snippet.description) }
-            a."search-result-anchor" rel="noreferrer" href=(featured_snippet.url) {
-                span."search-result-url" { (featured_snippet.url) }
-                h3."search-result-title" { (featured_snippet.title) }
-            }
-            (render_engine_list(&[featured_snippet.engine], config))
-        }
-    }
-}
-
-fn render_results(response: Response) -> PreEscaped<String> {
-    let mut html = String::new();
-    if let Some(infobox) = &response.infobox {
-        html.push_str(
-            &html! {
-                div."infobox" {
-                    (infobox.html)
-                    (render_engine_list(&[infobox.engine], &response.config))
-                }
-            }
-            .into_string(),
-        );
-    }
-    if let Some(answer) = &response.answer {
-        html.push_str(
-            &html! {
-                div."answer" {
-                    (answer.html)
-                    (render_engine_list(&[answer.engine], &response.config))
-                }
-            }
-            .into_string(),
-        );
-    }
-    if let Some(featured_snippet) = &response.featured_snippet {
-        html.push_str(&render_featured_snippet(featured_snippet, &response.config).into_string());
-    }
-    for result in &response.search_results {
-        html.push_str(&render_search_result(result, &response.config).into_string());
-    }
-
-    if html.is_empty() {
-        html.push_str(
-            &html! {
-                p { "No results." }
-            }
-            .into_string(),
-        );
-    }
-
-    PreEscaped(html)
 }
 
 fn render_engine_progress_update(
@@ -173,16 +75,17 @@ fn render_engine_progress_update(
     time_ms: u64,
 ) -> String {
     let message = match progress_update {
-        EngineProgressUpdate::Requesting => "requesting",
-        EngineProgressUpdate::Downloading => "downloading",
-        EngineProgressUpdate::Parsing => "parsing",
-        EngineProgressUpdate::Done => {
-            &{ html! { span."progress-update-done" { "done" } }.into_string() }
+        EngineProgressUpdate::Requesting => "requesting".to_string(),
+        EngineProgressUpdate::Downloading => "downloading".to_string(),
+        EngineProgressUpdate::Parsing => "parsing".to_string(),
+        EngineProgressUpdate::Done => html! { span.progress-update-done { "done" } }.into_string(),
+        EngineProgressUpdate::Error(msg) => {
+            html! { span.progress-update-error { (msg) } }.into_string()
         }
     };
 
     html! {
-        span."progress-update-time" {
+        span.progress-update-time {
             (format!("{time_ms:>4}"))
             "ms"
         }
@@ -194,9 +97,35 @@ fn render_engine_progress_update(
     .into_string()
 }
 
+pub fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
+    let mut html = String::new();
+    for (i, engine) in engines.iter().enumerate() {
+        let raw_engine_id = engine.id();
+        if raw_engine_id == "ads" {
+            // ad indicator is already shown next to url
+            continue;
+        }
+        if config.ui.show_engine_list_separator && i > 0 {
+            html.push_str(" &middot; ");
+        }
+        let raw_engine_id = &engine.id();
+        let engine_id = if config.ui.show_engine_list_separator {
+            raw_engine_id.replace('_', " ")
+        } else {
+            raw_engine_id.to_string()
+        };
+        html.push_str(&html! { span.engine-list-item { (engine_id) } }.into_string())
+    }
+    html! {
+        div.engine-list {
+            (PreEscaped(html))
+        }
+    }
+}
+
 pub async fn post(
     Query(params): Query<HashMap<String, String>>,
-    State(config): State<Arc<Config>>,
+    Extension(config): Extension<Config>,
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Form(form): Form<serde_json::Value>,
@@ -252,8 +181,14 @@ pub async fn post(
             .into_response();
     }
 
+    let search_tab = params
+        .get("tab")
+        .and_then(|t| SearchTab::from_str(t).ok())
+        .unwrap_or_default();
+
     let query = SearchQuery {
         query,
+        tab: search_tab,
         request_headers: headers
             .clone()
             .into_iter()
@@ -272,8 +207,31 @@ pub async fn post(
                 || addr.ip().to_string(),
                 |ip| ip.to_str().unwrap_or_default().to_string(),
             ),
-        config: config.clone(),
+        config: config.clone().into(),
     };
+
+    let trying_to_use_api =
+        query.request_headers.get("accept") == Some(&"application/json".to_string());
+    if trying_to_use_api {
+        if !config.api {
+            return (StatusCode::FORBIDDEN, "API access is disabled").into_response();
+        }
+
+        let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel();
+        let search_future = tokio::spawn(async move { engines::search(&query, progress_tx).await });
+        if let Err(e) = search_future.await {
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+
+        let mut results = Vec::new();
+        while let Some(progress_update) = progress_rx.recv().await {
+            if let ProgressUpdateData::Response(r) = progress_update.data {
+                results.push(r);
+            }
+        }
+
+        return Json(results).into_response();
+    }
 
     let s = stream! {
         type R = Result<Bytes, eyre::Error>;
@@ -308,16 +266,11 @@ pub async fn post(
 
                     second_part.push_str("</div>"); // close progress-updates
                     second_part.push_str("<style>.progress-updates{display:none}</style>");
-                    second_part.push_str(&render_results(results).into_string());
+                    second_part.push_str(&render_results_for_tab(results).into_string());
                     yield Ok(Bytes::from(second_part));
                 },
                 ProgressUpdateData::PostSearchInfobox(infobox) => {
-                    third_part.push_str(&html! {
-                        div."infobox"."postsearch-infobox" {
-                            (infobox.html)
-                            (render_engine_list(&[infobox.engine], &config))
-                        }
-                    }.into_string());
+                    third_part.push_str(&all::render_infobox(&infobox, &config).into_string());
                 }
             }
         }
@@ -342,7 +295,6 @@ pub async fn post(
     let stream = Body::from_stream(s);
 
     (
-        StatusCode::OK,
         [
             (header::CONTENT_TYPE, "text/html; charset=utf-8"),
             (header::TRANSFER_ENCODING, "chunked"),

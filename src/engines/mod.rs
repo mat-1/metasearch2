@@ -1,25 +1,26 @@
 use std::{
     collections::{BTreeSet, HashMap},
-    fmt,
+    fmt::{self, Display},
     net::IpAddr,
     ops::Deref,
     str::FromStr,
-    sync::Arc,
-    time::Instant,
+    sync::{Arc, LazyLock},
+    time::{Duration, Instant},
 };
 
+use eyre::bail;
 use futures::future::join_all;
 use maud::PreEscaped;
-use once_cell::sync::Lazy;
-use reqwest::header::HeaderMap;
-use serde::{Deserialize, Deserializer};
+use reqwest::{header::HeaderMap, RequestBuilder};
+use serde::{Deserialize, Deserializer, Serialize};
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
 mod macros;
+mod ranking;
 use crate::{
-    config::Config, engine_autocomplete_requests, engine_postsearch_requests, engine_requests,
-    engines,
+    config::Config, engine_autocomplete_requests, engine_image_requests,
+    engine_postsearch_requests, engine_requests, engines,
 };
 
 pub mod answer;
@@ -42,6 +43,7 @@ engines! {
     Fend = "fend",
     Ip = "ip",
     Notepad = "notepad",
+    ColorPicker = "colorpicker",
     Numbat = "numbat",
     Thesaurus = "thesaurus",
     Timezone = "timezone",
@@ -71,6 +73,7 @@ engine_requests! {
     Fend => answer::fend::request, None,
     Ip => answer::ip::request, None,
     Notepad => answer::notepad::request, None,
+    ColorPicker => answer::colorpicker::request, None,
     Numbat => answer::numbat::request, None,
     Thesaurus => answer::thesaurus::request, parse_response,
     Timezone => answer::timezone::request, None,
@@ -92,6 +95,11 @@ engine_postsearch_requests! {
     StackExchange => postsearch::stackexchange::request, parse_response,
 }
 
+engine_image_requests! {
+    Google => search::google::request_images, parse_images_response,
+    Bing => search::bing::request_images, parse_images_response,
+}
+
 impl fmt::Display for Engine {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.id())
@@ -110,6 +118,7 @@ impl<'de> Deserialize<'de> for Engine {
 
 pub struct SearchQuery {
     pub query: String,
+    pub tab: SearchTab,
     pub request_headers: HashMap<String, String>,
     pub ip: String,
     /// The config is part of the query so it's possible to make a query with a
@@ -122,6 +131,31 @@ impl Deref for SearchQuery {
 
     fn deref(&self) -> &Self::Target {
         &self.query
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchTab {
+    #[default]
+    All,
+    Images,
+}
+impl FromStr for SearchTab {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "all" => Ok(Self::All),
+            "images" => Ok(Self::Images),
+            _ => Err(()),
+        }
+    }
+}
+impl Display for SearchTab {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::All => write!(f, "all"),
+            Self::Images => write!(f, "images"),
+        }
     }
 }
 
@@ -174,7 +208,7 @@ impl From<HttpResponse> for reqwest::Response {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EngineSearchResult {
     pub url: String,
     pub title: String,
@@ -194,6 +228,11 @@ pub struct EngineResponse {
     pub featured_snippet: Option<EngineFeaturedSnippet>,
     pub answer_html: Option<PreEscaped<String>>,
     pub infobox_html: Option<PreEscaped<String>>,
+}
+
+#[derive(Default)]
+pub struct EngineImagesResponse {
+    pub image_results: Vec<EngineImageResult>,
 }
 
 impl EngineResponse {
@@ -219,12 +258,29 @@ impl EngineResponse {
     }
 }
 
+impl EngineImagesResponse {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EngineImageResult {
+    pub image_url: String,
+    pub page_url: String,
+    pub title: String,
+    pub width: u64,
+    pub height: u64,
+}
+
 #[derive(Debug)]
 pub enum EngineProgressUpdate {
     Requesting,
     Downloading,
     Parsing,
     Done,
+    Error(String),
 }
 
 #[derive(Debug)]
@@ -233,7 +289,7 @@ pub enum ProgressUpdateData {
         engine: Engine,
         update: EngineProgressUpdate,
     },
-    Response(Response),
+    Response(ResponseForTab),
     PostSearchInfobox(Infobox),
 }
 
@@ -253,17 +309,40 @@ impl ProgressUpdate {
     }
 }
 
-#[tracing::instrument(fields(query = %query.query), skip(progress_tx))]
-pub async fn search(
+async fn make_request(
+    request: RequestBuilder,
+    engine: Engine,
     query: &SearchQuery,
-    progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
+    send_engine_progress_update: impl Fn(Engine, EngineProgressUpdate),
+) -> eyre::Result<HttpResponse> {
+    send_engine_progress_update(engine, EngineProgressUpdate::Requesting);
+
+    let mut res = request.send().await?;
+
+    send_engine_progress_update(engine, EngineProgressUpdate::Downloading);
+
+    let mut body_bytes = Vec::new();
+    while let Some(chunk) = res.chunk().await? {
+        body_bytes.extend_from_slice(&chunk);
+    }
+    let body = String::from_utf8_lossy(&body_bytes).to_string();
+
+    send_engine_progress_update(engine, EngineProgressUpdate::Parsing);
+
+    let http_response = HttpResponse {
+        res,
+        body,
+        config: query.config.clone(),
+    };
+    Ok(http_response)
+}
+
+async fn make_requests(
+    query: &SearchQuery,
+    progress_tx: &mpsc::UnboundedSender<ProgressUpdate>,
+    start_time: Instant,
+    send_engine_progress_update: &impl Fn(Engine, EngineProgressUpdate),
 ) -> eyre::Result<()> {
-    let start_time = Instant::now();
-
-    info!("Doing search");
-
-    let progress_tx = &progress_tx;
-
     let mut requests = Vec::new();
     for &engine in Engine::all() {
         let engine_config = query.config.engines.get(engine);
@@ -276,59 +355,33 @@ pub async fn search(
 
             let response = match request_response {
                 RequestResponse::Http(request) => {
-                    progress_tx.send(ProgressUpdate::new(
-                        ProgressUpdateData::Engine {
-                            engine,
-                            update: EngineProgressUpdate::Requesting,
-                        },
-                        start_time,
-                    ))?;
-
-                    let mut res = request.send().await?;
-
-                    progress_tx.send(ProgressUpdate::new(
-                        ProgressUpdateData::Engine {
-                            engine,
-                            update: EngineProgressUpdate::Downloading,
-                        },
-                        start_time,
-                    ))?;
-
-                    let mut body_bytes = Vec::new();
-                    while let Some(chunk) = res.chunk().await? {
-                        body_bytes.extend_from_slice(&chunk);
-                    }
-                    let body = String::from_utf8_lossy(&body_bytes).to_string();
-
-                    progress_tx.send(ProgressUpdate::new(
-                        ProgressUpdateData::Engine {
-                            engine,
-                            update: EngineProgressUpdate::Parsing,
-                        },
-                        start_time,
-                    ))?;
-
-                    let http_response = HttpResponse {
-                        res,
-                        body,
-                        config: query.config.clone(),
-                    };
+                    let http_response =
+                        match make_request(request, engine, query, send_engine_progress_update)
+                            .await
+                        {
+                            Ok(http_response) => http_response,
+                            Err(e) => {
+                                send_engine_progress_update(
+                                    engine,
+                                    EngineProgressUpdate::Error(e.to_string()),
+                                );
+                                return Err(e);
+                            }
+                        };
 
                     let response = match engine.parse_response(&http_response) {
                         Ok(response) => response,
                         Err(e) => {
-                            error!("parse error: {e}");
-                            EngineResponse::new()
+                            error!("parse error for {engine}: {e}");
+                            send_engine_progress_update(
+                                engine,
+                                EngineProgressUpdate::Error(e.to_string()),
+                            );
+                            return Err(e);
                         }
                     };
 
-                    progress_tx.send(ProgressUpdate::new(
-                        ProgressUpdateData::Engine {
-                            engine,
-                            update: EngineProgressUpdate::Done,
-                        },
-                        start_time,
-                    ))?;
+                    send_engine_progress_update(engine, EngineProgressUpdate::Done);
 
                     response
                 }
@@ -345,16 +398,18 @@ pub async fn search(
         response_futures.push(request);
     }
 
-    let responses_result: eyre::Result<HashMap<_, _>> =
-        join_all(response_futures).await.into_iter().collect();
-    let responses = responses_result?;
+    let mut responses = HashMap::new();
+    for response_result in join_all(response_futures).await {
+        let response_result: eyre::Result<_> = response_result; // this line is necessary to make type inference work
+        if let Ok((engine, response)) = response_result {
+            responses.insert(engine, response);
+        }
+    }
 
-    let response = merge_engine_responses(query.config.clone(), responses);
-
+    let response = ranking::merge_engine_responses(query.config.clone(), responses);
     let has_infobox = response.infobox.is_some();
-
     progress_tx.send(ProgressUpdate::new(
-        ProgressUpdateData::Response(response.clone()),
+        ProgressUpdateData::Response(ResponseForTab::All(response.clone())),
         start_time,
     ))?;
 
@@ -422,6 +477,101 @@ pub async fn search(
     Ok(())
 }
 
+async fn make_image_requests(
+    query: &SearchQuery,
+    progress_tx: &mpsc::UnboundedSender<ProgressUpdate>,
+    start_time: Instant,
+    send_engine_progress_update: &impl Fn(Engine, EngineProgressUpdate),
+) -> eyre::Result<()> {
+    let mut requests = Vec::new();
+    for &engine in Engine::all() {
+        let engine_config = query.config.engines.get(engine);
+        if !engine_config.enabled {
+            continue;
+        }
+
+        requests.push(async move {
+            let request_response = engine.request_images(query);
+
+            let response = match request_response {
+                RequestResponse::Http(request) => {
+                    let http_response =
+                        make_request(request, engine, query, send_engine_progress_update).await?;
+
+                    let response = match engine.parse_images_response(&http_response) {
+                        Ok(response) => response,
+                        Err(e) => {
+                            error!("parse error for {engine} (images): {e}");
+                            EngineImagesResponse::new()
+                        }
+                    };
+
+                    send_engine_progress_update(engine, EngineProgressUpdate::Done);
+
+                    response
+                }
+                RequestResponse::Instant(_) => {
+                    error!("unexpected instant response for image request");
+                    EngineImagesResponse::new()
+                }
+                RequestResponse::None => EngineImagesResponse::new(),
+            };
+
+            Ok((engine, response))
+        });
+    }
+
+    let mut response_futures = Vec::new();
+    for request in requests {
+        response_futures.push(request);
+    }
+
+    let responses_result: eyre::Result<HashMap<_, _>> =
+        join_all(response_futures).await.into_iter().collect();
+    let responses = responses_result?;
+
+    let response = ranking::merge_images_responses(query.config.clone(), responses);
+    progress_tx.send(ProgressUpdate::new(
+        ProgressUpdateData::Response(ResponseForTab::Images(response.clone())),
+        start_time,
+    ))?;
+
+    Ok(())
+}
+
+#[tracing::instrument(fields(query = %query.query), skip(progress_tx))]
+pub async fn search(
+    query: &SearchQuery,
+    progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
+) -> eyre::Result<()> {
+    let start_time = Instant::now();
+
+    info!("Doing search");
+
+    let progress_tx = &progress_tx;
+    let send_engine_progress_update = |engine: Engine, update: EngineProgressUpdate| {
+        let _ = progress_tx.send(ProgressUpdate::new(
+            ProgressUpdateData::Engine { engine, update },
+            start_time,
+        ));
+    };
+
+    match query.tab {
+        SearchTab::All => {
+            make_requests(query, progress_tx, start_time, &send_engine_progress_update).await?
+        }
+        SearchTab::Images if query.config.image_search.enabled => {
+            make_image_requests(query, progress_tx, start_time, &send_engine_progress_update)
+                .await?
+        }
+        _ => {
+            bail!("unknown tab");
+        }
+    }
+
+    Ok(())
+}
+
 pub async fn autocomplete(config: &Config, query: &str) -> eyre::Result<Vec<String>> {
     let mut requests = Vec::new();
     for &engine in Engine::all() {
@@ -454,10 +604,13 @@ pub async fn autocomplete(config: &Config, query: &str) -> eyre::Result<Vec<Stri
         join_all(autocomplete_futures).await.into_iter().collect();
     let autocomplete_results = autocomplete_results_result?;
 
-    Ok(merge_autocomplete_responses(config, autocomplete_results))
+    Ok(ranking::merge_autocomplete_responses(
+        config,
+        autocomplete_results,
+    ))
 }
 
-pub static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
+pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::ClientBuilder::new()
         .local_address(IpAddr::from_str("0.0.0.0").unwrap())
         // we pretend to be a normal browser so websites don't block us
@@ -471,29 +624,43 @@ pub static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
             headers.insert("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0".parse().unwrap());
             headers
         })
+        .timeout(Duration::from_secs(10))
         .build()
         .unwrap()
 });
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Response {
-    pub search_results: Vec<SearchResult>,
+    pub search_results: Vec<SearchResult<EngineSearchResult>>,
     pub featured_snippet: Option<FeaturedSnippet>,
     pub answer: Option<Answer>,
     pub infobox: Option<Infobox>,
+    #[serde(skip)]
     pub config: Arc<Config>,
 }
 
-#[derive(Debug, Clone)]
-pub struct SearchResult {
-    pub url: String,
-    pub title: String,
-    pub description: String,
+#[derive(Debug, Clone, Serialize)]
+pub struct ImagesResponse {
+    pub image_results: Vec<SearchResult<EngineImageResult>>,
+    #[serde(skip)]
+    pub config: Arc<Config>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum ResponseForTab {
+    All(Response),
+    Images(ImagesResponse),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SearchResult<R: Serialize> {
+    pub result: R,
     pub engines: BTreeSet<Engine>,
     pub score: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct FeaturedSnippet {
     pub url: String,
     pub title: String,
@@ -501,124 +668,18 @@ pub struct FeaturedSnippet {
     pub engine: Engine,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Answer {
+    #[serde(serialize_with = "serialize_markup")]
     pub html: PreEscaped<String>,
     pub engine: Engine,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Infobox {
+    #[serde(serialize_with = "serialize_markup")]
     pub html: PreEscaped<String>,
     pub engine: Engine,
-}
-
-fn merge_engine_responses(
-    config: Arc<Config>,
-    responses: HashMap<Engine, EngineResponse>,
-) -> Response {
-    let mut search_results: Vec<SearchResult> = Vec::new();
-    let mut featured_snippet: Option<FeaturedSnippet> = None;
-    let mut answer: Option<Answer> = None;
-    let mut infobox: Option<Infobox> = None;
-
-    for (engine, response) in responses {
-        let engine_config = config.engines.get(engine);
-
-        for (result_index, search_result) in response.search_results.into_iter().enumerate() {
-            // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a
-            // score of 0.33, etc.
-            let base_result_score = 1. / (result_index + 1) as f64;
-            let result_score = base_result_score * engine_config.weight;
-
-            if let Some(existing_result) = search_results
-                .iter_mut()
-                .find(|r| r.url == search_result.url)
-            {
-                // if the weight of this engine is higher than every other one then replace the
-                // title and description
-                if engine_config.weight
-                    > existing_result
-                        .engines
-                        .iter()
-                        .map(|&other_engine| {
-                            let other_engine_config = config.engines.get(other_engine);
-                            other_engine_config.weight
-                        })
-                        .max_by(|a, b| a.partial_cmp(b).unwrap())
-                        .unwrap_or(0.)
-                {
-                    existing_result.title = search_result.title;
-                    existing_result.description = search_result.description;
-                }
-
-                existing_result.engines.insert(engine);
-                existing_result.score += result_score;
-            } else {
-                search_results.push(SearchResult {
-                    url: search_result.url,
-                    title: search_result.title,
-                    description: search_result.description,
-                    engines: [engine].iter().copied().collect(),
-                    score: result_score,
-                });
-            }
-        }
-
-        if let Some(engine_featured_snippet) = response.featured_snippet {
-            // if it has a higher weight than the current featured snippet
-            let featured_snippet_weight = featured_snippet.as_ref().map_or(0., |s| {
-                let other_engine_config = config.engines.get(s.engine);
-                other_engine_config.weight
-            });
-            if engine_config.weight > featured_snippet_weight {
-                featured_snippet = Some(FeaturedSnippet {
-                    url: engine_featured_snippet.url,
-                    title: engine_featured_snippet.title,
-                    description: engine_featured_snippet.description,
-                    engine,
-                });
-            }
-        }
-
-        if let Some(engine_answer_html) = response.answer_html {
-            // if it has a higher weight than the current answer
-            let answer_weight = answer.as_ref().map_or(0., |s| {
-                let other_engine_config = config.engines.get(s.engine);
-                other_engine_config.weight
-            });
-            if engine_config.weight > answer_weight {
-                answer = Some(Answer {
-                    html: engine_answer_html,
-                    engine,
-                });
-            }
-        }
-
-        if let Some(engine_infobox_html) = response.infobox_html {
-            // if it has a higher weight than the current infobox
-            let infobox_weight = infobox.as_ref().map_or(0., |s| {
-                let other_engine_config = config.engines.get(s.engine);
-                other_engine_config.weight
-            });
-            if engine_config.weight > infobox_weight {
-                infobox = Some(Infobox {
-                    html: engine_infobox_html,
-                    engine,
-                });
-            }
-        }
-    }
-
-    search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-
-    Response {
-        search_results,
-        featured_snippet,
-        answer,
-        infobox,
-        config,
-    }
 }
 
 pub struct AutocompleteResult {
@@ -626,36 +687,9 @@ pub struct AutocompleteResult {
     pub score: f64,
 }
 
-fn merge_autocomplete_responses(
-    config: &Config,
-    responses: HashMap<Engine, Vec<String>>,
-) -> Vec<String> {
-    let mut autocomplete_results: Vec<AutocompleteResult> = Vec::new();
-
-    for (engine, response) in responses {
-        let engine_config = config.engines.get(engine);
-
-        for (result_index, autocomplete_result) in response.into_iter().enumerate() {
-            // position 1 has a score of 1, position 2 has a score of 0.5, position 3 has a
-            // score of 0.33, etc.
-            let base_result_score = 1. / (result_index + 1) as f64;
-            let result_score = base_result_score * engine_config.weight;
-
-            if let Some(existing_result) = autocomplete_results
-                .iter_mut()
-                .find(|r| r.query == autocomplete_result)
-            {
-                existing_result.score += result_score;
-            } else {
-                autocomplete_results.push(AutocompleteResult {
-                    query: autocomplete_result,
-                    score: result_score,
-                });
-            }
-        }
-    }
-
-    autocomplete_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-
-    autocomplete_results.into_iter().map(|r| r.query).collect()
+fn serialize_markup<S>(markup: &PreEscaped<String>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&markup.0)
 }

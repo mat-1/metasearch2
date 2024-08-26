@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! engines {
     ($($engine:ident = $id:expr),* $(,)?) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
         pub enum Engine {
             $($engine,)*
         }
@@ -121,6 +121,34 @@ macro_rules! engine_postsearch_requests {
                         Engine::$engine => $crate::engine_parse_response! { res, $module::$engine_id::$parse_response }?,
                     )*
                     _ => None,
+                }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! engine_image_requests {
+    ($($engine:ident => $module:ident::$engine_id:ident::$request:ident, $parse_response:ident),* $(,)?) => {
+        impl Engine {
+            #[must_use]
+            pub fn request_images(&self, query: &SearchQuery) -> RequestResponse {
+                match self {
+                    $(
+                        Engine::$engine => $module::$engine_id::$request(query).into(),
+                    )*
+                    _ => RequestResponse::None,
+                }
+            }
+
+            pub fn parse_images_response(&self, res: &HttpResponse) -> eyre::Result<EngineImagesResponse> {
+                #[allow(clippy::useless_conversion)]
+                match self {
+                    $(
+                        Engine::$engine => $crate::engine_parse_response! { res, $module::$engine_id::$parse_response }
+                            .ok_or_else(|| eyre::eyre!("engine {self:?} can't parse images response"))?,
+                    )*
+                    _ => eyre::bail!("engine {self:?} can't parse response"),
                 }
             }
         }

@@ -331,7 +331,7 @@ pub fn get_ad_search_results() -> Vec<EngineSearchResult> {
 pub fn request(query: &str) -> RequestResponse {
     let _ = query; // we care about money, not being useful
 
-    return RequestResponse::Instant(EngineResponse {
+    RequestResponse::Instant(EngineResponse {
         search_results: get_ad_search_results(),
         featured_snippet: None,
         answer_html: None,
@@ -339,6 +339,6 @@ pub fn request(query: &str) -> RequestResponse {
     });
 }
 
-pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
+pub fn parse_response(_: &str) -> eyre::Result<EngineResponse> {
     unreachable!()
 }

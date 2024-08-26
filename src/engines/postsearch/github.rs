@@ -6,8 +6,8 @@ use crate::engines::{answer::regex, Response, CLIENT};
 
 pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     for search_result in response.search_results.iter().take(8) {
-        if regex!(r"^https:\/\/github\.com\/[\w-]+\/[\w.-]+$").is_match(&search_result.url) {
-            return Some(CLIENT.get(search_result.url.as_str()));
+        if regex!(r"^https:\/\/github\.com\/[\w-]+\/[\w.-]+$").is_match(&search_result.result.url) {
+            return Some(CLIENT.get(search_result.result.url.as_str()));
         }
     }
 
@@ -73,7 +73,7 @@ pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
         a href=(url) {
             h1 { (title) }
         }
-        div."infobox-github-readme" {
+        div.infobox-github-readme {
             (PreEscaped(readme_html))
         }
     })

@@ -1,8 +1,7 @@
-use std::cell::Cell;
+use std::{cell::Cell, sync::LazyLock};
 
 use fend_core::SpanKind;
 use maud::{html, PreEscaped};
-use once_cell::sync::Lazy;
 
 use crate::engines::EngineResponse;
 
@@ -16,7 +15,7 @@ pub fn request(query: &str) -> EngineResponse {
     };
 
     EngineResponse::answer_html(html! {
-        p."answer-query" { (query) " =" }
+        p.answer-query { (query) " =" }
         h3 { b { (result_html) } }
     })
 }
@@ -96,7 +95,7 @@ fn evaluate_to_html(query: &str, html: bool) -> Option<PreEscaped<String>> {
         if let Ok(num) = u64::from_str_radix(hex, 16) {
             result_html.push_str(
                 &html! {
-                    span."answer-comment" { " = " (num) }
+                    span.answer-comment { " = " (num) }
                 }
                 .into_string(),
             );
@@ -106,7 +105,7 @@ fn evaluate_to_html(query: &str, html: bool) -> Option<PreEscaped<String>> {
     Some(PreEscaped(result_html))
 }
 
-pub static FEND_CONTEXT: Lazy<fend_core::Context> = Lazy::new(|| {
+pub static FEND_CTX: LazyLock<fend_core::Context> = LazyLock::new(|| {
     let mut context = fend_core::Context::new();
 
     // make lowercase f and c work
@@ -185,7 +184,7 @@ fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
         }
     }
 
-    let mut context = FEND_CONTEXT.clone();
+    let mut context = FEND_CTX.clone();
     if multiline {
         // this makes it generate slightly nicer outputs for some queries like 2d6
         context.set_output_mode_terminal();

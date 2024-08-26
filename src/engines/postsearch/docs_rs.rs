@@ -5,8 +5,8 @@ use crate::engines::{HttpResponse, Response, CLIENT};
 
 pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     for search_result in response.search_results.iter().take(8) {
-        if search_result.url.starts_with("https://docs.rs/") {
-            return Some(CLIENT.get(search_result.url.as_str()));
+        if search_result.result.url.starts_with("https://docs.rs/") {
+            return Some(CLIENT.get(search_result.result.url.as_str()));
         }
     }
 
@@ -60,14 +60,14 @@ pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<P
             " "
             a href=(url) { (title) }
             @if category == "Crate" {
-                span."infobox-docs_rs-version" { (version) }
+                span.infobox-docs_rs-version { (version) }
             }
         }
     };
 
     Some(html! {
         (title_html)
-        div."infobox-docs_rs-doc" {
+        div.infobox-docs_rs-doc {
             (PreEscaped(doc_html))
         }
     })

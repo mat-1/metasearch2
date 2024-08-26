@@ -10,11 +10,11 @@ pub fn request(query: &str) -> EngineResponse {
     match evaluate(query) {
         None => EngineResponse::new(),
         Some(TimeResponse::Current { time, timezone }) => EngineResponse::answer_html(html! {
-            p."answer-query" { "Current time in " (timezone_to_string(timezone)) }
+            p.answer-query { "Current time in " (timezone_to_string(timezone)) }
             h3 {
                 b { (time.format("%-I:%M %P")) }
-                span."answer-comment" {
-                    "(" (time.format("%B %-d")) ")"
+                span.answer-comment {
+                    " (" (time.format("%B %-d")) ")"
                 }
             }
         }),
@@ -34,7 +34,7 @@ pub fn request(query: &str) -> EngineResponse {
             };
 
             EngineResponse::answer_html(html! {
-                p."answer-query" {
+                p.answer-query {
                     (source_time.format("%-I:%M %P"))
                     " "
                     (timezone_to_string(source_timezone))
@@ -44,7 +44,7 @@ pub fn request(query: &str) -> EngineResponse {
                 h3 {
                     b { (target_time.format("%-I:%M %P")) }
                     " "
-                    span."answer-comment" {
+                    span.answer-comment {
                         (timezone_to_string(target_timezone)) " (" (delta) ")"
                     }
                 }

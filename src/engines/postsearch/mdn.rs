@@ -13,10 +13,11 @@ pub struct MdnConfig {
 pub fn request(response: &Response) -> Option<reqwest::RequestBuilder> {
     for search_result in response.search_results.iter().take(8) {
         if search_result
+            .result
             .url
             .starts_with("https://developer.mozilla.org/en-US/docs/Web")
         {
-            return Some(CLIENT.get(search_result.url.as_str()));
+            return Some(CLIENT.get(search_result.result.url.as_str()));
         }
     }
 
@@ -68,15 +69,11 @@ pub fn parse_response(
         .clean(&doc_html)
         .to_string();
 
-    let title_html = html! {
+    Some(html! {
         h2 {
             a href=(url) { (page_title) }
         }
-    };
-
-    Some(html! {
-        (title_html)
-        div."infobox-mdn-article" {
+        div.infobox-mdn-article {
             (PreEscaped(doc_html))
         }
     })

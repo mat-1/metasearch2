@@ -1,0 +1,21 @@
+:root {
+  --bg-1: #24273a; /* background */
+  --bg-2: #1e2030; /* mantle */
+  --bg-3: #181926; /* crust */
+  --bg-4: #363a4e; /* surface 0 */
+  --fg-1: #cad3f5; /* text */
+  --fg-2: #b8c0e0; /* subtext 1 */
+  --fg-2: #a5adcb; /* subtext 0 */
+  --accent: #c6a0f6; /* mauve */
+  --positive: #a6da95; /* green */
+  --negative: #ed8796; /* red */
+
+  --syntax-string: #a6da95; /* green (string) */
+  --syntax-special: #c69ff5; /* mauve (keyword) */
+  --syntax-constant: #f5a97f; /* peach (constant/number) */
+  --syntax-comment: #929ab7; /* overlay 2 (comment) */
+  --syntax-func: #8aadf3; /* blue (method/function) */
+
+  --link: var(--accent);
+  --link-visited: var(--link);
+}
