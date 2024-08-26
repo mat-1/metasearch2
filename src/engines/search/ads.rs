@@ -336,7 +336,7 @@ pub fn request(query: &str) -> RequestResponse {
         featured_snippet: None,
         answer_html: None,
         infobox_html: None,
-    });
+    })
 }
 
 pub fn parse_response(_: &str) -> eyre::Result<EngineResponse> {

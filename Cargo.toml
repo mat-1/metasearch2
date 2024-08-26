@@ -1,6 +1,6 @@
 [package]
 name = "metasearch"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 build = "src/build.rs"
 description = "a cute metasearch engine"
@@ -24,31 +24,31 @@ axum = { version = "0.7.5", default-features = false, features = [
 ] }
 axum-extra = { version = "0.9.3", features = ["cookie"] }
 base64 = "0.22.1"
-bytes = "1.6.0"
+bytes = "1.7.1"
 chrono = "0.4.38"
 chrono-tz = { version = "0.9.0", features = ["case-insensitive"] }
 eyre = "0.6.12"
-fend-core = "1.4.9"
+fend-core = "1.5.1"
 futures = "0.3.30"
 html-escape = "0.2.13"
 maud = "0.26.0"
-numbat = "1.12.0"
+numbat = "1.13.0"
 rand = "0.8.5"
-regex = "1.10.5"
-reqwest = { version = "0.12.5", default-features = false, features = [
+regex = "1.10.6"
+reqwest = { version = "0.12.7", default-features = false, features = [
     "rustls-tls",
     "gzip",
     "deflate",
     "brotli",
     "json",
 ] }
-serde = { version = "1.0.203", features = ["derive"] }
+serde = { version = "1.0.208", features = ["derive"] }
 # preserve_order is needed for google images. yippee!
-serde_json = { version = "1.0.120", features = ["preserve_order"] }
-tokio = { version = "1.38.0", features = ["rt", "macros"] }
+serde_json = { version = "1.0.125", features = ["preserve_order"] }
+tokio = { version = "1.39.3", features = ["rt", "macros"] }
 tokio-stream = "0.1.15"
-toml = { version = "0.8.14", default-features = false, features = ["parse"] }
-tower = "0.4.13"
+toml = { version = "0.8.19", default-features = false, features = ["parse"] }
+tower = "0.5.0"
 tower-http = "0.5.2"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"

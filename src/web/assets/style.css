@@ -169,8 +169,10 @@ h1 {
   gap: 0.5rem;
 }
 #search-input {
-  max-width: 30em;
   flex: 1;
+}
+.main-container:not(.index-page) #search-input {
+  max-width: 30em;
 }
 #search-input-suggestions {
   position: absolute;
