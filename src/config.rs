@@ -19,7 +19,7 @@ impl Default for Config {
             ui: UiConfig {
                 show_engine_list_separator: false,
                 show_version_info: false,
-                site_name: "metasearch".to_string(),
+                site_name: "metasearch 3.0".to_string(),
                 show_settings_link: true,
                 stylesheet_url: "".to_string(),
                 stylesheet_str: "".to_string(),
