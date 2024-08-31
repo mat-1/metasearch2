@@ -85,6 +85,11 @@ if (searchInputEl) {
   }
 
   document.addEventListener("keydown", (e) => {
+    // if any modifier keys are pressed, ignore all this
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+      return;
+    }
+
     // if it's focused then use different keybinds
     if (searchInputEl.matches(":focus")) {
       if (e.key === "ArrowDown") {
@@ -122,10 +127,6 @@ if (searchInputEl) {
 
     // if the user starts typing but they don't have focus on the input, focus it
 
-    // no modifier keys
-    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
-      return;
-    }
     // must be a letter or number
     if (e.key.match(/^[a-z0-9]$/i)) {
       searchInputEl.focus();
