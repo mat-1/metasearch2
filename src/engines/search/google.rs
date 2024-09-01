@@ -53,10 +53,10 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
 
                 Ok(description)
             })))
-            .featured_snippet_title("h3")
+            .featured_snippet_title(".g > div[lang] a h3")
             .featured_snippet_href(QueryMethod::Manual(Box::new(|el: &ElementRef| {
                 let url = el
-                    .select(&Selector::parse("div[lang] a").unwrap())
+                    .select(&Selector::parse(".g > div[lang] a:has(h3)").unwrap())
                     .next()
                     .and_then(|n| n.value().attr("href"))
                     .unwrap_or_default();
