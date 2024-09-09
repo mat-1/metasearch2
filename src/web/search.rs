@@ -9,7 +9,7 @@ use axum::{
     extract::{ConnectInfo, Query},
     http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
-    Extension, Json,
+    Extension, Form, Json,
 };
 use bytes::Bytes;
 use maud::{html, PreEscaped, DOCTYPE};
@@ -22,6 +22,8 @@ use crate::{
     },
     web::head_html,
 };
+
+use super::captcha;
 
 fn render_beginning_of_html(search: &SearchQuery) -> String {
     let form_html = html! {
@@ -98,6 +100,11 @@ fn render_engine_progress_update(
 pub fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEscaped<String> {
     let mut html = String::new();
     for (i, engine) in engines.iter().enumerate() {
+        let raw_engine_id = engine.id();
+        if raw_engine_id == "ads" {
+            // ad indicator is already shown next to url
+            continue;
+        }
         if config.ui.show_engine_list_separator && i > 0 {
             html.push_str(" &middot; ");
         }
@@ -116,12 +123,45 @@ pub fn render_engine_list(engines: &[engines::Engine], config: &Config) -> PreEs
     }
 }
 
-pub async fn get(
+pub async fn post(
     Query(params): Query<HashMap<String, String>>,
     Extension(config): Extension<Config>,
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Form(form): Form<serde_json::Value>,
 ) -> axum::response::Response {
+    if let Some(captcha_config) = &config.captcha {
+        let Some(captcha_response) = form.get("g-recaptcha-response").and_then(|v| v.as_str())
+        else {
+            return (
+                StatusCode::BAD_REQUEST,
+                [(header::CONTENT_TYPE, "text/plain")],
+                "No captcha response provided".to_string(),
+            )
+                .into_response();
+        };
+
+        match captcha::verify(captcha_response, &captcha_config.secret_key).await {
+            Ok(true) => (),
+            Ok(false) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    [(header::CONTENT_TYPE, "text/plain")],
+                    "Captcha verification failed".to_string(),
+                )
+                    .into_response();
+            }
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    [(header::CONTENT_TYPE, "text/plain")],
+                    format!("Captcha verification failed: {e}"),
+                )
+                    .into_response();
+            }
+        }
+    }
+
     let query = params
         .get("q")
         .cloned()

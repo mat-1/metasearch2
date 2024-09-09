@@ -126,6 +126,8 @@ pub(super) fn parse_html_response_with_opts(
 ) -> eyre::Result<EngineResponse> {
     let dom = Html::parse_document(body);
 
+    trace!("parsing");
+
     let mut search_results = Vec::new();
 
     let ParseOpts {
@@ -164,10 +166,10 @@ pub(super) fn parse_html_response_with_opts(
         }
 
         // this can happen on google if it gives you a featured snippet
-        if description.is_empty() {
-            trace!("empty description for {url} ({title}), skipping");
-            continue;
-        }
+        // if description.is_empty() {
+        //     trace!("empty description for {url} ({title}), skipping");
+        //     continue;
+        // }
 
         let url = normalize_url(&url);
 

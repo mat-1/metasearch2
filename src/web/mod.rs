@@ -1,4 +1,5 @@
 mod autocomplete;
+mod captcha;
 mod image_proxy;
 mod index;
 mod opensearch;
@@ -57,7 +58,8 @@ pub async fn run(config: Config) {
 
     let app = Router::new()
         .route("/", get(index::get))
-        .route("/search", get(search::get))
+        .route("/search", get(captcha::get))
+        .route("/search", post(search::post))
         .route("/settings", get(settings::get))
         .route("/settings", post(settings::post))
         .route("/opensearch.xml", get(opensearch::route))
@@ -144,6 +146,15 @@ pub fn head_html(title: Option<&str>, config: &Config) -> Markup {
             }
             script src="/script.js" defer {}
             link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
+            (PreEscaped(r#"<!-- Google tag (gtag.js) -->
+            <script async src="https://www.googletagmanager.com/gtag/js?id=G-NM1Q7B09WN"></script>
+            <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-NM1Q7B09WN');
+            </script>"#))
         }
     }
 }

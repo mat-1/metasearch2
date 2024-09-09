@@ -19,7 +19,7 @@ impl Default for Config {
             ui: UiConfig {
                 show_engine_list_separator: false,
                 show_version_info: false,
-                site_name: "metasearch".to_string(),
+                site_name: "metasearch 3.0".to_string(),
                 show_settings_link: true,
                 stylesheet_url: "".to_string(),
                 stylesheet_str: "".to_string(),
@@ -40,6 +40,7 @@ impl Default for Config {
                 )],
                 weight: vec![],
             },
+            captcha: None,
         }
     }
 }
@@ -156,6 +157,7 @@ pub struct Config {
     // wrapped in an arc to make Config cheaper to clone
     pub engines: Arc<EnginesConfig>,
     pub urls: UrlsConfig,
+    pub captcha: Option<CaptchaConfig>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -166,6 +168,7 @@ pub struct PartialConfig {
     pub image_search: Option<PartialImageSearchConfig>,
     pub engines: Option<PartialEnginesConfig>,
     pub urls: Option<PartialUrlsConfig>,
+    pub captcha: Option<CaptchaConfig>,
 }
 
 impl Config {
@@ -181,6 +184,7 @@ impl Config {
             self.engines = Arc::new(engines);
         }
         self.urls.overlay(partial.urls.unwrap_or_default());
+        self.captcha = partial.captcha.or(self.captcha.clone());
     }
 }
 
@@ -194,6 +198,12 @@ pub struct UiConfig {
     pub site_name: String,
     pub stylesheet_url: String,
     pub stylesheet_str: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct CaptchaConfig {
+    pub site_key: String,
+    pub secret_key: String,
 }
 
 #[derive(Deserialize, Debug, Default)]
