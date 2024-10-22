@@ -37,6 +37,7 @@ engines! {
     RightDao = "rightdao",
     Stract = "stract",
     Yep = "yep",
+    Ads = "ads",
     // answer
     Dictionary = "dictionary",
     Fend = "fend",
@@ -66,6 +67,7 @@ engine_requests! {
     RightDao => search::rightdao::request, parse_response,
     Stract => search::stract::request, parse_response,
     Yep => search::yep::request, parse_response,
+    Ads => search::ads::request, parse_response,
     // answer
     Dictionary => answer::dictionary::request, parse_response,
     Fend => answer::fend::request, None,
@@ -613,10 +615,13 @@ pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
         .local_address(IpAddr::from_str("0.0.0.0").unwrap())
         // we pretend to be a normal browser so websites don't block us
         // (since we're not entirely a bot, we're acting on behalf of the user)
-        .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0")
+        // .user_agent()
         .default_headers({
             let mut headers = HeaderMap::new();
             headers.insert("Accept-Language", "en-US,en;q=0.5".parse().unwrap());
+            headers.insert("Accept-Encoding", "gzip, deflate, br".parse().unwrap());
+            headers.insert("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8".parse().unwrap());
+            headers.insert("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0".parse().unwrap());
             headers
         })
         .timeout(Duration::from_secs(10))
