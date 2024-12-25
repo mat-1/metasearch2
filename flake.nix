@@ -52,6 +52,8 @@
         apps.default = flake-utils.lib.mkApp {
           drv = metasearch2;
         };
+		
+		nixosModules.default = import ./module.nix inputs;
 
         devShells.default = craneLib.devShell {
           # Inherit inputs from checks.
