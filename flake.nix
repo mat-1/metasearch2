@@ -41,7 +41,7 @@
 			  ];
 			};
 
-			metasearch = craneLib.buildPackage (commonArgs // {
+			metasearch2 = craneLib.buildPackage (commonArgs // {
 			  cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
 			  # Additional environment variables or build phases/hooks can be set
@@ -51,10 +51,24 @@
 		in {
 			formatter = pkgs.alejandra;
 
-			packages = {
-				default = metasearch;
-				inherit metasearch;
+			packages.default = metasearch2;
+
+			apps.default = {
+				type = "app";
+				program = builtints.trace (lib.getExe metasearch2) (lib.getExe metasearch2);
 			};
+#        devShells.default = craneLib.devShell {
+#          # Inherit inputs from checks.
+#          checks = self.checks.${system};
+#
+#          # Additional dev-shell environment variables can be set directly
+#          # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
+#
+#          # Extra inputs can be added here; cargo and rustc are provided by default.
+#          packages = [
+#            # pkgs.ripgrep
+#          ];
+#        };
 		};
 	};
 
