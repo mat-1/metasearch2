@@ -10,9 +10,9 @@ self: {
     then lib.toInt (builtins.elemAt (lib.splitString ":" cfg.settings.bind) 1)
     else 28019;
 
-  metasearchArgs =
+  args =
     if cfg.settings != {}
-    then " " + pkgs.writers.writeTOML "metasearch.toml" cfg.settings
+    then pkgs.writers.writeTOML "metasearch.toml" cfg.settings
     else "";
 in {
   options.services.metasearch = {
@@ -52,7 +52,7 @@ in {
       after = ["network.target"];
       description = "a cute metasearch engine";
       serviceConfig = {
-        ExecStart = "${self.packages.${pkgs.system}.default}/bin/metasearch" + metasearchArgs;
+        ExecStart = "${self.packages.${pkgs.system}.default}/bin/metasearch " + args;
       };
     };
 
