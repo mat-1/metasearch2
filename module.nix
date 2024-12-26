@@ -5,6 +5,11 @@ self: {
   ...
 }: let
   cfg = config.services.metasearch;
+  port =
+    if lib.hasAttr "bind" cfg.settings
+    then lib.toInt (builtins.elemAt (lib.splitString ":" cfg.settings.bind) 1)
+    else 28019;
+
   metasearchArgs =
     if cfg.settings != {}
     then " " + pkgs.writers.writeTOML "metasearch.toml" cfg.settings
@@ -12,6 +17,13 @@ self: {
 in {
   options.services.metasearch = {
     enable = lib.mkEnableOption "metasearch";
+    openFirewall = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Open firewall ports used by metasearch.
+      '';
+    };
     settings = lib.mkOption {
       type = lib.types.attrs;
       default = {};
@@ -42,6 +54,10 @@ in {
       serviceConfig = {
         ExecStart = "${self.packages.${pkgs.system}.default}/bin/metasearch" + metasearchArgs;
       };
+    };
+
+    networking.firewall = lib.mkIf cfg.openFirewall {
+      allowedTCPPorts = [port];
     };
   };
 }
