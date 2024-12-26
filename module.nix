@@ -4,10 +4,10 @@ self: {
   lib,
   ...
 }: let
-  metasearchSettings = config.services.metasearch.settings;
+  cfg = config.services.metasearch;
   metasearchArgs =
-    if metasearchSettings != {}
-    then " " + pkgs.writers.writeTOML "metasearch.toml" metasearchSettings
+    if cfg.settings != {}
+    then " " + pkgs.writers.writeTOML "metasearch.toml" cfg.settings
     else "";
 in {
   options.services.metasearch = {
@@ -34,7 +34,7 @@ in {
     };
   };
 
-  config = {
+  config = lib.mkIf cfg.enable {
     systemd.services.metasearch = {
       wantedBy = ["multi-user.target"];
       after = ["network.target"];
