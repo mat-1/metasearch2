@@ -225,6 +225,7 @@ pub async fn get(
                     let mut second_part = String::new();
 
                     second_part.push_str("</div>"); // close progress-updates
+                    #[allow(clippy::literal_string_with_formatting_args)]
                     second_part.push_str("<style>.progress-updates{display:none}</style>");
                     second_part.push_str(&render_results_for_tab(results).into_string());
                     yield Ok(Bytes::from(second_part));

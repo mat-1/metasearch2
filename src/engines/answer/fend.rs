@@ -48,12 +48,12 @@ fn evaluate_to_plaintext(query: &str, html: bool) -> Option<String> {
         return None;
     }
 
-    return Some(
+    Some(
         spans
             .iter()
             .map(|span| span.text.clone())
             .collect::<String>(),
-    );
+    )
 }
 
 fn evaluate_to_html(query: &str, html: bool) -> Option<PreEscaped<String>> {
