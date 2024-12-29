@@ -55,10 +55,16 @@ fn render_search_result(
     result: &engines::SearchResult<EngineSearchResult>,
     config: &Config,
 ) -> PreEscaped<String> {
+    let is_ad = result.engines.iter().any(|e| e.id() == "ads");
     html! {
         div.search-result {
             a.search-result-anchor rel="noreferrer" href=(result.result.url) {
-                span.search-result-url { (result.result.url) }
+                span.search-result-url {
+                    @if is_ad {
+                        "Ad · "
+                    }
+                    (result.result.url)
+                }
                 h3.search-result-title { (result.result.title) }
             }
             p.search-result-description { (result.result.description) }
