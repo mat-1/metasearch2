@@ -48,12 +48,12 @@ fn evaluate_to_plaintext(query: &str, html: bool) -> Option<String> {
         return None;
     }
 
-    return Some(
+    Some(
         spans
             .iter()
             .map(|span| span.text.clone())
             .collect::<String>(),
-    );
+    )
 }
 
 fn evaluate_to_html(query: &str, html: bool) -> Option<PreEscaped<String>> {
@@ -205,12 +205,21 @@ fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
         return vec![];
     }
 
-    result
+    let res = result
         .get_main_result_spans()
         .filter(|span| !span.string().is_empty())
         .map(|span| Span {
             text: span.string().to_string(),
             kind: span.kind(),
         })
-        .collect()
+        .collect::<Vec<_>>();
+
+    if let Some(first) = res.first() {
+        if first.kind == SpanKind::Other && first.text.starts_with("\\") {
+            // false positive, can happen if you search like "a: b"
+            return vec![];
+        }
+    }
+
+    res
 }
