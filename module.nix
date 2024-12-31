@@ -10,9 +10,14 @@ self: {
     then lib.toInt (builtins.elemAt (lib.splitString ":" cfg.settings.bind) 1)
     else 28019;
 
-  args =
+  settingArg =
     if cfg.settings != {}
-    then pkgs.writers.writeTOML "metasearch.toml" cfg.settings
+    then " " + pkgs.writers.writeTOML "metasearch.toml" cfg.settings
+    else "";
+
+  loggingArg =
+    if !cfg.enableLogging
+    then " > /dev/null"
     else "";
 in {
   options.services.metasearch = {
@@ -22,6 +27,13 @@ in {
       default = false;
       description = ''
         Open firewall ports used by metasearch.
+      '';
+    };
+    enableLogging = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable metasearch logging. Does not affect stderr.
       '';
     };
     settings = lib.mkOption {
@@ -52,7 +64,7 @@ in {
       after = ["network.target"];
       description = "a cute metasearch engine";
       serviceConfig = {
-        ExecStart = "${self.packages.${pkgs.system}.default}/bin/metasearch " + args;
+        ExecStart = "${self.packages.${pkgs.system}.default}/bin/metasearch" + settingArg + loggingArg;
       };
     };
 
