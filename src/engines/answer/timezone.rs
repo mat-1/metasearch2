@@ -53,6 +53,7 @@ pub fn request(query: &str) -> EngineResponse {
     }
 }
 
+#[derive(Debug)]
 enum TimeResponse {
     Current {
         time: DateTime<Tz>,
@@ -102,7 +103,8 @@ fn evaluate(query: &str) -> Option<TimeResponse> {
             )?;
             let source_time_utc = chrono::Utc
                 .from_local_datetime(&source_time_naive)
-                .latest()?;
+                .latest()?
+                - source_offset.base_utc_offset();
 
             let source_time = source_time_utc.with_timezone(&source_timezone);
             let target_time = source_time_utc.with_timezone(&target_timezone);
@@ -112,9 +114,8 @@ fn evaluate(query: &str) -> Option<TimeResponse> {
                 target_timezone,
                 source_time,
                 target_time,
-                // the offsets are wrong for some reason so we have to negate them
-                source_offset: -source_offset.base_utc_offset(),
-                target_offset: -target_offset.base_utc_offset(),
+                source_offset: source_offset.base_utc_offset(),
+                target_offset: target_offset.base_utc_offset(),
             });
         }
     }
@@ -157,5 +158,35 @@ fn timezone_to_string(tz: Tz) -> String {
                 tz_string.to_string()
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_evaluate() {
+        let response = evaluate("9 pm est to CST").unwrap();
+        let TimeResponse::Conversion {
+            source_timezone,
+            target_timezone,
+            source_time,
+            target_time,
+            source_offset,
+            target_offset,
+        } = response
+        else {
+            panic!("Expected TimeResponse::Conversion, got {response:?}");
+        };
+
+        assert_eq!(source_timezone, Tz::EST);
+        assert_eq!(target_timezone, Tz::CST6CDT);
+
+        assert_eq!(source_time.format("%-I:%M %P").to_string(), "9:00 pm");
+        assert_eq!(target_time.format("%-I:%M %P").to_string(), "8:00 pm");
+
+        assert_eq!(source_offset.num_minutes(), -300);
+        assert_eq!(target_offset.num_minutes(), -360);
     }
 }
