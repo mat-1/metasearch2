@@ -10,23 +10,23 @@ use crate::{
 
 pub fn render_results(response: Response) -> PreEscaped<String> {
     let mut html = String::new();
-    if let Some(infobox) = &response.infobox {
-        html.push_str(
-            &html! {
-                div.infobox {
-                    (infobox.html)
-                    (render_engine_list(&[infobox.engine], &response.config))
-                }
-            }
-            .into_string(),
-        );
-    }
     if let Some(answer) = &response.answer {
         html.push_str(
             &html! {
                 div.answer {
                     (answer.html)
                     (render_engine_list(&[answer.engine], &response.config))
+                }
+            }
+            .into_string(),
+        );
+    }
+    if let Some(infobox) = &response.infobox {
+        html.push_str(
+            &html! {
+                div.infobox {
+                    (infobox.html)
+                    (render_engine_list(&[infobox.engine], &response.config))
                 }
             }
             .into_string(),
