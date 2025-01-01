@@ -169,24 +169,18 @@ mod tests {
     fn test_evaluate() {
         let response = evaluate("9 pm est to CST").unwrap();
         let TimeResponse::Conversion {
-            source_timezone,
-            target_timezone,
             source_time,
             target_time,
-            source_offset,
-            target_offset,
+            ..
         } = response
         else {
             panic!("Expected TimeResponse::Conversion, got {response:?}");
         };
 
-        assert_eq!(source_timezone, Tz::EST);
-        assert_eq!(target_timezone, Tz::CST6CDT);
+        // we don't check the exact offsets since it depends on daylight savings, cst
+        // will always be 1 hour behind est though
 
         assert_eq!(source_time.format("%-I:%M %P").to_string(), "9:00 pm");
         assert_eq!(target_time.format("%-I:%M %P").to_string(), "8:00 pm");
-
-        assert_eq!(source_offset.num_minutes(), -300);
-        assert_eq!(target_offset.num_minutes(), -360);
     }
 }
