@@ -142,7 +142,7 @@ fn fix_markup(markup: Markup) -> Markup {
     for s in markup.0 {
         let FormattedString(_output_type, format_type, content) = s.clone();
 
-        if format_type == FormatType::Unit && LEFT_SIDE_UNITS.contains(&content.as_str()) {
+        if format_type == FormatType::Unit && LEFT_SIDE_UNITS.contains(&&*content) {
             // remove the last markup if it's whitespace
             if let Some(FormattedString(_, FormatType::Whitespace, _)) = reordered_markup.last() {
                 reordered_markup.pop();

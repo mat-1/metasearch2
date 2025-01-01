@@ -1,6 +1,6 @@
 [package]
 name = "metasearch"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 build = "src/build.rs"
 description = "a cute metasearch engine"
@@ -11,8 +11,8 @@ repository = "https://github.com/mat-1/metasearch2"
 
 [dependencies]
 ammonia = "4.0.0"
-async-stream = "0.3.5"
-axum = { version = "0.7.5", default-features = false, features = [
+async-stream = "0.3.6"
+axum = { version = "0.7.9", default-features = false, features = [
     "tokio",
     "http1",
     "http2",
@@ -20,35 +20,35 @@ axum = { version = "0.7.5", default-features = false, features = [
     "json",
     "form",
 ] }
-axum-extra = { version = "0.9.3", features = ["cookie"] }
+axum-extra = { version = "0.9.6", features = ["cookie"] }
 base64 = "0.22.1"
-bytes = "1.7.1"
-chrono = "0.4.38"
-chrono-tz = { version = "0.9.0", features = ["case-insensitive"] }
+bytes = "1.9.0"
+chrono = "0.4.39"
+chrono-tz = { version = "0.10.0", features = ["case-insensitive"] }
 eyre = "0.6.12"
-fend-core = "1.5.1"
-futures = "0.3.30"
+fend-core = "1.5.5"
+futures = "0.3.31"
 html-escape = "0.2.13"
 maud = "0.26.0"
-numbat = "1.13.0"
+numbat = "1.14.0"
 rand = "0.8.5"
-regex = "1.10.6"
-reqwest = { version = "0.12.7", default-features = false, features = [
+regex = "1.11.1"
+reqwest = { version = "0.12.12", default-features = false, features = [
     "rustls-tls",
     "gzip",
     "deflate",
     "brotli",
 ] }
-scraper = "0.20.0"
-serde = { version = "1.0.208", features = ["derive"] }
+scraper = "0.22.0"
+serde = { version = "1.0.217", features = ["derive"] }
 # preserve_order is needed for google images. yippee!
-serde_json = { version = "1.0.125", features = ["preserve_order"] }
-tokio = { version = "1.39.3", features = ["rt", "macros"] }
-tokio-stream = "0.1.15"
+serde_json = { version = "1.0.134", features = ["preserve_order"] }
+tokio = { version = "1.42.0", features = ["rt", "macros"] }
+tokio-stream = "0.1.17"
 toml = { version = "0.8.19", default-features = false, features = ["parse"] }
-tower = "0.5.0"
-tower-http = "0.5.2"
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
-url = "2.5.2"
+tower = "0.5.2"
+tower-http = "0.6.2"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+url = "2.5.4"
 urlencoding = "2.1.3"
