@@ -110,6 +110,9 @@ if (searchInputEl) {
         } else {
           focusSelectionIndex(suggestionsEl.children.length - 1);
         }
+      } else if (e.key === "Escape") {
+        clearFocusedSuggestion();
+        suggestionsEl.style.visibility = "hidden";
       }
 
       return;
