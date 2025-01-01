@@ -53,13 +53,37 @@ pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
         .to_string();
 
     let readme_dom = Html::parse_fragment(&readme_html);
-    // if the readme is wrapped in <article>, remove that
-    if let Some(article) = readme_dom
-        .select(&Selector::parse("article").unwrap())
-        .next()
-    {
-        readme_html = article.inner_html().to_string();
+    let mut readme_element = readme_dom.root_element();
+
+    let mut is_readme_element_pre = false;
+
+    while readme_element.children().count() == 1 {
+        // if the readme is wrapped in <article>, remove that
+        if let Some(article) = readme_element
+            .select(&Selector::parse("article").unwrap())
+            .next()
+        {
+            readme_element = article;
+        }
+        // useless div
+        else if let Some(div) = readme_element
+            .select(&Selector::parse("div").unwrap())
+            .next()
+        {
+            readme_element = div;
+            // useless pre
+        } else if let Some(pre) = readme_element
+            .select(&Selector::parse("pre").unwrap())
+            .next()
+        {
+            readme_element = pre;
+            is_readme_element_pre = true;
+        } else {
+            break;
+        }
     }
+
+    readme_html = readme_element.inner_html().to_string();
 
     let title = if let Some(title_el) = readme_dom
         // github wraps their h1s in a <div class="">
@@ -87,8 +111,14 @@ pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
         a href=(url) {
             h1 { (title) }
         }
-        div.infobox-github-readme {
-            (PreEscaped(readme_html))
+        @if is_readme_element_pre {
+            pre.infobox-github-readme {
+                (PreEscaped(readme_html))
+            }
+        } @else {
+            div.infobox-github-readme {
+                (PreEscaped(readme_html))
+            }
         }
     })
 }

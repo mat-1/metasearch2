@@ -486,7 +486,7 @@ h3.answer-thesaurus-category-title {
 .infobox p {
   margin: 0;
 }
-.infobox pre {
+.infobox pre:not(.infobox-github-readme) {
   border: 1px solid var(--bg-4);
   padding: 0.5rem;
   display: block;
