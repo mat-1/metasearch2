@@ -173,10 +173,12 @@ impl MatchedColorModel {
         let mut hsv = None;
         let mut hsl = None;
 
-        if regex!("^color ?picker$").is_match(&query.to_lowercase()) {
+        let query = query.trim().to_lowercase();
+
+        if regex!("^color ?picker$").is_match(&query) {
             // default to red
             rgb = Some((1., 0., 0.));
-        } else if let Some(caps) = regex!("^#?([0-9a-f]{6})$").captures(query) {
+        } else if let Some(caps) = regex!("^#?([0-9a-f]{6})$").captures(&query) {
             let hex_str = caps.get(1).unwrap().as_str();
             let hex_num = u32::from_str_radix(hex_str, 16).unwrap();
             let r = ((hex_num >> 16) & 0xff) as f64 / 255.;
@@ -188,8 +190,20 @@ impl MatchedColorModel {
             let b = b.clamp(0., 1.);
 
             rgb = Some((r, g, b));
+        } else if let Some(caps) = regex!("^#?([0-9a-f]{3})$").captures(&query) {
+            let hex_str = caps.get(1).unwrap().as_str();
+            let hex_num = u32::from_str_radix(hex_str, 16).unwrap();
+            let r = ((hex_num >> 8) & 0xf) as f64 / 15.;
+            let g = ((hex_num >> 4) & 0xf) as f64 / 15.;
+            let b = (hex_num & 0xf) as f64 / 15.;
+
+            let r = r.clamp(0., 1.);
+            let g = g.clamp(0., 1.);
+            let b = b.clamp(0., 1.);
+
+            rgb = Some((r, g, b));
         } else if let Some(caps) =
-            regex!("^rgb\\((\\d{1,3}), ?(\\d{1,3}), ?(\\d{1,3})\\)$").captures(query)
+            regex!("^rgb\\((\\d{1,3}), ?(\\d{1,3}), ?(\\d{1,3})\\)$").captures(&query)
         {
             let r = caps
                 .get(1)
@@ -214,7 +228,7 @@ impl MatchedColorModel {
             rgb = Some((r, g, b));
         } else if let Some(caps) =
             regex!("^cmyk\\((\\d{1,3})%, ?(\\d{1,3})%, ?(\\d{1,3})%, ?(\\d{1,3})%\\)$")
-                .captures(query)
+                .captures(&query)
         {
             let c = caps
                 .get(1)
@@ -244,7 +258,7 @@ impl MatchedColorModel {
 
             cmyk = Some((c, m, y, k));
         } else if let Some(caps) =
-            regex!("^hsv\\((\\d{1,3})(?:°|deg|), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(query)
+            regex!("^hsv\\((\\d{1,3})(?:°|deg|), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(&query)
         {
             let h = caps
                 .get(1)
@@ -268,7 +282,7 @@ impl MatchedColorModel {
 
             hsv = Some((h, s, v));
         } else if let Some(caps) =
-            regex!("^hsl\\((\\d{1,3})(?:°|deg|), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(query)
+            regex!("^hsl\\((\\d{1,3})(?:°|deg|), ?(\\d{1,3})%, ?(\\d{1,3})%\\)$").captures(&query)
         {
             let h = caps
                 .get(1)
