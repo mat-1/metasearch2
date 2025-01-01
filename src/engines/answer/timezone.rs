@@ -121,9 +121,9 @@ fn evaluate(query: &str) -> Option<TimeResponse> {
     }
 
     // "utc time"
-    let re = regex!(r"([\w/+\-]+)(?: current)? time");
+    let re = regex!(r"([\w/+\-]+)(?: current)? time$");
     // "time in utc"
-    let re2 = regex!(r"time (?:in|as) ([\w/+\-]+)");
+    let re2 = regex!(r"time (?:in|as) ([\w/+\-]+)$");
     if let Some(timezone_name) = re
         .captures(query)
         .and_then(|m| m.get(1))
