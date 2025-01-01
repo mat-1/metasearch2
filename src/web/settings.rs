@@ -55,7 +55,6 @@ pub async fn get(Extension(config): Extension<Config>) -> impl IntoResponse {
                     }
                 }
             }
-        
         }
     }
     .into_string();

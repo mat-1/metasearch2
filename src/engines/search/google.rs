@@ -37,21 +37,35 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
             )
             .featured_snippet("block-component")
             .featured_snippet_description(QueryMethod::Manual(Box::new(|el: &ElementRef| {
-                let Some(description_container_el) = el
-                    .select(
-                        &Selector::parse("div[data-attrid='wa:/description'] > span:first-child")
-                            .unwrap(),
-                    )
+                if let Some(description_container_el) = el
+                    .select(&Selector::parse("div[data-attrid='wa:/description'] > span:first-child").unwrap())
                     .next()
-                else {
-                    return Ok(String::new());
-                };
+                {
+                    return Ok(iter_featured_snippet_children(&description_container_el));
+                }
+                if let Some(description_list_el) = el
+                    .select(&Selector::parse("ul").unwrap())
+                    .next()
+                {
+                    let mut description = String::new();
 
-                // build the description
-                let mut description = String::new();
-                iter_featured_snippet_children(&mut description, &description_container_el);
+                    // role="heading"
+                    if let Some(heading_el) = el
+                        .select(&Selector::parse("div[role='heading']").unwrap())
+                        .next()
+                    {
+                        description.push_str(&format!("{}\n\n", heading_el.text().collect::<String>()));
+                    }
 
-                Ok(description)
+                    // render as bullet points
+                    for li in description_list_el.select(&Selector::parse("li").unwrap()) {
+                        let text = li.text().collect::<String>();
+                        description.push_str(&format!("• {text}\n"));
+                    }
+                    return Ok(description);
+                }
+
+                Ok(String::new())
             })))
             .featured_snippet_title(".g > div[lang] a h3, div[lang] > div[style='position:relative'] a h3")
             .featured_snippet_href(QueryMethod::Manual(Box::new(|el: &ElementRef| {
@@ -69,7 +83,12 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
 // text that we shouldn't show.
 // We can filter for these by removing any elements matching
 // [data-ved]:not([data-send-open-event])
-fn iter_featured_snippet_children(description: &mut String, el: &ElementRef) {
+fn iter_featured_snippet_children(el: &ElementRef) -> String {
+    let mut description = String::new();
+    recursive_iter_featured_snippet_children(&mut description, el);
+    description
+}
+fn recursive_iter_featured_snippet_children(description: &mut String, el: &ElementRef) {
     for inner_node in el.children() {
         match inner_node.value() {
             scraper::Node::Text(t) => {
@@ -79,7 +98,7 @@ fn iter_featured_snippet_children(description: &mut String, el: &ElementRef) {
                 if inner_el.attr("data-ved").is_none()
                     || inner_el.attr("data-send-open-event").is_some()
                 {
-                    iter_featured_snippet_children(
+                    recursive_iter_featured_snippet_children(
                         description,
                         &ElementRef::wrap(inner_node).unwrap(),
                     );

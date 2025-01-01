@@ -252,6 +252,7 @@ a.search-tab {
 }
 .featured-snippet .search-result-description {
   margin-bottom: 1rem;
+  white-space: pre-wrap;
 }
 
 /* progress update */

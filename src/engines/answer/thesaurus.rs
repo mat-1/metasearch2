@@ -10,12 +10,16 @@ use crate::engines::{EngineResponse, RequestResponse, CLIENT};
 use super::regex;
 
 pub fn request(query: &str) -> RequestResponse {
-    let re = regex!(r"^synonyms for\s+(\w+)$");
-    let query = match re.captures(query) {
-        Some(caps) => caps.get(1).unwrap().as_str(),
-        None => return RequestResponse::None,
-    }
-    .to_lowercase();
+    let re = regex!(r"^synonym(?:s?) for\s+(\w+)$");
+    let re2 = regex!(r"^(\w+)\s+synonym(?:s?)$");
+    let Some(query) = re
+        .captures(query)
+        .and_then(|m| m.get(1))
+        .or_else(|| re2.captures(query).and_then(|m| m.get(1)))
+    else {
+        return RequestResponse::None;
+    };
+    let query = query.as_str().to_lowercase();
 
     CLIENT
         .get(
