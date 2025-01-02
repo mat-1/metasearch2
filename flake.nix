@@ -6,14 +6,27 @@
 
     crane.url = "github:ipetkov/crane";
 
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
+  outputs = inputs @ {
+    self,
+    crane,
+    flake-parts,
+    ...
+  }:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = ["x86_64-linux" "x86_64-darwin" "aarch64-darwin" "aarch64-linux"];
+      flake.nixosModules.default = import ./module.nix self;
 
+      perSystem = {
+        pkgs,
+        system,
+        ...
+      }: let
         craneLib = crane.mkLib pkgs;
 
         assetFilter = path: _type: (pkgs.lib.strings.hasPrefix (toString ./src/web/assets) path);
@@ -34,27 +47,29 @@
           ];
         };
 
-        metasearch2 = craneLib.buildPackage (commonArgs // {
-          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+        metasearch2 = craneLib.buildPackage (commonArgs
+          // {
+            cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-          # Additional environment variables or build phases/hooks can be set
-          # here *without* rebuilding all dependency crates
-          # MY_CUSTOM_VAR = "some value";
-        });
-      in
-      {
+            # Additional environment variables or build phases/hooks can be set
+            # here *without* rebuilding all dependency crates
+            # MY_CUSTOM_VAR = "some value";
+          });
+      in {
+        formatter = pkgs.alejandra;
+
         checks = {
           inherit metasearch2;
         };
 
         packages.default = metasearch2;
 
-        apps.default = flake-utils.lib.mkApp {
-          drv = metasearch2;
+        apps.default = {
+          type = "app";
+          program = "${self.packages.${system}.default}/bin/metasearch";
         };
 
         devShells.default = craneLib.devShell {
-          # Inherit inputs from checks.
           checks = self.checks.${system};
 
           # Additional dev-shell environment variables can be set directly
@@ -65,5 +80,6 @@
             # pkgs.ripgrep
           ];
         };
-      });
+      };
+    };
 }
