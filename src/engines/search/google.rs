@@ -16,6 +16,10 @@ pub fn request(query: &str) -> reqwest::RequestBuilder {
                 ("q", query),
                 // nfpr makes it not try to autocorrect
                 ("nfpr", "1"),
+                // mobile search, lets us easily search without js
+                ("asearch", "arc"),
+                // required for mobile search to work
+                ("async", "use_ac:true,_fmt:prog"),
             ],
         )
         .unwrap(),
