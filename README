@@ -15,7 +15,7 @@ JavaScript.
 
 There's a public demo instance at https://s.matdoes.dev, but please do not use
 it as your default or rely on it. This is so I don't get ratelimited by Google
-or other engines. Run your own instance instead!
+or other engines. Also, searches are logged. Run your own instance instead!
 
 ------------
 INSTALLATION
