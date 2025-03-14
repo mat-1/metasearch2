@@ -12,7 +12,7 @@ repository = "https://github.com/mat-1/metasearch2"
 [dependencies]
 ammonia = "4.0.0"
 async-stream = "0.3.6"
-axum = { version = "0.7.9", default-features = false, features = [
+axum = { version = "0.8.1", default-features = false, features = [
     "tokio",
     "http1",
     "http2",
@@ -20,32 +20,33 @@ axum = { version = "0.7.9", default-features = false, features = [
     "json",
     "form",
 ] }
-axum-extra = { version = "0.9.6", features = ["cookie"] }
+axum-extra = { version = "0.10.0", features = ["cookie"] }
 base64 = "0.22.1"
-bytes = "1.9.0"
-chrono = "0.4.39"
-chrono-tz = { version = "0.10.0", features = ["case-insensitive"] }
+bytes = "1.10.1"
+chrono = "0.4.40"
+chrono-tz = { version = "0.10.1", features = ["case-insensitive"] }
 eyre = "0.6.12"
 fend-core = "1.5.5"
 futures = "0.3.31"
 html-escape = "0.2.13"
-maud = "0.26.0"
-numbat = "1.14.0"
-rand = "0.8.5"
+maud = "0.27.0"
+numbat = "1.16.0"
+parking_lot = "0.12.3"
+rand = "0.9.0"
 regex = "1.11.1"
-reqwest = { version = "0.12.12", default-features = false, features = [
+reqwest = { version = "0.12.14", default-features = false, features = [
     "rustls-tls",
     "gzip",
     "deflate",
     "brotli",
 ] }
-scraper = "0.22.0"
-serde = { version = "1.0.217", features = ["derive"] }
+scraper = "0.23.1"
+serde = { version = "1.0.219", features = ["derive"] }
 # preserve_order is needed for google images. yippee!
-serde_json = { version = "1.0.134", features = ["preserve_order"] }
-tokio = { version = "1.42.0", features = ["rt", "macros"] }
+serde_json = { version = "1.0.140", features = ["preserve_order"] }
+tokio = { version = "1.44.1", features = ["rt", "macros"] }
 tokio-stream = "0.1.17"
-toml = { version = "0.8.19", default-features = false, features = ["parse"] }
+toml = { version = "0.8.20", default-features = false, features = ["parse"] }
 tower = "0.5.2"
 tower-http = "0.6.2"
 tracing = "0.1.41"

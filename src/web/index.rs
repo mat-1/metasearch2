@@ -30,7 +30,7 @@ pub async fn get(Extension(config): Extension<Config>) -> impl IntoResponse {
                         @if COMMIT_HASH == "unknown" || COMMIT_HASH_SHORT == "unknown" {
                             "Version "
                             (VERSION)
-                        } else {
+                        } @else {
                             "Version "
                             (VERSION)
                             " ("
