@@ -29,7 +29,7 @@ pub fn parse_response(body: &str) -> Option<PreEscaped<String>> {
 
     let embedded_data_script = dom
         .select(&Selector::parse("script[data-target='react-partial.embeddedData']").unwrap())
-        .last()?
+        .next_back()?
         .inner_html();
     let embedded_data = serde_json::from_str::<serde_json::Value>(&embedded_data_script).ok()?;
     let readme_html = embedded_data

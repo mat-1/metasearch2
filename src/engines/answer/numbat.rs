@@ -109,7 +109,7 @@ fn interpret(query: &str) -> Option<(Statement, Markup)> {
     }
     let res_markup = fix_markup(res_markup);
 
-    Some((statements.into_iter().last()?, res_markup))
+    Some((statements.into_iter().next_back()?, res_markup))
 }
 
 fn evaluate_for_autocomplete(query: &str) -> Option<String> {

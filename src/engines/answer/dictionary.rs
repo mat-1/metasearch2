@@ -63,7 +63,7 @@ pub fn parse_response(
     let mediawiki_key = url
         .path_segments()
         .ok_or_else(|| eyre!("url has no path segments"))?
-        .last()
+        .next_back()
         .ok_or_else(|| eyre!("url has no last path segment"))?;
 
     let word = key_to_title(mediawiki_key);
