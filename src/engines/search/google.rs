@@ -74,7 +74,7 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
             // xpd is weird, some results have it but it's usually used for ads?
             // the :first-child filters out the ads though since for ads the first child is always a
             // span
-            .result("div.g > div, div.xpd > div:first-child")
+            .result("[jscontroller=SC7lYd]")
             .title("h3")
             .href("a[href]")
             .description(
@@ -82,35 +82,34 @@ pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
             )
             .featured_snippet("block-component")
             .featured_snippet_description(QueryMethod::Manual(Box::new(|el: &ElementRef| {
+                let mut description = String::new();
+
+                // role="heading"
+                if let Some(heading_el) = el
+                    .select(&Selector::parse("div[role='heading']").unwrap())
+                    .next()
+                {
+                    description.push_str(&format!("{}\n\n", heading_el.text().collect::<String>()));
+                }
+
                 if let Some(description_container_el) = el
                     .select(&Selector::parse("div[data-attrid='wa:/description'] > span:first-child").unwrap())
                     .next()
                 {
-                    return Ok(iter_featured_snippet_children(&description_container_el));
+                    description.push_str(&iter_featured_snippet_children(&description_container_el));
                 }
-                if let Some(description_list_el) = el
+                else if let Some(description_list_el) = el
                     .select(&Selector::parse("ul").unwrap())
                     .next()
                 {
-                    let mut description = String::new();
-
-                    // role="heading"
-                    if let Some(heading_el) = el
-                        .select(&Selector::parse("div[role='heading']").unwrap())
-                        .next()
-                    {
-                        description.push_str(&format!("{}\n\n", heading_el.text().collect::<String>()));
-                    }
-
                     // render as bullet points
                     for li in description_list_el.select(&Selector::parse("li").unwrap()) {
                         let text = li.text().collect::<String>();
                         description.push_str(&format!("• {text}\n"));
                     }
-                    return Ok(description);
                 }
 
-                Ok(String::new())
+                Ok(description)
             })))
             .featured_snippet_title(".g > div[lang] a h3, div[lang] > div[style='position:relative'] a h3")
             .featured_snippet_href(QueryMethod::Manual(Box::new(|el: &ElementRef| {
