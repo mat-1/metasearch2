@@ -174,12 +174,12 @@ impl From<EngineResponse> for RequestResponse {
 }
 
 pub enum RequestAutocompleteResponse {
-    Http(reqwest::RequestBuilder),
+    Http(Box<reqwest::RequestBuilder>),
     Instant(Vec<String>),
 }
 impl From<reqwest::RequestBuilder> for RequestAutocompleteResponse {
     fn from(req: reqwest::RequestBuilder) -> Self {
-        Self::Http(req)
+        Self::Http(Box::new(req))
     }
 }
 impl From<Vec<String>> for RequestAutocompleteResponse {
