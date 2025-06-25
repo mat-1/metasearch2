@@ -142,6 +142,9 @@ pub fn head_html(title: Option<&str>, config: &Config) -> Markup {
             @if !config.ui.stylesheet_str.is_empty() {
                 style { (PreEscaped(html_escape::encode_style(&config.ui.stylesheet_str))) }
             }
+            @if !config.ui.favicon_url.is_empty() {
+                link rel="icon" href=(config.ui.favicon_url);
+            }
             script src="/script.js" defer {}
             link rel="search" type="application/opensearchdescription+xml" title="metasearch" href="/opensearch.xml";
         }
