@@ -23,6 +23,7 @@ impl Default for Config {
                 show_settings_link: true,
                 stylesheet_url: "".to_string(),
                 stylesheet_str: "".to_string(),
+                favicon_url: "".to_string(),
             },
             image_search: ImageSearchConfig {
                 enabled: false,
@@ -194,6 +195,7 @@ pub struct UiConfig {
     pub site_name: String,
     pub stylesheet_url: String,
     pub stylesheet_str: String,
+    pub favicon_url: String,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -204,6 +206,7 @@ pub struct PartialUiConfig {
     pub site_name: Option<String>,
     pub stylesheet_url: Option<String>,
     pub stylesheet_str: Option<String>,
+    pub favicon_url: Option<String>,
 }
 
 impl UiConfig {
@@ -222,6 +225,7 @@ impl UiConfig {
         self.stylesheet_str = partial
             .stylesheet_str
             .unwrap_or(self.stylesheet_str.clone());
+        self.favicon_url = partial.favicon_url.unwrap_or(self.favicon_url.clone());
     }
 }
 

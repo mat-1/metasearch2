@@ -8,6 +8,7 @@ api = false
 # engine_list_separator = true
 # show_version_info = true
 # stylesheet_url = "/themes/catppuccin-mocha.css"
+# favicon_url = "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMzIgMzIiPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjExIi8+PC9zdmc+"
 
 [image_search]
 # enabled = true
