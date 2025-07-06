@@ -25,7 +25,7 @@ fn render_image_result(
         // serialize url params
         let escaped_param =
             url::form_urlencoded::byte_serialize(original_image_src.as_bytes()).collect::<String>();
-        format!("/image-proxy?url={}", escaped_param)
+        format!("/image-proxy?url={escaped_param}")
     } else {
         original_image_src.to_string()
     };

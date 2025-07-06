@@ -14,6 +14,6 @@ fn main() {
         Ok(output) => String::from_utf8(output.stdout).unwrap_or("unknown".into()),
         Err(_) => "unknown".into(),
     };
-    println!("cargo:rustc-env=GIT_HASH={}", git_hash);
-    println!("cargo:rustc-env=GIT_HASH_SHORT={}", git_hash_short);
+    println!("cargo:rustc-env=GIT_HASH={git_hash}");
+    println!("cargo:rustc-env=GIT_HASH_SHORT={git_hash_short}");
 }

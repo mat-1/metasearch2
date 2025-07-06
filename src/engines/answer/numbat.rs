@@ -79,7 +79,7 @@ fn is_potential_request(query: &str) -> bool {
     true
 }
 
-fn interpret(query: &str) -> Option<(Statement, Markup)> {
+fn interpret(query: &str) -> Option<(Statement<'_>, Markup)> {
     if !is_potential_request(query) {
         return None;
     }
