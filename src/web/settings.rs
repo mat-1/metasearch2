@@ -1,6 +1,6 @@
 use axum::{
-    http::{header, StatusCode},
-    response::IntoResponse,
+    http::{header, HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
     Extension, Form,
 };
 use axum_extra::extract::{cookie::Cookie, CookieJar};
@@ -69,10 +69,24 @@ pub struct Settings {
     pub stylesheet_str: String,
 }
 
-pub async fn post(mut jar: CookieJar, Form(settings): Form<Settings>) -> impl IntoResponse {
+pub async fn post(
+    headers: HeaderMap,
+    mut jar: CookieJar,
+    Form(settings): Form<Settings>,
+) -> Response {
+    let Some(origin) = headers.get("origin").and_then(|h| h.to_str().ok()) else {
+        return (StatusCode::BAD_REQUEST, "Missing or invalid Origin header").into_response();
+    };
+    let Some(host) = headers.get("host").and_then(|h| h.to_str().ok()) else {
+        return (StatusCode::BAD_REQUEST, "Missing or invalid Host header").into_response();
+    };
+    if origin != format!("http://{host}") && origin != format!("https://{host}") {
+        return (StatusCode::BAD_REQUEST, "Origin does not match Host").into_response();
+    }
+
     let mut settings_cookie = Cookie::new("settings", serde_json::to_string(&settings).unwrap());
     settings_cookie.make_permanent();
     jar = jar.add(settings_cookie);
 
-    (StatusCode::FOUND, [(header::LOCATION, "/settings")], jar)
+    (StatusCode::FOUND, [(header::LOCATION, "/settings")], jar).into_response()
 }

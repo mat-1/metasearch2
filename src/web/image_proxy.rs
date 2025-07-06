@@ -6,6 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
     Extension,
 };
+use reqwest::header;
 use tracing::error;
 
 use crate::{config::Config, engines};
@@ -42,6 +43,9 @@ pub async fn route(
     if res.content_length().unwrap_or_default() > max_size {
         return (StatusCode::PAYLOAD_TOO_LARGE, "Image too large").into_response();
     }
+
+    const ALLOWED_IMAGE_TYPES: &[&str] = &["apng", "avif", "gif", "jpeg", "png", "webp"];
+
     // validate content-type
     let content_type = res
         .headers()
@@ -49,8 +53,15 @@ pub async fn route(
         .and_then(|v| v.to_str().ok())
         .unwrap_or_default()
         .to_string();
-    if !content_type.starts_with("image/") {
-        return (StatusCode::BAD_REQUEST, "Not an image").into_response();
+
+    let Some((base_type, subtype)) = content_type.split_once("/") else {
+        return (StatusCode::UNSUPPORTED_MEDIA_TYPE, "Invalid Content-Type").into_response();
+    };
+    if base_type != "image" {
+        return (StatusCode::UNSUPPORTED_MEDIA_TYPE, "Not an image").into_response();
+    }
+    if !ALLOWED_IMAGE_TYPES.contains(&subtype) {
+        return (StatusCode::UNSUPPORTED_MEDIA_TYPE, "Image type not allowed").into_response();
     }
 
     let mut image_bytes = Vec::new();
@@ -63,11 +74,10 @@ pub async fn route(
 
     (
         [
-            (axum::http::header::CONTENT_TYPE, content_type),
-            (
-                axum::http::header::CACHE_CONTROL,
-                "public, max-age=31536000".to_owned(),
-            ),
+            (header::CONTENT_TYPE, content_type),
+            (header::CACHE_CONTROL, "public, max-age=31536000".to_owned()),
+            (header::X_CONTENT_TYPE_OPTIONS, "nosniff".to_owned()),
+            (header::CONTENT_DISPOSITION, "attachment".to_owned()),
         ],
         image_bytes,
     )
