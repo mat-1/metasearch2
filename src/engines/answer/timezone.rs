@@ -104,7 +104,7 @@ fn evaluate(query: &str) -> Option<TimeResponse> {
             let source_time_utc = chrono::Utc
                 .from_local_datetime(&source_time_naive)
                 .latest()?
-                - source_offset.base_utc_offset();
+                - (source_offset.base_utc_offset() + source_offset.dst_offset());
 
             let source_time = source_time_utc.with_timezone(&source_timezone);
             let target_time = source_time_utc.with_timezone(&target_timezone);
@@ -141,6 +141,7 @@ fn evaluate(query: &str) -> Option<TimeResponse> {
 fn parse_timezone(timezone_name: &str) -> Option<Tz> {
     match timezone_name.to_lowercase().as_str() {
         "cst" | "cdt" => Some(Tz::CST6CDT),
+        "est" | "edt" => Some(Tz::EST5EDT),
         _ => Tz::from_str_insensitive(timezone_name)
             .ok()
             .or_else(|| Tz::from_str_insensitive(&format!("etc/{timezone_name}")).ok()),
@@ -150,6 +151,7 @@ fn parse_timezone(timezone_name: &str) -> Option<Tz> {
 fn timezone_to_string(tz: Tz) -> String {
     match tz {
         Tz::CST6CDT => "CST".to_string(),
+        Tz::EST5EDT => "EST".to_string(),
         _ => {
             let tz_string = tz.name();
             if let Some(tz_string) = tz_string.strip_prefix("Etc/") {
