@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeSet, HashMap},
     fmt::{self, Display},
-    net::IpAddr,
     ops::Deref,
     str::FromStr,
     sync::{Arc, LazyLock},
@@ -610,7 +609,6 @@ pub async fn autocomplete(config: &Config, query: &str) -> eyre::Result<Vec<Stri
 
 pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::ClientBuilder::new()
-        .local_address(IpAddr::from_str("0.0.0.0").unwrap())
         // we pretend to be a normal browser so websites don't block us
         // (since we're not entirely a bot, we're acting on behalf of the user)
         .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0")
