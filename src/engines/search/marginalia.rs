@@ -38,7 +38,7 @@ pub fn request(query: &SearchQuery) -> RequestResponse {
     CLIENT
         .get(
             Url::parse_with_params(
-                "https://search.marginalia.nu/search",
+                "https://old-search.marginalia.nu/search",
                 &[
                     ("query", query.query.as_str()),
                     ("profile", config.args.profile.as_str()),
