@@ -14,7 +14,7 @@ use maud::PreEscaped;
 use reqwest::{header::HeaderMap, RequestBuilder};
 use serde::{Deserialize, Deserializer, Serialize};
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::{error, trace};
 
 mod macros;
 mod ranking;
@@ -544,7 +544,7 @@ pub async fn search(
 ) -> eyre::Result<()> {
     let start_time = Instant::now();
 
-    info!("Doing search");
+    trace!("Doing search");
 
     let progress_tx = &progress_tx;
     let send_engine_progress_update = |engine: Engine, update: EngineProgressUpdate| {
