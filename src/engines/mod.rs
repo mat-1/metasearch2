@@ -37,6 +37,7 @@ engines! {
     RightDao = "rightdao",
     Stract = "stract",
     Yep = "yep",
+    GithubRepository = "github_repository",
     // answer
     Dictionary = "dictionary",
     Fend = "fend",
@@ -66,6 +67,7 @@ engine_requests! {
     RightDao => search::rightdao::request, parse_response,
     Stract => search::stract::request, parse_response,
     Yep => search::yep::request, parse_response,
+    GithubRepository => search::github_repository::request, parse_response,
     // answer
     Dictionary => answer::dictionary::request, parse_response,
     Fend => answer::fend::request, None,
