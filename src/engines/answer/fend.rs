@@ -1,7 +1,6 @@
-use std::{cell::Cell, sync::LazyLock};
-
 use fend_core::SpanKind;
 use maud::{html, PreEscaped};
+use std::sync::{atomic::AtomicU32, atomic::Ordering, LazyLock};
 
 use crate::engines::EngineResponse;
 
@@ -147,15 +146,18 @@ pub static FEND_CTX: LazyLock<fend_core::Context> = LazyLock::new(|| {
 });
 
 struct Interrupter {
-    invocations_left: Cell<u32>,
+    invocations_left: AtomicU32,
 }
 
 impl fend_core::Interrupt for Interrupter {
     fn should_interrupt(&self) -> bool {
-        if self.invocations_left.get() == 0 {
+        let v = self.invocations_left.load(Ordering::Relaxed);
+
+        if v == 0 {
             return true;
         }
-        self.invocations_left.set(self.invocations_left.get() - 1);
+
+        self.invocations_left.store(v - 1, Ordering::Relaxed);
         false
     }
 }
@@ -195,7 +197,7 @@ fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
     // - Y = (\f. (\x. f x x)) (\x. f x x); Y(Y)
     // - 10**100000000
     let interrupt = Interrupter {
-        invocations_left: Cell::new(1000),
+        invocations_left: AtomicU32::new(1000),
     };
     let Ok(result) = fend_core::evaluate_with_interrupt(query, &mut context, &interrupt) else {
         return vec![];
