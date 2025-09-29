@@ -1,6 +1,6 @@
-use std::sync::{LazyLock, atomic::AtomicU32, atomic::Ordering};
 use fend_core::SpanKind;
 use maud::{html, PreEscaped};
+use std::sync::{atomic::AtomicU32, atomic::Ordering, LazyLock};
 
 use crate::engines::EngineResponse;
 
@@ -151,13 +151,13 @@ struct Interrupter {
 
 impl fend_core::Interrupt for Interrupter {
     fn should_interrupt(&self) -> bool {
-    	let v = self.invocations_left.load(Ordering::Relaxed);
-    	
+        let v = self.invocations_left.load(Ordering::Relaxed);
+
         if v == 0 {
             return true;
         }
 
-        self.invocations_left.store(v-1, Ordering::Relaxed);
+        self.invocations_left.store(v - 1, Ordering::Relaxed);
         false
     }
 }
@@ -197,7 +197,6 @@ fn evaluate_into_spans(query: &str, multiline: bool) -> Vec<Span> {
     // - Y = (\f. (\x. f x x)) (\x. f x x); Y(Y)
     // - 10**100000000
     let interrupt = Interrupter {
-        //invocations_left: Cell::new(1000),
         invocations_left: AtomicU32::new(1000),
     };
     let Ok(result) = fend_core::evaluate_with_interrupt(query, &mut context, &interrupt) else {
