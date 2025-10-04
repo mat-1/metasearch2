@@ -619,7 +619,7 @@ pub static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
             headers.insert("Accept-Language", "en-US,en;q=0.5".parse().unwrap());
             headers
         })
-        .timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(1))
         .build()
         .unwrap()
 });
