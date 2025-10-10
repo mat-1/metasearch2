@@ -1,5 +1,6 @@
 use base64::Engine;
 use eyre::eyre;
+use rand::Rng;
 use scraper::{ElementRef, Html, Selector};
 use tracing::warn;
 use url::Url;
@@ -10,14 +11,32 @@ use crate::{
 };
 
 pub fn request(query: &str) -> reqwest::RequestBuilder {
-    CLIENT.get(
-        Url::parse_with_params(
-            "https://www.bing.com/search",
-            // filters=rcrse:"1" makes it not try to autocorrect
-            &[("q", query), ("filters", "rcrse:\"1\"")],
-        )
-        .unwrap(),
+    let cvid = generate_cvid();
+    let url = Url::parse_with_params(
+        "https://www.bing.com/search",
+        &[
+            ("q", query),
+            ("pq", query),
+            ("cvid", &cvid),
+            ("filters", "rcrse:\"1\""), // filters=rcrse:"1" makes it not try to autocorrect
+            ("FORM", "PERE"),
+            ("ghc", "1"),
+            ("lq", "0"),
+            ("qs", "n"),
+            ("sk", ""),
+            ("sp", "-1"),
+        ],
     )
+    .unwrap();
+    CLIENT
+        .get(url)
+        .header("Cookie", &format!("SRCHHPGUSR=IG={}", cvid))
+}
+
+fn generate_cvid() -> String {
+    let mut bytes = [0u8; 16];
+    rand::rng().fill(&mut bytes);
+    bytes.iter().map(|b| format!("{:02X}", b)).collect()
 }
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
