@@ -1,156 +1,74 @@
-use std::{
-    sync::{Arc, LazyLock},
-    time::Instant,
-};
-
 use eyre::eyre;
-use parking_lot::RwLock;
-use rand::distr::{slice::Choose, SampleString};
-use scraper::{ElementRef, Selector};
+use scraper::Selector;
+use serde::Deserialize;
+use tracing::error;
 use tracing::warn;
 use url::Url;
 
-use crate::{
-    engines::{EngineImageResult, EngineImagesResponse, EngineResponse, CLIENT},
-    parse::{parse_html_response_with_opts, ParseOpts, QueryMethod},
+use crate::engines::{
+    Engine, EngineImageResult, EngineImagesResponse, EngineResponse, EngineSearchResult,
+    RequestResponse, SearchQuery, CLIENT,
 };
 
-pub fn request(query: &str) -> reqwest::RequestBuilder {
+#[derive(Deserialize)]
+pub struct GoogleConfig {
+    pub custom_search_api_key: String,
+}
+
+#[derive(Deserialize)]
+struct CustomSearchResponse {
+    items: Option<Vec<CustomSearchItem>>,
+}
+
+#[derive(Deserialize)]
+struct CustomSearchItem {
+    title: String,
+    link: String,
+    snippet: Option<String>,
+}
+
+pub fn request(query: &SearchQuery) -> RequestResponse {
+    let config_toml = query.config.engines.get(Engine::Google).extra.clone();
+    let config: GoogleConfig = match toml::Value::Table(config_toml).try_into() {
+        Ok(args) => args,
+        Err(err) => {
+            error!("Failed to parse Google config: {err}");
+            return RequestResponse::None;
+        }
+    };
+
     let url = Url::parse_with_params(
-        "https://www.google.com/search",
+        "https://www.googleapis.com/customsearch/v1",
         &[
-            ("q", query),
-            // nfpr makes it not try to autocorrect
-            ("nfpr", "1"),
-            ("filter", "0"),
-            ("start", "0"),
-            // mobile search, lets us easily search without js
-            ("asearch", "arc"),
-            // required for mobile search to work
-            ("async", &generate_async_value()),
+            ("key", config.custom_search_api_key.as_str()),
+            ("cx", "d4e68b99b876541f0"), // https://git.lolcat.ca/lolcat/4get/src/commit/73f8472eeca07250dea9ea789e612f4a27d4ce5c/data/config.php#L175
+            ("q", query.query.as_ref()),
+            ("num", "10"),
         ],
     )
     .unwrap();
-    CLIENT.get(url)
-}
-
-fn generate_async_value() -> String {
-    // https://github.com/searxng/searxng/blob/08a90d46d6f23607ddecf2a2d9fa216df69d2fac/searx/engines/google.py#L80
-
-    let use_ac = "use_ac:true";
-    let fmt = "_fmt:prog";
-
-    static CURRENT_RANDOM_CHARACTERS: LazyLock<Arc<RwLock<(String, Instant)>>> =
-        LazyLock::new(|| Arc::new(RwLock::new((generate_new_arc_id_random(), Instant::now()))));
-    let (random_characters, last_set) = CURRENT_RANDOM_CHARACTERS.read().clone();
-
-    if last_set.elapsed().as_secs() > 60 * 60 {
-        // copy what searxng does and rotate every hour
-        let mut arc_id = CURRENT_RANDOM_CHARACTERS.write();
-        *arc_id = (generate_new_arc_id_random(), Instant::now());
-    }
-
-    let page_number = 1;
-    let arc_id = format!(
-        "arc_id:srp_{random_characters}_{skip}",
-        skip = 100 + page_number * 10
-    );
-
-    format!("{arc_id},{use_ac},{fmt}")
-}
-
-fn generate_new_arc_id_random() -> String {
-    let candidate_characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
-
-    Choose::new(&candidate_characters.chars().collect::<Vec<_>>())
-        .unwrap()
-        .sample_string(&mut rand::rng(), 23)
+    CLIENT.get(url).into()
 }
 
 pub fn parse_response(body: &str) -> eyre::Result<EngineResponse> {
-    parse_html_response_with_opts(
-        body,
-        ParseOpts::new()
-            // xpd is weird, some results have it but it's usually used for ads?
-            // the :first-child filters out the ads though since for ads the first child is always a
-            // span
-            .result("[jscontroller=SC7lYd]")
-            .title("h3")
-            .href("a[href]")
-            .description(
-                "div[data-sncf='2'], div[data-sncf='1,2'], div[style='-webkit-line-clamp:2']",
-            )
-            .featured_snippet("block-component")
-            .featured_snippet_description(QueryMethod::Manual(Box::new(|el: &ElementRef| {
-                let mut description = String::new();
+    let response: CustomSearchResponse = serde_json::from_str(body)?;
+    let search_results = response
+        .items
+        .unwrap_or_default()
+        .into_iter()
+        .map(|item| EngineSearchResult {
+            title: item.title,
+            url: item.link,
+            description: item.snippet.unwrap_or_default(),
+        })
+        .collect();
 
-                // role="heading"
-                if let Some(heading_el) = el
-                    .select(&Selector::parse("div[role='heading']").unwrap())
-                    .next()
-                {
-                    description.push_str(&format!("{}\n\n", heading_el.text().collect::<String>()));
-                }
-
-                if let Some(description_container_el) = el
-                    .select(&Selector::parse("div[data-attrid='wa:/description'] > span:first-child").unwrap())
-                    .next()
-                {
-                    description.push_str(&iter_featured_snippet_children(&description_container_el));
-                }
-                else if let Some(description_list_el) = el
-                    .select(&Selector::parse("ul").unwrap())
-                    .next()
-                {
-                    // render as bullet points
-                    for li in description_list_el.select(&Selector::parse("li").unwrap()) {
-                        let text = li.text().collect::<String>();
-                        description.push_str(&format!("• {text}\n"));
-                    }
-                }
-
-                Ok(description)
-            })))
-            .featured_snippet_title(".g > div[lang] a h3, div[lang] > div[style='position:relative'] a h3")
-            .featured_snippet_href(QueryMethod::Manual(Box::new(|el: &ElementRef| {
-                let url = el
-                    .select(&Selector::parse(".g > div[lang] a:has(h3), div[lang] > div[style='position:relative'] a:has(h3)").unwrap())
-                    .next()
-                    .and_then(|n| n.value().attr("href"))
-                    .unwrap_or_default();
-                clean_url(url)
-            }))),
-    )
-}
-
-// Google autocomplete responses sometimes include clickable links that include
-// text that we shouldn't show.
-// We can filter for these by removing any elements matching
-// [data-ved]:not([data-send-open-event])
-fn iter_featured_snippet_children(el: &ElementRef) -> String {
-    let mut description = String::new();
-    recursive_iter_featured_snippet_children(&mut description, el);
-    description
-}
-fn recursive_iter_featured_snippet_children(description: &mut String, el: &ElementRef) {
-    for inner_node in el.children() {
-        match inner_node.value() {
-            scraper::Node::Text(t) => {
-                description.push_str(&t.text);
-            }
-            scraper::Node::Element(inner_el) => {
-                if inner_el.attr("data-ved").is_none()
-                    || inner_el.attr("data-send-open-event").is_some()
-                {
-                    recursive_iter_featured_snippet_children(
-                        description,
-                        &ElementRef::wrap(inner_node).unwrap(),
-                    );
-                }
-            }
-            _ => {}
-        }
-    }
+    Ok(EngineResponse {
+        search_results,
+        featured_snippet: None,
+        answer_html: None,
+        infobox_html: None,
+    })
 }
 
 pub fn request_autocomplete(query: &str) -> reqwest::RequestBuilder {
@@ -266,19 +184,4 @@ pub fn parse_images_response(body: &str) -> eyre::Result<EngineImagesResponse> {
     }
 
     Ok(EngineImagesResponse { image_results })
-}
-
-fn clean_url(url: &str) -> eyre::Result<String> {
-    if url.starts_with("/url?q=") {
-        // get the q param
-        let url = Url::parse(format!("https://www.google.com{url}").as_str())?;
-        let q = url
-            .query_pairs()
-            .find(|(key, _)| key == "q")
-            .unwrap_or_default()
-            .1;
-        Ok(q.to_string())
-    } else {
-        Ok(url.to_string())
-    }
 }
