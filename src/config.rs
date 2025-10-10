@@ -50,11 +50,9 @@ impl Default for EnginesConfig {
         use toml::value::Value;
 
         let mut map = HashMap::new();
-        // engines are enabled by default, so engines that aren't listed here are
-        // enabled
+        // engines are enabled by default, so engines that aren't listed here are enabled
 
         // main search engines
-        map.insert(Engine::Google, EngineConfig::new().with_weight(1.05));
         map.insert(Engine::Bing, EngineConfig::new().with_weight(1.0));
         map.insert(Engine::Brave, EngineConfig::new().with_weight(1.25));
         map.insert(
@@ -78,6 +76,10 @@ impl Default for EnginesConfig {
         );
 
         // additional search engines
+        map.insert(
+            Engine::Google,
+            EngineConfig::new().with_weight(1.05).disabled(),
+        );
         map.insert(
             Engine::GoogleScholar,
             EngineConfig::new().with_weight(0.50).disabled(),
