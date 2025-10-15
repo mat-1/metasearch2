@@ -24,6 +24,7 @@ impl Default for Config {
                 stylesheet_url: "".to_string(),
                 stylesheet_str: "".to_string(),
                 favicon_url: "".to_string(),
+                show_autocomplete: true,
             },
             image_search: ImageSearchConfig {
                 enabled: false,
@@ -193,6 +194,7 @@ pub struct UiConfig {
     /// link to them in the index page is visible.
     pub show_settings_link: bool,
     pub site_name: String,
+    pub show_autocomplete: bool,
     pub stylesheet_url: String,
     pub stylesheet_str: String,
     pub favicon_url: String,
@@ -203,6 +205,8 @@ pub struct PartialUiConfig {
     pub show_engine_list_separator: Option<bool>,
     pub show_version_info: Option<bool>,
     pub show_settings_link: Option<bool>,
+    pub show_autocomplete: Option<bool>,
+
     pub site_name: Option<String>,
     pub stylesheet_url: Option<String>,
     pub stylesheet_str: Option<String>,
@@ -218,6 +222,7 @@ impl UiConfig {
         self.show_settings_link = partial
             .show_settings_link
             .unwrap_or(self.show_settings_link);
+        self.show_autocomplete = partial.show_autocomplete.unwrap_or(self.show_autocomplete);
         self.site_name = partial.site_name.unwrap_or(self.site_name.clone());
         self.stylesheet_url = partial
             .stylesheet_url
