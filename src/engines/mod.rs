@@ -573,6 +573,10 @@ pub async fn search(
 pub async fn autocomplete(config: &Config, query: &str) -> eyre::Result<Vec<String>> {
     let mut requests = Vec::new();
     for &engine in Engine::all() {
+        if !config.ui.show_autocomplete {
+            break;
+        }
+
         let config = config.engines.get(engine);
         if !config.enabled {
             continue;
