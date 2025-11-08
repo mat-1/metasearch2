@@ -1,4 +1,4 @@
-FROM lukemathwalker/cargo-chef:latest-rust-slim as chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.91-alpine as chef
 WORKDIR /app
 
 FROM chef AS planner
@@ -11,7 +11,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release
 
-FROM debian:bookworm-slim AS runtime
+FROM alpine:latest AS runtime
 WORKDIR /app
 COPY --from=builder /app/config.toml /usr/local/bin/config.toml
 COPY --from=builder /app/target/release/metasearch /usr/local/bin/metasearch
