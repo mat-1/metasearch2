@@ -170,8 +170,11 @@ pub async fn get(
         config: config.clone().into(),
     };
 
-    let trying_to_use_api =
-        query.request_headers.get("accept") == Some(&"application/json".to_string());
+    let trying_to_use_api = query
+        .request_headers
+        .get("accept")
+        .is_some_and(|accept| accept == "application/json")
+        || params.get("format").is_some_and(|format| format == "json");
     if trying_to_use_api {
         if !config.api {
             return (StatusCode::FORBIDDEN, "API access is disabled").into_response();
