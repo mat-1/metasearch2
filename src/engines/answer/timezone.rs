@@ -142,6 +142,7 @@ fn parse_timezone(timezone_name: &str) -> Option<Tz> {
     match timezone_name.to_lowercase().as_str() {
         "cst" | "cdt" => Some(Tz::CST6CDT),
         "est" | "edt" => Some(Tz::EST5EDT),
+        "cest" => Some(Tz::Etc__GMTMinus2),
         _ => Tz::from_str_insensitive(timezone_name)
             .ok()
             .or_else(|| Tz::from_str_insensitive(&format!("etc/{timezone_name}")).ok()),
