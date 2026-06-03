@@ -55,6 +55,8 @@ options you may want to change are:
   - image_search.enabled - add a tab for viewing image results for your query.
     this is disabled by default as the image proxy could be used to make GET
     requests to arbitrary URLs from your server.
+  - engines.google.custom_search_api_key - need to enable google. 100 free
+    searches a day: https://developers.google.com/custom-search/v1/overview
   - engines.google.weight - the ranking score multiplier for an engine, you can
     modify this if you prefer the results from certain engines.
 
