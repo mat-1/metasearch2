@@ -3,6 +3,7 @@
 //! an infobox was added by another earlier engine.
 
 pub mod docs_rs;
+pub mod cppreference;
 pub mod github;
 pub mod mdn;
 pub mod minecraft_wiki;
