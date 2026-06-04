@@ -53,7 +53,7 @@ pub fn parse_response(HttpResponse { res, body, .. }: &HttpResponse) -> Option<P
     }
 
 
-    // santizie the example by itself so it can be seperated in the postanswer
+    // sanitize the example by itself so it can be separated in the postanswer
     let sanitized_example = if !example_html.is_empty() {
         ammonia::Builder::default()
             .link_rel(None)
