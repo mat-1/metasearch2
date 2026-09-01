@@ -50,6 +50,7 @@ engines! {
     Wikipedia = "wikipedia",
     // post-search
     DocsRs = "docs_rs",
+    CppReference = "cppreference",
     GitHub = "github",
     Mdn = "mdn",
     MinecraftWiki = "minecraft_wiki",
@@ -87,6 +88,7 @@ engine_autocomplete_requests! {
 
 engine_postsearch_requests! {
     DocsRs => postsearch::docs_rs::request, parse_response,
+    CppReference => postsearch::cppreference::request, parse_response,
     GitHub => postsearch::github::request, parse_response,
     Mdn => postsearch::mdn::request, parse_response,
     MinecraftWiki => postsearch::minecraft_wiki::request, parse_response,
