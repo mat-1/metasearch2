@@ -83,13 +83,21 @@ pub async fn run(config: Config) {
 
     info!("Listening on http://{bind_addr}");
 
-    let listener = tokio::net::TcpListener::bind(bind_addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(bind_addr)
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("metasearch2: failed to bind to {bind_addr}: {e}");
+            std::process::exit(1);
+        });
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .await
-    .unwrap();
+    .unwrap_or_else(|e| {
+        eprintln!("metasearch2: server error: {e}");
+        std::process::exit(1);
+    });
 }
 
 fn guess_mime_type(path: &str) -> &'static str {
