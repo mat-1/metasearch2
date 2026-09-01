@@ -17,6 +17,11 @@ api = false
 # numbat = false
 # fend = true
 
+[engines.google]
+# enabled = true
+# 100 free searches a day: https://developers.google.com/custom-search/v1/overview
+# custom_search_api_key = ''
+
 [urls.replace]
 # "www.reddit.com" = "old.reddit.com"
 # "medium.com" = "scribe.rip"
