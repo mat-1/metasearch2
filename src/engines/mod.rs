@@ -34,6 +34,7 @@ engines! {
     Bing = "bing",
     Brave = "brave",
     Marginalia = "marginalia",
+    Purili = "purili",
     RightDao = "rightdao",
     Stract = "stract",
     Yep = "yep",
@@ -63,6 +64,7 @@ engine_requests! {
     GoogleScholar => search::google_scholar::request, parse_response,
     Google => search::google::request, parse_response,
     Marginalia => search::marginalia::request, parse_response,
+    Purili => search::purili::request, parse_response,
     RightDao => search::rightdao::request, parse_response,
     Stract => search::stract::request, parse_response,
     Yep => search::yep::request, parse_response,
@@ -81,6 +83,7 @@ engine_requests! {
 
 engine_autocomplete_requests! {
     Google => search::google::request_autocomplete, parse_autocomplete_response,
+    Purili => search::purili::request_autocomplete, parse_autocomplete_response,
     Fend => answer::fend::request_autocomplete, None,
     Numbat => answer::numbat::request_autocomplete, None,
 }
