@@ -84,6 +84,10 @@ impl Default for EnginesConfig {
             EngineConfig::new().with_weight(0.50).disabled(),
         );
         map.insert(
+            Engine::Purili,
+            EngineConfig::new().with_weight(0.75).disabled(),
+        );
+        map.insert(
             Engine::RightDao,
             EngineConfig::new().with_weight(0.10).disabled(),
         );
